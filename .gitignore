@@ -1,0 +1,12 @@
+site/
+.cache/
+__pycache__/
+.DS_Store
+*.docx
+*.xlsx
+.claude/
+# material de trabajo y de origen: no se publica
+*.mbz
+aula-2024-25/
+planificacion-PPS.md
+origen/

@@ -1,0 +1,133 @@
+site_name: Puesta en producción segura
+site_description: Apuntes de la asignatura Puesta en producción segura. Prueba de aplicaciones, nivel de seguridad requerido, vulnerabilidades web, aplicaciones móviles y despliegue seguro de software.
+site_url: https://victor-educ.github.io/apuntes-PPS/
+repo_url: https://github.com/victor-educ/apuntes-PPS
+repo_name: victor-educ/apuntes-PPS
+edit_uri: edit/main/docs/
+copyright: Víctor Sellés, con apoyo de Claude (Anthropic) · CC BY-SA 4.0
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: es
+  icon:
+    logo: material/shield-check
+    repo: fontawesome/brands/github
+  favicon: assets/logo.svg
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: red
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: red
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+extra:
+  version: !ENV [SITE_VERSION, "local"]
+  commit: !ENV [SITE_COMMIT, ""]
+  nav_icons:
+    Inicio: material/home
+    Presentación y evaluación: material/school
+    Calendario: material/calendar-month
+    Laboratorio: material/flask
+    Unidades: material/book-open-page-variant
+    Recursos: material/toolbox
+    PDF: material/file-pdf-box
+    UT1 · Prueba de aplicaciones: material/bug-check
+    UT2 · Nivel de seguridad requerido: material/clipboard-check
+    UT3 · Vulnerabilidades web: material/web-cancel
+    UT4 · Aplicaciones móviles: material/cellphone-lock
+    UT5 · Despliegue seguro: material/rocket-launch
+    Chuleta de comandos: material/console
+    Glosario: material/book-alphabet
+    Material de partida: material/folder-open
+    Bibliografía y enlaces: material/link-variant
+    Para ampliar: material/book-plus
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 4
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search:
+      lang: es
+  - print-site:
+      add_to_navigation: true
+      print_page_title: PDF
+      add_cover_page: true
+      cover_page_template: docs/assets/templates/portada.tpl
+      add_table_of_contents: true
+      toc_title: Índice
+      toc_depth: 2
+      add_full_urls: false
+      enumerate_headings: false
+      enumerate_figures: false
+      add_print_site_banner: true
+      print_site_banner_template: docs/assets/templates/aviso.tpl
+      print_page_basename: pdf
+      exclude:
+        - calendario.md
+
+nav:
+  - Inicio: index.md
+  - Unidades:
+      - UT1 · Prueba de aplicaciones: ut/ut1-prueba-aplicaciones.md
+      - UT2 · Nivel de seguridad requerido: ut/ut2-nivel-seguridad.md
+      - UT3 · Vulnerabilidades web: ut/ut3-vulnerabilidades-web.md
+      - UT4 · Aplicaciones móviles: ut/ut4-aplicaciones-moviles.md
+      - UT5 · Despliegue seguro: ut/ut5-despliegue-seguro.md
+  - Calendario: calendario.md
+  - Recursos:
+      - Presentación y evaluación: modulo.md
+      - Laboratorio: laboratorio.md
+      - Material de partida: material.md
+      - Chuleta de comandos: chuleta.md
+      - Glosario: glosario.md
+      - Para ampliar: ampliacion.md
+      - Bibliografía y enlaces: recursos.md
