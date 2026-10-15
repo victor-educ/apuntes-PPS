@@ -100,6 +100,24 @@ Notas sobre la tabla:
 - **Clonar** significa clon completo con MAC nueva, y después cambiar el nombre (`hostnamectl set-hostname`), regenerar `/etc/machine-id` y editar la IP de `/etc/netplan/60-lab.yaml`, como se hace en la A5.12.
 - **Genymotion y el DHCP de `vboxnet0`.** El servidor DHCP limitado a la `.20` (A5.8) es posterior a `movil01` y no la afecta mientras dure la UT4; si `movil01` se vuelve a arrancar después, puede quedarse sin dirección.
 
+#### Crear `debian12` desde el anfitrión
+
+`debian12` se crea desde el anfitrión con dos adaptadores (NAT temporal para la instalación y los primeros paquetes, y solo anfitrión con la IP fija `192.168.56.50` para que `pps01` le copie ficheros por `scp`) y una instalación desatendida contra la ISO de `~/iso/` (la que se descarga en la tarea de casa de la A2.4). Antes de lanzarla se cambia la ruta al fichero de ISO exacto descargado y la contraseña del usuario `alumno`:
+
+```bash
+VBoxManage createvm --name debian12 --platform-architecture x86 --ostype Debian_64 --register
+VBoxManage modifyvm debian12 --memory 2048 --cpus 1 --nic1 nat --nic2 hostonly --hostonlyadapter2 vboxnet0
+VBoxManage createmedium disk --filename ~/VirtualBox\ VMs/debian12/debian12.vdi --size 15360
+VBoxManage storagectl debian12 --name SATA --add sata --controller IntelAhci
+VBoxManage storageattach debian12 --storagectl SATA --port 0 --device 0 --type hdd \
+  --medium ~/VirtualBox\ VMs/debian12/debian12.vdi
+VBoxManage storagectl debian12 --name IDE --add ide
+VBoxManage unattended install debian12 --iso="$HOME/iso/debian-12.X.0-amd64-netinst.iso" \
+  --user=alumno --user-password=<contraseña> --full-user-name=alumno --start-vm=gui
+```
+
+La instalación tarda entre 10 y 15 minutos. El resto de la preparación (fijar la IP, copiar los ficheros desde `pps01`, instalar paquetes, tomar la instantánea `antes-a25` y quitar el adaptador NAT) la hace la A2.5, que es la única hoja que usa esta máquina.
+
 ### Presupuesto de memoria
 
 Un equipo de 16 GB reserva unos 5 GB para el sistema anfitrión, VirtualBox y el navegador, y deja **unos 11 GB para las máquinas encendidas a la vez**. La tabla suma lo que cada sesión necesita encendido:
@@ -247,7 +265,7 @@ Lo que sí es secreto se trata siempre igual:
 
 **Todo lo que se entrega sale de un único repositorio, `pps-entregas`, privado, en la cuenta de GitHub `pps<NIA>`**, y en él se añade como colaborador a quien corrige, con el usuario que indique el profesor. Se comprueba en *Settings, Collaborators* antes de cada plazo: un repositorio privado al que quien corrige no tiene acceso equivale a una entrega vacía.
 
-El repositorio se crea vacío y se clona en `pps01` con `git clone git@github.com:pps<NIA>/pps-entregas.git ~/pps-entregas`. La plantilla del curso anterior, <https://github.com/pkaminasfp/template>, existe y responde, pero no está marcada como plantilla en GitHub: no hay botón *Use this template*. Se clona aparte (`git clone https://github.com/pkaminasfp/template.git ~/plantilla`) y se toma de ella el modelo del `README.md`.
+El repositorio se crea vacío y se clona en `pps01` con `git clone git@github.com:pps<NIA>/pps-entregas.git ~/pps-entregas`. La plantilla de referencia, <https://github.com/pkaminasfp/template>, existe y responde, pero no está marcada como plantilla en GitHub: no hay botón *Use this template*. Se clona aparte (`git clone https://github.com/pkaminasfp/template.git ~/plantilla`) y se toma de ella el modelo del `README.md`.
 
 ```text
 pps-entregas/

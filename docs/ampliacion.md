@@ -316,7 +316,7 @@ Para automatizar una primera pasada se puede usar **MobSF** (*Mobile Security Fr
 
 ## UT5 · Despliegue seguro
 
-Material que va más allá de lo que se hace en clase en la [UT5](ut/ut5-despliegue-seguro.md): OpenTofu como continuación abierta de Terraform, GitLab CI como equivalente de Jenkins, Kubernetes estándar frente a K3s, la firma de artefactos con Sigstore y el trabajo de ampliación del curso anterior (`PPS PoC's.pdf`), con sus seis retos.
+Material que va más allá de lo que se hace en clase en la [UT5](ut/ut5-despliegue-seguro.md): OpenTofu como continuación abierta de Terraform, GitLab CI como equivalente de Jenkins, Kubernetes estándar frente a K3s, la firma de artefactos con Sigstore y un trabajo de ampliación con seis retos.
 
 ### OpenTofu
 
@@ -399,9 +399,9 @@ cosign verify registry.ejemplo.local/pps-app:1.0 \
 
 La primera orden firma la imagen abriendo el flujo de identidad; la segunda verifica exigiendo quién firmó y con qué proveedor. Un pipeline puede negarse a desplegar una imagen cuya verificación falle, que es la forma práctica de convertir la firma en una barrera. Conviene recordar el límite que ya se vio en la sesión 43: firmar prueba de dónde viene el artefacto, no que esté libre de vulnerabilidades.
 
-### El trabajo de ampliación del curso anterior
+### Trabajo de ampliación con retos
 
-El aula de 2024-25 incluye, en la carpeta `01-Examenes/02 Treball`, el documento `PPS PoC's.pdf`, un trabajo de ampliación con seis retos, sin plazo ni peso indicados en el propio documento. Se conserva como propuesta para ir más allá de las entregas de la asignatura; cualquier valoración la fija el profesor. Cada reto se apoya en algo que ya se ha practicado.
+El aula incluye un trabajo de ampliación con seis retos, sin plazo ni peso. Es una propuesta para ir más allá de las entregas de la asignatura; cualquier valoración la fija el profesor. Cada reto se apoya en algo que ya se ha practicado.
 
 | Reto | Se apoya en | Cómo abordarlo |
 |---|---|---|

@@ -45,7 +45,7 @@ flowchart LR
 
     ---
 
-    Los apuntes de las cinco unidades, una por resultado de aprendizaje. Cada una empieza con una introducción (qué hay que saber hacer al terminar, los conceptos y herramientas, el plan de sesiones) y sigue con las sesiones en orden: la teoría de ese día y su hoja de práctica. Las prácticas evaluables cierran la unidad con su rúbrica.
+    Los apuntes de las cinco unidades, una por resultado de aprendizaje. Cada una empieza con un par de párrafos sobre lo que se busca y sigue con las sesiones en orden: la teoría de ese día y su hoja de práctica. Las prácticas evaluables cierran la unidad con su rúbrica.
 
 -   :material-calendar-month: **[Calendario de sesiones](calendario.md)**
 
@@ -64,12 +64,6 @@ flowchart LR
     ---
 
     El puesto de trabajo, la máquina `pps01` y el resto de máquinas virtuales, puertos y nombres, cuentas, el repositorio de entregas, cómo aislar las máquinas vulnerables y qué hacer si algo se rompe.
-
--   :material-folder-open: **[Material de partida](material.md)**
-
-    ---
-
-    Qué había en el aula del curso anterior y en la web sobre cada tema, y de dónde procede cada recurso, con su autoría y su licencia.
 
 -   :material-console: **[Chuleta de comandos](chuleta.md)**
 
@@ -116,7 +110,7 @@ Las **prácticas evaluables no tienen sesión propia**. Cada entrega se construy
 ## Cómo usar estos apuntes
 
 - Conviene leer la sesión antes de clase. Cada unidad está ordenada por sesiones, con la teoría de ese día seguida de su hoja de práctica. En clase la explicación es corta y el laboratorio largo.
-- Cada sesión empieza con un recuadro "Material de partida" que indica qué había sobre ese tema en el aula del curso anterior y en la web. El enunciado de cada entrega sigue estando en el aula; la hoja guía la práctica y dice qué se sube.
+- Cada sesión empieza con un recuadro "Recursos de la sesión" que reúne, con lo esencial separado de lo opcional, los enlaces y la documentación que esa sesión necesita. El enunciado de cada entrega está en el aula; la hoja guía la práctica y dice qué se sube.
 - Los comandos están pensados para copiarlos en la máquina `pps01`. Si algo no funciona igual en la versión instalada, el primer sitio donde mirar es "Errores frecuentes" de la unidad y, para lo general, [Si algo se rompe](laboratorio.md#si-algo-se-rompe).
 - Conviene documentar sobre la marcha: una captura, la salida de un comando, el fichero corregido. Al terminar cada hoja se sube al repositorio de entregas, y al final de la unidad eso es la práctica.
 - Las plataformas de aprendizaje a ritmo propio (CryptoZombies, Learn Git Branching, PortSwigger Academy y Atenea) se empiezan en clase y se completan en casa antes del plazo de la entrega correspondiente.
@@ -127,4 +121,4 @@ Se da por hecho un ciclo superior de informática: terminal de Linux, redes bás
 
 ## Sobre estos apuntes
 
-Este material lo ha escrito el profesor de la asignatura con el apoyo de Claude, y se apoya en el material del curso anterior; la nota completa sobre cómo se ha elaborado y de dónde procede cada recurso está en la [página de presentación](modulo.md#sobre-el-material). Los errores se pueden comunicar en clase o abrir como issue en el [repositorio](https://github.com/victor-educ/apuntes-PPS). El texto propio se publica con licencia [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.es); el material de terceros se enlaza y se cita con su atribución, no se copia. La versión publicada aparece en el pie de cada página.
+Este material lo ha escrito el profesor de la asignatura con el apoyo de Claude; la nota completa sobre cómo se ha elaborado está en la [página de presentación](modulo.md#sobre-el-material). Los errores se pueden comunicar en clase o abrir como issue en el [repositorio](https://github.com/victor-educ/apuntes-PPS). El texto propio se publica con licencia [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.es); el material de terceros se enlaza a su origen, no se copia. La versión publicada aparece en el pie de cada página.

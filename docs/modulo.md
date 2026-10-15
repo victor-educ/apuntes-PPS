@@ -166,19 +166,19 @@ Las plataformas de aprendizaje a ritmo propio (CryptoZombies, Learn Git Branchin
 
 ## Sobre el material
 
-**Autoría.** Estos apuntes los ha escrito el profesor de la asignatura con el apoyo de Claude, el asistente de IA de Anthropic, que ha intervenido en la redacción, la ampliación y la revisión a partir de la planificación del curso y del material de partida del aula. No se oculta: la revisión final y la responsabilidad de lo que dice el texto son del profesor, y los errores que queden se corrigen durante el curso.
+**Autoría.** Estos apuntes los ha escrito el profesor de la asignatura con el apoyo de Claude, el asistente de IA de Anthropic, que ha intervenido en la redacción, la ampliación y la revisión a partir de la planificación del curso. No se oculta: la revisión final y la responsabilidad de lo que dice el texto son del profesor, y los errores que queden se corrigen durante el curso.
 
 **Licencia.** El texto propio de estos apuntes se publica con la licencia [Creative Commons Reconocimiento-CompartirIgual 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/deed.es): se puede copiar, adaptar y redistribuir citando la fuente y manteniendo la misma licencia.
 
-**Material de terceros.** No se copia. Los enunciados originales, las plantillas, los laboratorios y las aplicaciones vulnerables tienen sus propios autores y licencias: se enlazan, se citan por su nombre y se usan tal como los publica cada fuente. Los esquemas de estas páginas son propios y no incluyen imágenes de terceros.
+**Material de terceros.** No se copia. Las herramientas, los laboratorios y las aplicaciones vulnerables de las prácticas tienen sus propios autores y licencias: se enlazan a su origen y se usan tal como los publica cada fuente. Los esquemas de estas páginas son propios y no incluyen imágenes de terceros.
 
-**El aula de Aules.** Es el espacio del curso en la plataforma del centro. En ella se entregan las prácticas evaluables y están la normativa y la plantilla de entrega, los enunciados de las entregas y las rúbricas. Estos apuntes explican y guían; el aula recibe el trabajo. La lista completa del material de partida, con sus autores y su procedencia, está en [Material de partida](material.md).
+**El aula de Aules.** Es el espacio del curso en la plataforma del centro. En ella se entregan las prácticas evaluables y están la normativa y la plantilla de entrega, los enunciados de las entregas y las rúbricas. Estos apuntes explican y guían; el aula recibe el trabajo.
 
 ## Metodología
 
-Cada sesión de 110 minutos combina una explicación breve y una parte larga de laboratorio. El [calendario](calendario.md) y el plan de sesiones de cada unidad dicen qué se explica y qué se practica cada día, y de qué tipo es la sesión: teoría y práctica, solo práctica, margen o examen.
+Cada sesión de 110 minutos combina una explicación breve y una parte larga de laboratorio. El [calendario](calendario.md) dice qué se explica y qué se practica cada día, y de qué tipo es la sesión: teoría y práctica, solo práctica, margen o examen.
 
-**Explicación breve.** Cada apartado técnico empieza por lo que se quiere conseguir y qué herramienta se usa para qué, y solo después entra en el detalle. La tabla *Los conceptos de la unidad* que abre cada unidad hace de glosario previo. El texto está escrito para leerse por cuenta propia, antes y después de la clase: quien ha faltado a una sesión puede recuperarla con la unidad.
+**Explicación breve.** Cada apartado técnico empieza por lo que se quiere conseguir y qué herramienta se usa para qué, y solo después entra en el detalle. El texto está escrito para leerse por cuenta propia, antes y después de la clase: quien ha faltado a una sesión puede recuperarla con la unidad.
 
 **Hoja de práctica.** Cada sesión con laboratorio tiene su hoja, escrita en segunda persona y con la misma estructura: objetivo, requisitos previos, pasos, comprobación y entrega. Las prácticas ofensivas terminan con la corrección: no basta con encontrar el fallo, hay que arreglarlo y comprobar que el ataque ya no funciona. El detalle que no cambia lo que se teclea o se decide queda fuera del hilo principal.
 

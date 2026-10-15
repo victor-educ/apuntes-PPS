@@ -7,57 +7,20 @@ Antes de escribir una línea de código de una aplicación hace falta responder 
 !!! ojo "Solo sobre lo propio o lo autorizado por escrito"
     Esta unidad reproduce vulnerabilidades reales (Log4Shell, la puerta trasera de xz) contra aplicaciones y máquinas deliberadamente vulnerables, en la máquina virtual propia del alumno y sin salida a la red del aula. Acceder sin autorización a un sistema ajeno es delito en España (Código Penal, artículos 197 bis y 264 y siguientes), aunque la intención sea "solo mirar" y aunque no se cause daño. El criterio profesional es siempre el mismo: solo sobre lo propio o lo que se ha autorizado por escrito. Ninguna hoja de esta unidad escribe código de explotación nuevo: se usan las herramientas y los repositorios que documenta el material del curso, siguiendo su propia documentación.
 
-## Introducción
-
-### Qué tienes que saber hacer al terminar
-
-- Caracterizar los tres niveles de verificación de seguridad de OWASP ASVS y elegir el que corresponde a una aplicación según su riesgo (CE a, b).
-- Enumerar y verificar los requisitos de un nivel de ASVS sobre un escenario concreto, indicando dónde se aplican, con qué técnica o fichero y qué prueba lo demuestra (CE c).
-- Reconocer los principales riesgos de una aplicación a partir de vulnerabilidades reales, clasificándolas por categoría de OWASP Top 10, identificador CWE y puntuación CVSS (CE d).
-- Auditar la seguridad de Docker con `docker-bench-security` y aplicar un perfil de AppArmor a un contenedor (CE c, d).
-- Explicar cómo un ataque a la cadena de suministro compromete una dependencia de uso común y qué controles lo habrían detectado (CE d).
-
-### Los conceptos de la unidad
-
-Un requisito de seguridad sin una forma de verificarlo no sirve para nada: es una frase bonita que nadie puede comprobar. Y una vulnerabilidad sin clasificar tampoco sirve: si no se sabe si es una inyección o un fallo de configuración, no se sabe a quién avisar ni qué corregir primero. Esta unidad da los catálogos que resuelven las dos cosas.
-
-| Herramienta o concepto | Qué es, en una frase | Para qué se usa en esta unidad |
-|---|---|---|
-| OWASP Top 10 | Lista de las diez categorías de riesgo más comunes en aplicaciones web, mantenida por la comunidad OWASP | Clasificar las diez vulnerabilidades reales de la A2.1 |
-| CWE (Common Weakness Enumeration) | Catálogo que identifica con un número cada tipo de debilidad de software, independientemente de dónde aparezca | Etiquetar la causa técnica de cada vulnerabilidad de la A2.1 y de cada requisito de ASVS |
-| CVE (Common Vulnerabilities and Exposures) | Identificador único de una vulnerabilidad concreta ya descubierta y publicada, con su ficha en la NVD (base de datos nacional de vulnerabilidades de EE. UU.) | Localizar y documentar las diez vulnerabilidades reales de la A2.1 |
-| CVSS (Common Vulnerability Scoring System) | Sistema que puntúa de 0 a 10 la gravedad de una vulnerabilidad a partir de cómo se explota y qué daño causa | Justificar el riesgo de cada vulnerabilidad de la A2.1 |
-| OWASP ASVS (Application Security Verification Standard) | Estándar con tres niveles (L1 a L3) de requisitos de verificación de seguridad para aplicaciones | Elegir el nivel del escenario de la práctica y verificar sus requisitos L1 (A2.2, A2.3) |
-| Namespaces y cgroups | Mecanismos del kernel de Linux que aíslan los recursos de un proceso y limitan cuánto puede consumir | Entender qué separa un contenedor de otro y del sistema anfitrión |
-| seccomp, AppArmor y SELinux | Tres mecanismos del kernel que restringen lo que puede hacer un proceso, cada uno con su propio enfoque | Diseñar y aplicar un perfil de AppArmor a un contenedor (A2.4) |
-| `docker-bench-security` | Script que audita la configuración de Docker frente a un catálogo de buenas prácticas | Auditar el demonio Docker de `pps01` (A2.4) |
-| CVE-2024-3094 (xz / liblzma) | Puerta trasera introducida en la cadena de suministro de una librería de compresión muy extendida, que llegó a afectar a OpenSSH | Caso de estudio de un ataque a la cadena de suministro (A2.5) |
-| `ldd` | Utilidad que muestra qué bibliotecas dinámicas carga un ejecutable | Comprobar que `sshd` carga `liblzma` de forma indirecta (A2.5) |
-| Ransomware | Malware que cifra o bloquea el acceso a los datos y exige un rescate por liberarlos | Analizar su comportamiento y sus medidas de prevención (actividad optativa de la sesión 14) |
-
-### Plan de sesiones
-
-Cada sesión de 110 minutos empieza con una explicación corta y sigue con laboratorio. La columna «Se explica» recoge los apartados de teoría que se desarrollan en clase, con su duración aproximada; la columna «Se practica», el trabajo de laboratorio de esa sesión.
-
-| Sesión | Fecha | Tipo | Se explica | Se practica |
-|---:|---|---|---|---|
-| [9](#sesion-9-fuentes-de-riesgo-owasp-top-10-cwe-y-cve) | 5 nov | Teoría y práctica | Fuentes abiertas de vulnerabilidades: OWASP Top 10, CWE y CVE (15 min); CVSS: puntuar la gravedad (10 min). | Clasificar diez vulnerabilidades reales por categoría del Top 10, CWE y CVSS y explicar qué riesgo supone cada una para una aplicación concreta. |
-| [10](#sesion-10-asvs-niveles-y-requisitos) | 9 nov | Teoría y práctica | OWASP ASVS: qué es y su estructura por capítulos (10 min); elegir el nivel: L1, L2 y L3 (15 min). | Elegir el nivel de verificación para el escenario de la práctica y montar la hoja de cálculo con los primeros requisitos L1. |
-| [11](#sesion-11-asvs-verificacion-de-los-requisitos-l1) | 12 nov | Teoría y práctica | Verificar un requisito: dónde, con qué técnica y con qué prueba (15 min). | Completar los requisitos L1 restantes indicando el servidor, la técnica y la prueba de cada uno. |
-| [12](#sesion-12-seguridad-en-docker) | 16 nov | Teoría y práctica | Namespaces y cgroups: el aislamiento de un contenedor (10 min); seccomp, AppArmor y SELinux: limitar lo que hace un proceso (10 min); la superficie de ataque del demonio (5 min). | Levantar el laboratorio Log4Shell de forma contenida, ejecutar `docker-bench-security` y aplicar un perfil de AppArmor a un contenedor. |
-| [13](#sesion-13-cadena-de-suministro-el-caso-xz) | 19 nov | Teoría y práctica | La cadena de suministro: el caso xz (15 min). | Reproducir en una máquina Debian 12 aislada los tres escenarios del laboratorio y analizar con `ldd` qué librerías carga el servidor SSH. |
-| [14](#sesion-14-margen-y-repaso-de-la-unidad-2) | 23 nov | Margen | (sin teoría) | Repaso de la unidad y, si no se ha perdido ninguna clase, análisis optativo de un ransomware de laboratorio en una máquina aislada con instantánea (ACT_UT2_4); si se ha perdido alguna, aquí se recupera lo pendiente. |
-
-Las [prácticas evaluables](#practicas-evaluables-de-la-unidad) no tienen sesión propia: cada entrega se construye con varias hojas y se cierra en su plazo.
-
 ## Sesión 9 · Fuentes de riesgo: OWASP Top 10, CWE y CVE
 
 <p class="ut-meta" markdown>5 de noviembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Fuentes abiertas de vulnerabilidades: OWASP Top 10, CWE y CVE · 15 min&#10;CVSS: puntuar la gravedad · 10 min&#10;A2.1 Riesgos de una aplicación · 85 min" data-dur="Fuentes abiertas de vulnerabilidades: OWASP Top 10, CWE y CVE · 15 min&#10;CVSS: puntuar la gravedad · 10 min&#10;A2.1 Riesgos de una aplicación · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
 Al acabar esta sesión hay diez vulnerabilidades reales clasificadas por categoría de OWASP Top 10, identificador CWE y puntuación CVSS, cada una con una explicación del riesgo concreto que supone para una aplicación. Antes de eso, dos apartados cortos dan el vocabulario: de dónde salen estos catálogos y qué significa cada sigla, y cómo se lee una puntuación CVSS. Es la sesión que abre la unidad y también la que sienta el vocabulario de riesgo que reaparece en la UT3.
 
-!!! consulta "Material de partida"
-    En el aula (`RA2-Nivel-seguridad/01 Material`) están `Tema_3.pdf` y `Tema_4.pdf`, las diapositivas de metodología de pentesting que dan trasfondo a esta sesión y que se retoman con más detalle en la UT3; de ahí sale la clasificación WASC y el catálogo CWE/SANS Top 25 que se mencionan aquí. El enunciado de la entrega, `ACT_RA2_1.pdf`, está en `02 ACT_RA2_1`. En la web, los *Apuntes de Puesta en Producción Segura* recogen el mismo contenido en su unidad 2, apartado «Lista de riesgos de seguridad habituales» (<https://github.com/EloyAlbiach/PPS/blob/main/seguridad_aplicaciones/OWASP_TOP_10/Readme.md>, CC BY-NC-SA 4.0; la atribución completa está en [Material y autoría](../material.md)). Las fuentes oficiales son [OWASP Top 10:2021](https://owasp.org/Top10/2021/), el [catálogo CWE](https://cwe.mitre.org/) del MITRE, la [NVD](https://nvd.nist.gov/) del NIST (donde vive cada ficha CVE) y la [especificación de CVSS](https://www.first.org/cvss/v3.1/specification-document) del FIRST. La autoría de todo el material está en [Material y autoría](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [OWASP Top 10:2021](https://owasp.org/Top10/2021/): las diez categorías de riesgo web.
+    - [Catálogo CWE](https://cwe.mitre.org/) del MITRE: los tipos de debilidad.
+    - [NVD](https://nvd.nist.gov/) del NIST: donde vive cada ficha CVE.
+    - [Especificación de CVSS 3.1](https://www.first.org/cvss/v3.1/specification-document): cómo se puntúa la gravedad.
+    - El enunciado de la entrega ACT_UT2_1 está en el aula.
 
 ### Fuentes abiertas de vulnerabilidades: OWASP Top 10, CWE y CVE
 
@@ -121,15 +84,9 @@ La ficha de la NVD de cada CVE incluye su vector CVSS completo (una cadena como 
 
 <span class="et et-pas">Pasos</span>
 
-1. En el repositorio `pps-entregas`, crea la carpeta de la hoja y la tabla de trabajo:
+1. En el repositorio `pps-entregas`, crea la carpeta `ut2/a21/` y, dentro, la tabla de trabajo con las columnas `CVE`, `Nombre común`, `CWE`, `Categoría OWASP Top 10 2021`, `CVSS (puntuación y severidad)` y `Riesgo para una aplicación concreta`.
 
-    ```bash
-    mkdir -p ~/pps-entregas/ut2/a21 && cd ~/pps-entregas/ut2/a21
-    ```
-
-    Con las columnas: `CVE`, `Nombre común`, `CWE`, `Categoría OWASP Top 10 2021`, `CVSS (puntuación y severidad)`, `Riesgo para una aplicación concreta`.
-
-2. Busca en la NVD la ficha de cada una de estas diez vulnerabilidades (el nombre común entre paréntesis es solo una ayuda para localizarla, no hace falta citarlo en la tabla):
+2. Busca en la NVD la ficha de cada una de estas diez vulnerabilidades y anota su CWE y su puntuación CVSS v3.1 con severidad tal como aparecen en la ficha:
 
     - `CVE-2021-44228` (Log4Shell)
     - `CVE-2014-0160` (Heartbleed)
@@ -142,10 +99,11 @@ La ficha de la NVD de cada CVE incluye su vector CVSS completo (una cadena como 
     - `CVE-2022-40684` (bypass de autenticación en FortiOS)
     - `CVE-2023-34362` (la de MOVEit Transfer)
 
-3. Para cada una, anota en la tabla el CWE y la puntuación CVSS v3.1 con su severidad tal como aparecen en la ficha de la NVD.
-4. Decide la categoría de OWASP Top 10 2021 que mejor explica cada una. Si una vulnerabilidad encaja en más de una categoría (como se ve en `CVE-2024-3094` en el apartado de teoría), elige la principal y anota entre paréntesis la secundaria.
-5. Para cada vulnerabilidad, escribe en dos o tres líneas qué riesgo concreto supondría si apareciera en una de estas tres aplicaciones (elige la que tenga más sentido para esa vulnerabilidad y dilo): una tienda en línea con pagos, un servicio interno de gestión de incidencias, o una aplicación de mensajería con archivos adjuntos.
-6. Escribe el `README.md` de la hoja con la tabla completa y súbelo: `git add . && git commit -m "A2.1 Riesgos de una aplicacion" && git push`.
+    *Pista:* el nombre común entre paréntesis solo ayuda a localizar la ficha, no hace falta citarlo en la tabla. Si la ficha muestra varias versiones de CVSS, usa la v3.1 y, si hay dos, la del NIST.
+
+3. Decide para cada una la categoría de OWASP Top 10 2021 que mejor explica su riesgo principal. Si una encaja en más de una (como `CVE-2024-3094` en la teoría), elige la principal y anota entre paréntesis la secundaria.
+
+4. Escribe en dos o tres líneas, para cada vulnerabilidad, qué riesgo concreto supondría en una de estas tres aplicaciones, la que tenga más sentido para ella y dilo: una tienda en línea con pagos, un servicio interno de gestión de incidencias o una aplicación de mensajería con archivos adjuntos. Completa el `README.md` con la tabla y súbelo.
 
 <span class="et et-com">Comprobación</span> La tabla tiene diez filas completas, cada CVSS coincide con el que muestra la ficha de la NVD de ese CVE, y ninguna explicación de riesgo es una frase genérica que valdría para cualquier vulnerabilidad de la lista.
 
@@ -157,8 +115,10 @@ La ficha de la NVD de cada CVE incluye su vector CVSS completo (una cadena como 
 
 Al acabar esta sesión hay un nivel de verificación elegido y justificado para el escenario de la entrega, una hoja de cálculo creada con la plantilla de columnas de la unidad y los primeros requisitos L1 resueltos. Antes de eso, dos apartados: qué es ASVS y cómo se organiza en catorce capítulos, y el criterio para decidir entre sus tres niveles.
 
-!!! consulta "Material de partida"
-    El enunciado de la entrega, `ACT_RA2_1.pdf` (carpeta `02 ACT_RA2_1`), fija el escenario: una arquitectura cliente-servidor para una empresa de compra-venta que necesita un nivel de seguridad L1, y pide verificar todos los requisitos L1 del documento, indicando dónde se aplican, con qué técnica y con qué prueba. En la web, los *Apuntes de Puesta en Producción Segura* explican ASVS en su unidad 2, apartado 2.3 (<https://github.com/EloyAlbiach/PPS/blob/main/seguridad_aplicaciones/requisitos_seguridad/Readme.md>, CC BY-NC-SA 4.0). El estándar oficial es [OWASP ASVS 4.0.3](https://github.com/OWASP/ASVS/tree/v4.0.3_release), la versión que usa el enunciado y el material del curso; su lista completa de requisitos, en CSV y otros formatos, está en la página de descargas del proyecto.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [OWASP ASVS 4.0.3](https://github.com/OWASP/ASVS/tree/v4.0.3_release): el estándar de verificación y su estructura por niveles.
 
 ### OWASP ASVS: qué es y su estructura por capítulos
 
@@ -222,38 +182,21 @@ El enunciado pide además indicar **en qué servidor** se aplica cada requisito,
 
 <span class="et et-obj">Objetivo</span> El nivel de verificación del escenario de la entrega, justificado por escrito, y una hoja de cálculo con la plantilla de columnas de la unidad y los doce requisitos L1 del capítulo V2.1 (Seguridad de contraseñas) resueltos sobre ese escenario.
 
-<span class="et et-pre">Antes de empezar</span> Un programa de hoja de cálculo (LibreOffice Calc o similar) y el enunciado `ACT_RA2_1.pdf` a mano para el formato de entrega. Se han explicado [qué es ASVS y su estructura por capítulos](#owasp-asvs-que-es-y-su-estructura-por-capitulos) y [cómo se elige el nivel](#elegir-el-nivel-l1-l2-y-l3). Esta hoja forma parte de la entrega **ACT_UT2_1 · OWASP ASVS**, junto con la A2.1 y la A2.3.
+<span class="et et-pre">Antes de empezar</span> Un programa de hoja de cálculo (LibreOffice Calc o similar) y el enunciado de la entrega a mano para el formato. Se han explicado [qué es ASVS y su estructura por capítulos](#owasp-asvs-que-es-y-su-estructura-por-capitulos) y [cómo se elige el nivel](#elegir-el-nivel-l1-l2-y-l3). Esta hoja forma parte de la entrega **ACT_UT2_1 · OWASP ASVS**, junto con la A2.1 y la A2.3.
 
 <span class="et et-pas">Pasos</span>
 
-1. Aplica el criterio de la teoría a estos dos escenarios y anota en dos o tres líneas cada uno el nivel que les corresponde y por qué: un blog interno de la empresa, sin cuentas de usuario; y una tienda en línea que procesa pagos con tarjeta.
-2. Anota el nivel del escenario de la entrega (la aplicación de compra-venta cliente-servidor de `ACT_RA2_1.pdf`) y, con tus palabras, el matiz entre lo que fija el enunciado (L1) y lo que pediría el riesgo real de una aplicación con pagos.
-3. Descarga los requisitos de ASVS 4.0.3 y genera la plantilla con los 128 requisitos L1 ya listados, con las siete columnas de la teoría (capítulo, requisito, aplica sí/no, dónde, técnica o fichero, prueba de verificación, riesgo residual), en `~/pps-entregas/ut2/a22/`:
+1. Aplica el criterio de la teoría a dos escenarios y anota en dos o tres líneas el nivel que le corresponde a cada uno y por qué: un blog interno de la empresa, sin cuentas de usuario, y una tienda en línea que procesa pagos con tarjeta.
 
-    ```bash
-    cd ~/pps-entregas/ut2/a22
-    curl -sLO "https://raw.githubusercontent.com/OWASP/ASVS/v4.0.3_release/4.0/docs_en/OWASP%20Application%20Security%20Verification%20Standard%204.0.3-en.csv"
-    python3 - <<'PY'
-    import csv, glob
-    origen = glob.glob("OWASP*4.0.3-en.csv")[0]
-    with open(origen, encoding="utf-8-sig") as f, open("plantilla-l1.csv", "w", newline="", encoding="utf-8") as g:
-        w = csv.writer(g)
-        w.writerow(["Capítulo", "Requisito", "Aplica", "Dónde (servidor y componente)", "Técnica o fichero", "Prueba de verificación", "Riesgo residual"])
-        for r in csv.DictReader(f):
-            if r["level1"].strip():
-                w.writerow([r["section_id"] + " " + r["section_name"], r["req_id"] + ": " + r["req_description"], "", "", "", "", ""])
-    PY
-    ```
+2. Anota el nivel del escenario de la entrega (la aplicación de compra-venta cliente-servidor del enunciado) y, con tus palabras, el matiz entre lo que fija el enunciado (L1) y lo que pediría el riesgo real de una aplicación con pagos.
 
-    Abre `plantilla-l1.csv` con LibreOffice Calc (codificación UTF-8, separador coma) y guárdala como `ACT_UT2_1.ods`. Añade una portada (nombre, fecha, escenario, nivel elegido, arquitectura de tres servidores de la teoría) con cabecera, logotipo ficticio y colores propios de la empresa, que es el "formato corporativo" que pide el enunciado.
-4. Resuelve los doce requisitos del capítulo V2.1 (Seguridad de contraseñas) sobre el escenario de compra-venta, siguiendo el modelo de la teoría. Para no repetir el enunciado exacto del estándar, aquí tienes un recordatorio breve de cada uno; el texto completo está en el CSV oficial de ASVS 4.0.3:
+3. En `~/pps-entregas/ut2/a22/`, genera la hoja de cálculo `ACT_UT2_1.ods` con los 128 requisitos L1 de ASVS 4.0.3 ya listados y las siete columnas de la plantilla de la teoría, y añádele una portada (nombre, fecha, escenario, nivel elegido y la arquitectura de tres servidores) con el formato corporativo que pide el enunciado.
 
-    - V2.1.1: mínimo 12 caracteres · V2.1.2: admitir 64 caracteres o más, denegar más de 128 · V2.1.3: no truncar la contraseña · V2.1.4: admitir cualquier carácter Unicode imprimible, incluidos espacios y emoticonos.
-    - V2.1.5: el usuario puede cambiar su contraseña · V2.1.6: el cambio exige la contraseña actual y la nueva.
-    - V2.1.7: comprobar contra una lista de contraseñas filtradas conocidas · V2.1.8: mostrar un medidor de fortaleza · V2.1.9: no imponer reglas de composición (mayúsculas, números o símbolos obligatorios) · V2.1.10: no exigir caducidad periódica ni bloquear el historial de contraseñas.
-    - V2.1.11: permitir pegar la contraseña y usar gestores de contraseñas externos · V2.1.12: permitir ver la contraseña completa o su último carácter temporalmente.
+    *Pista:* el CSV oficial está en el repositorio de ASVS 4.0.3 (`.../4.0/docs_en/OWASP ... 4.0.3-en.csv`); los requisitos L1 son las filas que traen marcada la columna `level1`, 128 en total y ninguno en V1. Da formato de texto a la columna del identificador antes de volcarla, o `V2.1.10` pierde el cero final.
 
-5. Guarda la hoja `ACT_UT2_1.ods` y haz un commit de progreso: `git add . && git commit -m "A2.2 nivel elegido y V2.1 resuelto" && git push`.
+4. Resuelve los doce requisitos del capítulo V2.1 (Seguridad de contraseñas) sobre el escenario de compra-venta, siguiendo el modelo de la teoría. El texto completo de cada requisito (V2.1.1 a V2.1.12) está en su propia fila de la plantilla.
+
+5. Guarda la hoja `ACT_UT2_1.ods` y súbela con un commit de progreso.
 
 <span class="et et-com">Comprobación</span> La portada indica el nivel elegido con su justificación, las doce filas de V2.1 tienen las siete columnas completas y ninguna fila deja "riesgo residual" en blanco.
 
@@ -265,8 +208,10 @@ El enunciado pide además indicar **en qué servidor** se aplica cada requisito,
 
 Al acabar esta sesión el capítulo V2 (Autenticación) está completo en la hoja de cálculo de la entrega y el V3 (Gestión de sesión) está empezado, con el resto marcado como pendiente para terminar en casa antes del plazo. La sesión abre con un apartado corto que afina la metodología ya vista (qué hace que un "dónde", una "técnica" y una "prueba" sean lo bastante concretos para que otra persona los repita) y da cuatro requisitos más resueltos como modelo, de capítulos que se resuelven en casa.
 
-!!! consulta "Material de partida"
-    El enunciado sigue siendo `ACT_RA2_1.pdf`. El listado completo de los 128 requisitos L1 de ASVS 4.0.3, en CSV, está en la página de descargas de [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/); esta hoja no los reproduce todos, se apoya en ese fichero, que ya está volcado en la plantilla que se generó en la A2.2.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/): la lista completa de requisitos L1 en CSV, que la plantilla de la entrega ya recoge.
 
 ### Verificar un requisito: dónde, con qué técnica y con qué prueba
 
@@ -298,13 +243,16 @@ Cuatro requisitos más, resueltos como modelo para los capítulos que se hacen e
 <span class="et et-pas">Pasos</span>
 
 1. Completa el resto del capítulo V2 (15 filas): V2.2 (seguridad general del autenticador, 3), V2.3 (ciclo de vida del autenticador, 1), V2.5 (recuperación de credenciales, 6), V2.7 (verificador fuera de banda, 4) y V2.8 (verificador de un solo uso, 1). El texto está en la propia fila de la plantilla.
-2. Empieza el capítulo V3 (Gestión de sesión): V3.1 (fundamentos, 1 requisito), V3.2 (vinculación de la sesión, 3) y V3.3 (terminación de la sesión, 2). Sigue el modelo V3.2.1 de la teoría.
-3. Rellena la columna "Aplica" de todas las filas que faltan (`sí`, `no` con motivo o `pendiente`), para que la hoja muestre qué queda, y ordena los capítulos pendientes por tamaño: V5 (27), V14 (15) y V12 (11) son los más largos. Apunta en la portada tu plan de trabajo en casa (la referencia es unos 3 minutos por requisito, unas 5 horas en total).
-4. Haz un commit de progreso: `git add . && git commit -m "A2.3 V2 resuelto y V3 empezado" && git push`.
+
+2. Empieza el capítulo V3 (Gestión de sesión): V3.1 (fundamentos, 1), V3.2 (vinculación de la sesión, 3) y V3.3 (terminación de la sesión, 2). Sigue el modelo V3.2.1 de la teoría.
+
+3. Rellena la columna «Aplica» (`sí`, `no` con motivo o `pendiente`) de todas las filas que faltan, para que la hoja muestre qué queda, y ordena los capítulos pendientes por tamaño: V5 (27), V14 (15) y V12 (11) son los más largos. Apunta en la portada tu plan de trabajo en casa (unos 3 minutos por requisito, unas 5 horas en total).
+
+4. Haz un commit de progreso con la hoja.
 
 <span class="et et-com">Comprobación</span> Las 27 filas de V2 y las 6 de V3.1 a V3.3 tienen las siete columnas completas y ninguna fila queda sin marcar en "Aplica".
 
-<span class="et et-ent">Entrega</span> La hoja de cálculo completa, con los 128 requisitos L1 resueltos, en `ut2/a23/` de `pps-entregas` y subida a la tarea de Aules en el formato que pide `ACT_RA2_1.pdf`. Lo que no se ha hecho en clase se termina **en casa, antes del plazo**: es un trabajo a ritmo propio y el plazo no se mueve. Cierra la entrega **ACT_UT2_1 · OWASP ASVS** (A2.1, A2.2 y A2.3), lunes 16 de noviembre a las 23:59.
+<span class="et et-ent">Entrega</span> La hoja de cálculo completa, con los 128 requisitos L1 resueltos, en `ut2/a23/` de `pps-entregas` y subida a la tarea de Aules en el formato que pide el enunciado. Lo que no se ha hecho en clase se termina **en casa, antes del plazo**: es un trabajo a ritmo propio y el plazo no se mueve. Cierra la entrega **ACT_UT2_1 · OWASP ASVS** (A2.1, A2.2 y A2.3), lunes 16 de noviembre a las 23:59.
 
 ## Sesión 12 · Seguridad en Docker
 
@@ -312,8 +260,16 @@ Cuatro requisitos más, resueltos como modelo para los capítulos que se hacen e
 
 Al acabar esta sesión hay una imagen deliberadamente vulnerable (Log4Shell) corriendo de forma contenida en `pps01`, una auditoría del demonio Docker con `docker-bench-security` y un perfil de AppArmor aplicado y comprobado sobre un contenedor. Antes de eso, tres apartados cortos explican qué aísla realmente a un contenedor, qué mecanismos limitan lo que un proceso puede hacer dentro de él, y dónde está el punto más débil de toda la plataforma: el demonio que lo gestiona todo.
 
-!!! consulta "Material de partida"
-    En el aula, `ACT_RA2_2.pdf` (carpeta `03 ACT_RA2_2`) explica namespaces, cgroups, seccomp y SELinux, y cita el laboratorio `christophetd/log4shell-vulnerable-app` y `docker/docker-bench-security`. En la web, *Ciberseguridad-PePS* cubre el mismo contenido con más detalle práctico en *Seguridad en Docker* (<https://psegarrac.github.io/Ciberseguridad-PePS/tema3/seguridad/web/2021/03/10/Seguridad-en-Docker.html>). La documentación oficial es la [guía de seguridad de Docker](https://docs.docker.com/engine/security/) y su [página sobre AppArmor](https://docs.docker.com/engine/security/apparmor/); los dos artículos de fondo son los de *Datadog Security Labs*, [parte 1](https://securitylabs.datadoghq.com/articles/container-security-fundamentals-part-1/) y [parte 2](https://securitylabs.datadoghq.com/articles/container-security-fundamentals-part-2/). Los repositorios de la práctica son [`christophetd/log4shell-vulnerable-app`](https://github.com/christophetd/log4shell-vulnerable-app) y [`docker/docker-bench-security`](https://github.com/docker/docker-bench-security): esta hoja sigue sus propias instrucciones de uso.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Guía de seguridad de Docker](https://docs.docker.com/engine/security/) y [AppArmor en Docker](https://docs.docker.com/engine/security/apparmor/): el aislamiento del contenedor.
+    - [log4shell-vulnerable-app](https://github.com/christophetd/log4shell-vulnerable-app) y [docker-bench-security](https://github.com/docker/docker-bench-security): el laboratorio y la herramienta de comprobación.
+    - El enunciado de la entrega ACT_UT2_2 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - *Container security fundamentals* de Datadog: [parte 1](https://securitylabs.datadoghq.com/articles/container-security-fundamentals-part-1/) y [parte 2](https://securitylabs.datadoghq.com/articles/container-security-fundamentals-part-2/).
 
 ### Namespaces y cgroups: el aislamiento de un contenedor
 
@@ -374,66 +330,23 @@ La configuración del demonio vive en `/etc/docker/daemon.json`; ahí se desacti
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la carpeta de la hoja y define la imagen que se va a usar (la que fija el README del repositorio, por su resumen criptográfico):
+1. Crea la carpeta `ut2/a24/`, define la imagen vulnerable por su digest (el que da el README del repositorio) y escánéala con `trivy` antes de arrancarla (práctica 1 del enunciado), pidiendo solo las vulnerabilidades críticas y guardando la salida en `trivy-log4shell.txt`. Anota qué paquete de Log4j aparece, con su versión y su CVE, y con qué versión lo corrige.
 
     ```bash
-    mkdir -p ~/pps-entregas/ut2/a24 && cd ~/pps-entregas/ut2/a24
     export IMG=ghcr.io/christophetd/log4shell-vulnerable-app@sha256:6f88430688108e512f7405ac3c73d47f5c370780b94182854ea2cddc6bd59929
     ```
 
-2. Escanea la imagen con `trivy` antes de arrancarla (práctica 1 del enunciado). Se ejecuta en un contenedor, sin instalar nada, y solo se piden las vulnerabilidades críticas:
+    *Pista:* `trivy` corre en su propio contenedor (`aquasec/trivy`), sin instalar nada.
 
-    ```bash
-    docker run --rm aquasec/trivy image --scanners vuln --severity CRITICAL $IMG | tee trivy-log4shell.txt
-    grep -i log4j trivy-log4shell.txt
-    ```
+2. Arranca la imagen publicada solo en el bucle local, en el puerto 8082 del anfitrión (el 8080 del contenedor, según [Puertos y nombres](../laboratorio.md#puertos-y-nombres)), corta su salida a Internet con una regla en la cadena `DOCKER-USER`, comprueba la vulnerabilidad sin atacar (una expresión `${...}` inofensiva en la cabecera `X-Api-Version`, que el registro muestra ya resuelta) y aplica la mitigación de configuración, tras la cual la misma prueba deja el texto sin resolver. Anota en el `README.md` por qué la mitigación es un parche provisional y cuál es la corrección definitiva.
 
-    Anota qué paquete de Log4j aparece, con su versión y su CVE, y con qué versión lo corrige `trivy`.
-3. Arranca la imagen publicándola solo en el bucle local, en el puerto 8082 del anfitrión (el 8080 del contenedor, según [Puertos y nombres](../laboratorio.md#puertos-y-nombres)):
+    *Pista:* la expresión va entre comillas simples, o la shell la expande antes que `curl`; la variable que mitiga es `LOG4J_FORMAT_MSG_NO_LOOKUPS=true` y la corrección definitiva, Log4j 2.17.1 o posterior. La regla de `DOCKER-USER` solo bloquea las conexiones nuevas que salen (`--ctstate NEW`), no lo que entra por el puerto publicado. Sin la cabecera la aplicación responde `HTTP 400`, que ya indica que está viva; la explotación completa (servidor LDAP y segunda fase) queda en el README del repositorio.
 
-    ```bash
-    docker run -d --name vulnerable-app -p 127.0.0.1:8082:8080 $IMG
-    curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:8082/
-    ```
+3. **Este paso se hace en casa antes del plazo**, igual que las prácticas 2 y 3 del enunciado: en clase el tiempo llega para el laboratorio Log4Shell y el perfil de AppArmor, no para todo. Clona y ejecuta `docker-bench-security` siguiendo su propio README, guarda la salida en `docker-bench.txt` y elige tres hallazgos `[WARN]` de secciones distintas (anfitrión, demonio y contenedores en ejecución, entre ellos `vulnerable-app`), explicando de cada uno en el `README.md` qué comprueba, por qué importa y qué cambio lo resolvería.
 
-    Sin la cabecera `X-Api-Version` la aplicación contesta `HTTP 400`: es lo esperado y basta para saber que el servicio está vivo (con la cabecera, como en el paso 5, contesta `200`). Arranca despacio, sobre todo bajo emulación, así que si no responde espera unos segundos y repite.
+    *Pista:* clónalo **fuera de `pps-entregas`** (por ejemplo en `~`); si se clona dentro, `git add` lo trata como un repositorio anidado.
 
-4. Corta la salida del contenedor a Internet. Comprueba primero que la tiene, bloquea sus conexiones nuevas hacia fuera con una regla en la cadena `DOCKER-USER` y comprueba después que ya no:
-
-    ```bash
-    IP=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' vulnerable-app)
-    docker exec vulnerable-app ping -c 1 -W 3 1.1.1.1
-    sudo iptables -I DOCKER-USER -s "$IP" -m conntrack --ctstate NEW -j DROP
-    docker exec vulnerable-app ping -c 1 -W 3 1.1.1.1
-    ```
-
-    El primer `ping` responde y el segundo se queda sin respuesta. La regla no afecta a las conexiones que entran por el puerto publicado, porque solo bloquea las nuevas que salen del contenedor.
-5. Comprueba que la vulnerabilidad existe sin lanzar ningún ataque. Log4j 2.14.1 evalúa las expresiones `${...}` que aparecen en lo que registra, y el servicio registra la cabecera `X-Api-Version`. Envía una expresión inofensiva, que solo pide la versión de Java, y mira el registro:
-
-    ```bash
-    curl -s -o /dev/null http://127.0.0.1:8082/ -H 'X-Api-Version: ${java:version}'
-    docker logs vulnerable-app 2>&1 | grep "API version" | tail -1
-    ```
-
-    El registro muestra la versión de Java ya resuelta en vez del texto enviado: la aplicación ha evaluado una expresión que venía de fuera. Es la misma capacidad que Log4Shell aprovecha con una expresión `jndi`. La explotación completa (un servidor LDAP malicioso y una segunda fase) queda en el README del repositorio, no se hace en esta hoja.
-6. Aplica la mitigación de configuración: recrea el contenedor con las búsquedas en mensajes desactivadas y repite la prueba del paso anterior (la regla de `iptables` sigue valiendo si el contenedor recupera la misma IP; si cambia, repite el paso 4):
-
-    ```bash
-    docker rm -f vulnerable-app
-    docker run -d --name vulnerable-app -e LOG4J_FORMAT_MSG_NO_LOOKUPS=true -p 127.0.0.1:8082:8080 $IMG
-    ```
-
-    Tras unos segundos, `docker logs vulnerable-app 2>&1 | grep "API version" | tail -1` tiene que mostrar ahora el texto tal cual, sin resolver. Anota en el `README.md` por qué esta opción es un parche provisional y cuál es la corrección definitiva (Log4j 2.17.1 o posterior).
-7. **Este bloque (pasos 7 y 8) se hace en casa antes del plazo**, igual que las prácticas 2 y 3 del enunciado: en clase el tiempo llega para el laboratorio Log4Shell con su mitigación y el perfil de AppArmor, no para todo. Clona y ejecuta `docker-bench-security` siguiendo su propio README, **fuera de `pps-entregas`** (si se clona dentro, `git add` lo trata como un repositorio anidado):
-
-    ```bash
-    cd ~ && git clone https://github.com/docker/docker-bench-security.git
-    cd docker-bench-security && sudo sh docker-bench-security.sh | tee ~/pps-entregas/ut2/a24/docker-bench.txt
-    cd ~/pps-entregas/ut2/a24
-    ```
-
-8. Lee el informe y elige tres hallazgos `[WARN]` de secciones distintas (por ejemplo, uno del anfitrión, uno del demonio y uno de los contenedores en ejecución, entre ellos el propio `vulnerable-app`). Para cada uno, escribe en el `README.md` qué comprueba, por qué importa y qué cambio lo resolvería.
-9. Crea el perfil de AppArmor `pps-confinado`. Parte de un perfil permisivo (`file,` permite todo el acceso a ficheros) y le añade denegaciones explícitas de escritura, que siempre prevalecen:
+4. Crea el perfil de AppArmor `pps-confinado` (parte de un perfil permisivo, donde `file,` permite todo el acceso a ficheros, y añádele denegaciones explícitas de escritura, que siempre prevalecen), cárgalo en el kernel y compruébalo ejecutando dos contenedores de prueba de `ubuntu:24.04`, uno sin perfil y otro con `--security-opt apparmor=pps-confinado`: compara qué puede escribir cada uno en `/tmp` y en `/etc`.
 
     ```text
     #include <tunables/global>
@@ -452,28 +365,9 @@ La configuración del demonio vive en `/etc/docker/daemon.json`; ahí se desacti
     }
     ```
 
-    Guárdalo como `pps-confinado` en la carpeta de la hoja y cárgalo en el kernel:
+    *Pista:* cada regla acaba en coma, incluida la última antes de `}`; se carga con `apparmor_parser -r` y se lista con `aa-status`. Las opciones de `docker run` van antes de la imagen, y `docker inspect -f '{{.AppArmorProfile}}'` confirma el perfil aplicado.
 
-    ```bash
-    sudo apparmor_parser -r pps-confinado
-    sudo aa-status | grep pps-confinado
-    ```
-
-10. Ejecuta dos contenedores de prueba, uno sin perfil y otro con él, y compara:
-
-    ```bash
-    docker run --rm ubuntu:24.04 sh -c "touch /etc/prueba && echo 'sin perfil: escritura en /etc permitida'"
-    docker run -d --name confinado --security-opt apparmor=pps-confinado ubuntu:24.04 sleep 300
-    docker exec confinado sh -c "touch /tmp/prueba && echo 'con perfil: /tmp permitido'; touch /etc/prueba || echo 'con perfil: /etc denegado'"
-    docker inspect -f '{{.AppArmorProfile}}' confinado
-    ```
-
-11. Guarda como evidencia las salidas de los pasos 2, 4, 6, 8 (fragmento) y 10, escribe el resto del `README.md` (qué se ha hecho, comandos y validación) y sube la carpeta:
-
-    ```bash
-    docker rm -f confinado
-    git add . && git commit -m "A2.4 Docker aislamiento y auditoria" && git push
-    ```
+5. Guarda como evidencia la salida del escaneo (paso 1), la del corte de red y la mitigación (paso 2), un fragmento del informe de docker-bench (paso 3) y la comparación de los dos contenedores (paso 4), escribe el resto del `README.md` (qué se ha hecho, comandos y validación) y sube la carpeta.
 
 <span class="et et-com">Comprobación</span> `trivy` ha localizado Log4j en la imagen; el servicio responde en `http://127.0.0.1:8082/` pero el contenedor no alcanza Internet; la expresión de prueba se resuelve antes de la mitigación y no después; el `README.md` explica tres hallazgos reales de `docker-bench-security`; y el contenedor con perfil escribe en `/tmp` pero no en `/etc`, mientras que el contenedor sin perfil escribe en los dos sitios. Si algo falla, revisa [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
@@ -492,8 +386,16 @@ La configuración del demonio vive en `/etc/docker/daemon.json`; ahí se desacti
 
 Al acabar esta sesión hay un análisis propio de las dos versiones de una librería del laboratorio, la original y una infectada, con las diferencias que delatan la puerta trasera, y una investigación con `ldd` de qué depende de qué en la cadena que unió esa librería con el servidor SSH. Antes de eso, un único apartado cuenta el caso: cómo una puerta trasera llegó a una librería de compresión muy extendida y por qué ese ataque concreto es un ejemplo de manual de riesgo en la cadena de suministro de software.
 
-!!! consulta "Material de partida"
-    En el aula, `ACT_RA2_3.pdf` (carpeta `04 ACT_RA2_3`) resume el caso y remite al repositorio [`amlweems/xzbot`](https://github.com/amlweems/xzbot) y a la lectura de [Securelist](https://securelist.com/xz-backdoor-story-part-1/112354/). Otra fuente pública con la cronología completa es [Pentest-Tools](https://pentest-tools.com/blog/xz-utils-backdoor-cve-2024-3094). La ficha oficial de la vulnerabilidad está en la [NVD](https://nvd.nist.gov/vuln/detail/CVE-2024-3094).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [xzbot](https://github.com/amlweems/xzbot): el laboratorio que reproduce el caso.
+    - [Ficha CVE-2024-3094](https://nvd.nist.gov/vuln/detail/CVE-2024-3094) en la NVD.
+    - El enunciado de la entrega ACT_UT2_3 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - [La historia de la puerta trasera de xz](https://securelist.com/xz-backdoor-story-part-1/112354/) (Securelist) y [su cronología completa](https://pentest-tools.com/blog/xz-utils-backdoor-cve-2024-3094).
 
 ### La cadena de suministro: el caso xz
 
@@ -532,122 +434,31 @@ Se descubrió porque un ingeniero que mantenía software de bases de datos notó
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la VM `debian12` desde el anfitrión con dos adaptadores, NAT (adaptador 1, temporal, para instalar y descargar paquetes) y solo anfitrión (adaptador 2, la red `vboxnet0`, con IP fija `192.168.56.50` según [máquinas virtuales](../laboratorio.md#maquinas-virtuales), para que `pps01` pueda copiarle los ficheros con `scp`), y lanza la instalación desatendida contra la ISO de `~/iso/` del anfitrión (cambia la ruta al fichero exacto que descargaste):
+1. Crea la VM `debian12` desde el anfitrión con la receta de [Crear `debian12` desde el anfitrión](../laboratorio.md#crear-debian12-desde-el-anfitrion), apuntando a la ISO que descargaste en `~/iso/`. Mientras se instala (10 a 15 min), prepara en `pps01` la herramienta `xzbot` y los dos ficheros de librería de su carpeta `assets/`, y lee el artículo de [Securelist](https://securelist.com/xz-backdoor-story-part-1/112354/) si no lo has hecho.
 
-    ```bash
-    VBoxManage createvm --name debian12 --platform-architecture x86 --ostype Debian_64 --register
-    VBoxManage modifyvm debian12 --memory 2048 --cpus 1 --nic1 nat --nic2 hostonly --hostonlyadapter2 vboxnet0
-    VBoxManage createmedium disk --filename ~/VirtualBox\ VMs/debian12/debian12.vdi --size 15360
-    VBoxManage storagectl debian12 --name SATA --add sata --controller IntelAhci
-    VBoxManage storageattach debian12 --storagectl SATA --port 0 --device 0 --type hdd \
-      --medium ~/VirtualBox\ VMs/debian12/debian12.vdi
-    VBoxManage storagectl debian12 --name IDE --add ide
-    VBoxManage unattended install debian12 --iso="$HOME/iso/debian-12.X.0-amd64-netinst.iso" \
-      --user=alumno --user-password=<tu contraseña> --full-user-name=alumno --start-vm=gui
-    ```
+    *Pista:* `xzbot` se instala con `go install` y los ficheros son `liblzma.so.5.6.0` (infectada) y `liblzma.so.5.6.0.patch` (la infectada con la clave de investigación, sección "ed448 patch" del README).
 
-    Tarda entre 10 y 15 minutos. Mientras se instala, en `pps01` prepara lo que hace falta para los tres escenarios (nada se ejecuta todavía) y lee el artículo de [Securelist](https://securelist.com/xz-backdoor-story-part-1/112354/) si no lo has hecho: la herramienta `xzbot` (sección "backdoor demo" del README) y los dos ficheros de librería de su carpeta `assets/` (la infectada y la infectada con la clave de investigación, sección "ed448 patch").
+2. Cuando termine la instalación, fija en `debian12` la IP de la red solo anfitrión, copia desde `pps01` los dos ficheros y el binario `xzbot`, e instala lo que hace falta para arrancar un segundo `sshd` de prueba y comparar bibliotecas. Antes de ejecutar nada, compara las tres librerías (la original del sistema, la infectada y la parcheada) por tamaño, resumen criptográfico y símbolos exportados, y anota la diferencia. Toma la instantánea `antes-a25` y, solo entonces, quita el adaptador NAT: a partir de ahí `debian12` ya no tiene salida a Internet, pero `pps01` (`192.168.56.10`) la sigue viendo en `192.168.56.50` para copiar los resultados de vuelta.
 
-    ```bash
-    go install github.com/amlweems/xzbot@latest
-    mkdir -p ~/pps-entregas/ut2/a25 && cd ~/pps-entregas/ut2/a25
-    wget https://github.com/amlweems/xzbot/raw/main/assets/liblzma.so.5.6.0
-    wget https://github.com/amlweems/xzbot/raw/main/assets/liblzma.so.5.6.0.patch
-    ```
+    *Pista:* la IP se fija con `nmcli` sobre la interfaz solo anfitrión (suele ser `enp0s8`); `openssh-server` y `binutils` (trae `nm`) hay que instalarlos con el NAT todavía activo. `nm -D` lista los símbolos exportados: la parcheada solo difiere de la infectada en la clave ED448, mientras que frente a la del sistema (una versión limpia y anterior de `xz`) la diferencia es total. El adaptador NAT se quita con `VBoxManage modifyvm debian12 --nic1 none` y la VM apagada.
 
-2. Cuando la instalación haya terminado, en `debian12` fija la IP de la red solo anfitrión para que `pps01` pueda alcanzarla por `scp` (el nombre de la conexión lo dan `nmcli -f NAME,DEVICE con show` e `ip -br a`; la interfaz suele ser `enp0s8`):
+3. Reproduce los tres escenarios en un `sshd` de prueba en el puerto 2222 (aislado del `sshd` del sistema), anotando el resultado de cada uno y qué diferencia el tercero de los otros dos:
 
-    ```bash
-    sudo nmcli con modify "Wired connection 2" ipv4.method manual ipv4.addresses 192.168.56.50/24 ipv4.never-default yes
-    sudo nmcli con up "Wired connection 2"
-    ```
+    - **Escenario 1, librería original.** Con la librería oficial de Debian, sin comprometer: una conexión SSH normal funciona.
+    - **Escenario 2, librería infectada, sin activar la puerta trasera.** Fuerza la librería infectada con `LD_PRELOAD` (nada se recompila) y conecta igual, sin `xzbot`: el resultado es idéntico al escenario 1, porque la puerta trasera solo reacciona ante una clave que aquí nadie tiene, y eso es lo que hace el ataque tan difícil de notar.
+    - **Escenario 3, librería parcheada, puerta trasera disparada.** Con la librería parcheada y `xzbot` (sección "backdoor demo" de su README), ejecuta una orden inofensiva sin usuario ni contraseña: se ejecuta como `root` aunque la conexión no llegue a autenticarse. Es la ejecución remota de código que puntúa `CVE-2024-3094` con un CVSS de 10,0.
 
-    Desde `pps01`, copia los dos ficheros y el binario a `debian12` por la red solo anfitrión (el adaptador NAT sigue dándole salida a Internet):
+    *Pista:* las dos librerías copiadas desde `pps01` son `liblzma.so.5.6.0` (infectada) y `liblzma.so.5.6.0.patch` (parcheada); el resultado del escenario 3 queda en `/tmp/xzbot-a25.txt`.
 
-    ```bash
-    scp liblzma.so.5.6.0 liblzma.so.5.6.0.patch "$(go env GOPATH)/bin/xzbot" alumno@192.168.56.50:~/
-    ```
+4. Investiga con `ldd`, sin modificar nada del sistema, la cadena de dependencias real de esta máquina: si `sshd` depende de `libsystemd` y si `libsystemd` depende a su vez de `liblzma`. Explica con tus palabras por qué esa cadena, si existe, es la que un atacante necesitaba para que una librería de compresión pudiera intervenir en la autenticación SSH.
 
-    En `debian12`, con esa misma salida a Internet, instala lo que hace falta para arrancar un segundo `sshd` de prueba y comparar bibliotecas:
+    *Pista:* `ldd` sobre el binario de `sshd` y sobre el `libsystemd.so` que localice `ldconfig -p`. Si la cadena no aparece en esta máquina, es un resultado válido y se anota como tal.
 
-    ```bash
-    sudo apt install -y openssh-server binutils
-    ```
+5. Escribe el análisis final en el `README.md`: qué diferencia el comportamiento observable de los tres escenarios (no el contenido del backdoor en sí), por qué Debian 12 estable no se vio afectado en producción aunque comparta la misma arquitectura de dependencias, y qué controles de cadena de suministro habrían detectado o dificultado este ataque antes de llegar a producción (firma criptográfica de los artefactos publicados, comprobar que el código fuente del repositorio coincide con el del paquete distribuido, reducir el número de dependencias indirectas de un servicio crítico como `sshd`).
 
-    Antes de ejecutar nada, compara las tres librerías (la original del sistema, la infectada y la parcheada) y guarda la evidencia: tamaño, resumen criptográfico y símbolos exportados con `nm -D`.
+6. Copia la carpeta de resultados de `debian12` a `pps01`, súbela desde `pps01` y vuelve `debian12` a la instantánea `antes-a25` (con la VM apagada desde el anfitrión).
 
-    ```bash
-    ls -l /usr/lib/x86_64-linux-gnu/liblzma.so.5 ~/liblzma.so.5.6.0 ~/liblzma.so.5.6.0.patch
-    sha256sum /usr/lib/x86_64-linux-gnu/liblzma.so.5 ~/liblzma.so.5.6.0 ~/liblzma.so.5.6.0.patch
-    nm -D /usr/lib/x86_64-linux-gnu/liblzma.so.5 > /tmp/nm-sistema.txt
-    nm -D ~/liblzma.so.5.6.0 > /tmp/nm-infectada.txt
-    nm -D ~/liblzma.so.5.6.0.patch > /tmp/nm-parcheada.txt
-    diff /tmp/nm-sistema.txt /tmp/nm-infectada.txt
-    diff /tmp/nm-infectada.txt /tmp/nm-parcheada.txt
-    ```
-
-    Anota en el `README.md` la diferencia real entre la infectada y la parcheada: la parcheada solo sustituye la clave ED448 del atacante por una de investigación, así que sus símbolos exportados coinciden y el `diff` entre ambas apenas cambia, mientras que frente a la librería del sistema (una versión anterior y limpia de `xz`) la diferencia es total.
-
-    Toma la instantánea de partida y, solo entonces, quita el adaptador NAT y conserva el de solo anfitrión (Configuración, Red, adaptador 1 a "No conectado", o `VBoxManage modifyvm debian12 --nic1 none` con la VM apagada): a partir de aquí `debian12` ya no tiene salida a Internet, pero `pps01` (`192.168.56.10`) sigue viéndola en `192.168.56.50` para copiar los resultados de vuelta.
-
-    ```bash
-    VBoxManage snapshot debian12 take "antes-a25"
-    VBoxManage controlvm debian12 poweroff
-    VBoxManage modifyvm debian12 --nic1 none
-    VBoxManage startvm debian12 --type gui
-    ```
-
-    El resto de la hoja se hace en `debian12` (la carpeta `a25` se crea también allí y los resultados se copian de vuelta a `pps01` antes de subirlos con `git`).
-
-3. **Escenario 1, librería original.** Arranca un `sshd` de prueba en el puerto 2222 (aislado del `sshd` del sistema) con la librería oficial de Debian, sin comprometer, y comprueba que una conexión normal funciona:
-
-    ```bash
-    sudo /usr/sbin/sshd -p 2222 -o "PidFile=/tmp/sshd-a25.pid"
-    ssh -p 2222 -o StrictHostKeyChecking=no alumno@127.0.0.1 'echo escenario 1: conexion normal'
-    ```
-
-4. **Escenario 2, librería infectada, sin activar la puerta trasera.** Sustituye la biblioteca que carga ese `sshd` de prueba por la infectada, con `LD_PRELOAD` (nada se recompila) y repite la misma conexión, sin usar `xzbot`:
-
-    ```bash
-    sudo pkill -f "sshd -p 2222"; sleep 1
-    sudo bash -c 'LD_PRELOAD=/home/alumno/liblzma.so.5.6.0 /usr/sbin/sshd -p 2222 -o "PidFile=/tmp/sshd-a25.pid"'
-    ssh -p 2222 -o StrictHostKeyChecking=no alumno@127.0.0.1 'echo escenario 2: conexion normal'
-    ```
-
-    El resultado esperado es el mismo que en el escenario 1: la conexión funciona igual porque la puerta trasera solo reacciona ante una clave que aquí nadie tiene. Es la parte que hace este ataque tan difícil de notar: no cambia nada visible para quien no conoce la clave.
-5. **Escenario 3, librería infectada parcheada, puerta trasera disparada con la clave de investigación.** Repite el arranque con la biblioteca parcheada y usa la herramienta `xzbot` copiada desde `pps01`, siguiendo su sección "backdoor demo", para ejecutar una orden inofensiva en el servidor sin usuario ni contraseña:
-
-    ```bash
-    sudo pkill -f "sshd -p 2222"; sleep 1
-    sudo bash -c 'LD_PRELOAD=/home/alumno/liblzma.so.5.6.0.patch /usr/sbin/sshd -p 2222 -o "PidFile=/tmp/sshd-a25.pid"'
-    ~/xzbot -addr 127.0.0.1:2222 -cmd 'id > /tmp/xzbot-a25.txt'
-    sudo cat /tmp/xzbot-a25.txt
-    sudo pkill -f "sshd -p 2222"
-    ```
-
-    A diferencia de los dos escenarios anteriores, la conexión de `xzbot` no llega a autenticarse (el intento termina en un fallo del protocolo, tal como muestra el propio README) y aun así el fichero `/tmp/xzbot-a25.txt` aparece en el servidor con el resultado de `id` como `root`: la orden se ha ejecutado sin usuario ni contraseña válidos. Es la ejecución remota de código que puntúa `CVE-2024-3094` con un CVSS de 10,0. Anota en el `README.md` el resultado de los tres escenarios y qué diferencia el 3 de los otros dos.
-6. Investiga con `ldd` la cadena de dependencias real de esta máquina, sin modificar nada del sistema, que es la que hace posible el escenario 3:
-
-    ```bash
-    ldd "$(command -v sshd || echo /usr/sbin/sshd)"
-    ldconfig -p | grep -i systemd
-    ldd "$(ldconfig -p | grep -oE '/\S*libsystemd\.so\.[0-9.]*' | head -1)"
-    ```
-
-    Registra en el `README.md` si `sshd` depende de `libsystemd` en esta máquina y si `libsystemd` depende de `liblzma`, y explica con tus palabras por qué esa cadena, si existe, es la que un atacante necesitaba para que una librería de compresión pudiera intervenir en la autenticación SSH.
-7. Escribe el análisis final en el `README.md`: qué diferencia el comportamiento observable de los tres escenarios (no el contenido del backdoor en sí), por qué Debian 12 estable no se vio afectado en producción aunque comparta la misma arquitectura de dependencias, y qué controles de cadena de suministro habrían detectado o dificultado este ataque antes de llegar a producción (firma criptográfica de los artefactos publicados, comprobar que el código fuente del repositorio coincide con el del paquete distribuido, reducir el número de dependencias indirectas de un servicio crítico como `sshd`).
-8. Copia la carpeta de resultados de `debian12` a `pps01` (`scp -r`), sube la carpeta desde `pps01` y vuelve `debian12` a la instantánea de partida:
-
-    ```bash
-    git add . && git commit -m "A2.5 caso xz" && git push
-    ```
-
-    Desde el anfitrión:
-
-    ```bash
-    VBoxManage controlvm debian12 poweroff
-    VBoxManage snapshot debian12 restore "antes-a25"
-    ```
+    *Pista:* al restaurar se pierde todo lo hecho dentro de `debian12`, así que la copia a `pps01` va antes.
 
 <span class="et et-com">Comprobación</span> Los tres escenarios se han ejecutado en orden y el resultado de cada uno coincide con lo esperado (conexión normal en el 1 y en el 2, ejecución de `id` sin autenticación en el 3); el apartado de `ldd` dice explícitamente si la cadena `sshd` → `libsystemd` → `liblzma` existe en `debian12`, con la orden y su salida como evidencia; y el análisis final nombra al menos dos controles de cadena de suministro concretos, no genéricos.
 
@@ -659,8 +470,12 @@ Se descubrió porque un ingeniero que mantenía software de bases de datos notó
 
 Esta sesión no trae contenido nuevo: absorbe el retraso de las clases que se hayan perdido en las sesiones 9 a 13 y, si no se ha perdido ninguna, sirve para repasar la unidad y para la actividad optativa ACT_UT2_4. Hoy vence el plazo de ACT_UT2_2 (Docker) y el de ACT_UT2_3 (xz) vence el jueves 26 de noviembre; los plazos no se mueven aunque se haya perdido una clase, solo se mueve el contenido.
 
-!!! consulta "Material de partida"
-    **Aula**: `05 ACT_RA2_4 - Ransomware/ACT_RA2_4.pdf` (carpeta `RA2-Nivel-seguridad`), que describe cómo funciona un ransomware, sus tipos y cómo prevenirlo, y pide tres cosas: leer la guía, ejecutar un ransomware de laboratorio y redactar un informe forense. **Web**: la *Guía de ransomware* de INCIBE, <https://www.incibe.es/sites/default/files/contenidos/guias/doc/guia_ransomware.pdf>, que es la lectura del enunciado, y el proyecto *No More Ransom*, <https://www.nomoreransom.org/es/index.html>, con herramientas de descifrado de familias ya conocidas. El enunciado remite además a una serie de dos artículos de un blog de seguridad ofensiva sobre cómo se construye un ransomware desde cero; esta guía no reproduce esos pasos (ver la nota de la actividad).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Guía de ransomware de INCIBE](https://www.incibe.es/sites/default/files/contenidos/guias/doc/guia_ransomware.pdf): la lectura de la actividad.
+    - [No More Ransom](https://www.nomoreransom.org/es/index.html): herramientas de descifrado de familias conocidas.
+    - El enunciado de la entrega optativa ACT_UT2_4 está en el aula.
 
 **Si se ha perdido alguna clase**
 
@@ -671,7 +486,7 @@ Esta sesión no trae contenido nuevo: absorbe el retraso de las clases que se ha
 
 **Si no se ha perdido ninguna clase**
 
-- Repasar la unidad con la lista de criterios de la introducción de la unidad y comprobar que cada criterio (a, b, c, d) tiene su evidencia en `pps-entregas` (`ut2/a21/` a `ut2/a25/`).
+- Repasar los criterios de las [prácticas evaluables](#practicas-evaluables-de-la-unidad) y comprobar que cada criterio (a, b, c, d) tiene su evidencia en `pps-entregas` (`ut2/a21/` a `ut2/a25/`).
 - Terminar lo que haya quedado a medias de las tres partes que se hacen en casa: la hoja de cálculo completa de la A2.3 si aún no está entregada y los dos escaneos adicionales de la A2.4 (WordPress antiguo y SBOM).
 - Repasar las [prácticas evaluables](#practicas-evaluables-de-la-unidad) y sus tablas de criterios: cada fila indica de qué hoja sale su evidencia y cuánto pesa.
 - Hacer la actividad optativa ACT_UT2_4, descrita a continuación, si el tiempo lo permite.
@@ -713,7 +528,7 @@ El informe se puede escribir sin ejecutar nada, a partir del enunciado, la guía
 
 La unidad tiene tres entregas obligatorias y una optativa. Ninguna tiene sesión propia: cada una se construye con varias hojas y se cierra en su plazo, que es siempre a las 23:59 (hora de Madrid) del día indicado y no se mueve aunque se haya perdido una clase. Se califican en Aules, una tarea por entrega; fuera de plazo y sin causa justificada se corrige sobre el 50 %. La ponderación de cada entrega frente al resto de la asignatura y al examen la fija [el módulo](../modulo.md). Los pesos de las tablas de abajo reparten el 100 % **dentro** de cada entrega.
 
-Los niveles de logro son los de la rúbrica del curso anterior (`ACT_RA2_2.pdf`, imagen 6): el 40 y el 60 % se alcanzan con un **funcionamiento correcto** (lo pedido está hecho y se ve funcionar), el 80 % con **análisis técnico** (se explica por qué funciona y qué controla), el 90 % con **validación completa** (una prueba que demuestra el resultado, con su evidencia) y el 100 % con un **extra** razonado más allá del enunciado.
+Los niveles de logro son: el 40 y el 60 % se alcanzan con un **funcionamiento correcto** (lo pedido está hecho y se ve funcionar), el 80 % con **análisis técnico** (se explica por qué funciona y qué controla), el 90 % con **validación completa** (una prueba que demuestra el resultado, con su evidencia) y el 100 % con un **extra** razonado más allá del enunciado.
 
 | Entrega | Hojas | Plazo | CE |
 |---|---|---|---|
@@ -726,7 +541,7 @@ Los niveles de logro son los de la rúbrica del curso anterior (`ACT_RA2_2.pdf`,
 
 **De qué hojas sale.** De la A2.1 (sesión 9, la clasificación de riesgos), la A2.2 (sesión 10, el nivel y el capítulo V2.1) y la A2.3 (sesión 11, el resto de capítulos), que trabajan sobre el mismo fichero. **Plazo:** lunes 16 de noviembre a las 23:59. **CE:** a, b, c, d.
 
-**Qué se entrega.** Dos cosas: la carpeta `ut2/a21/` de `pps-entregas` con la tabla de las diez vulnerabilidades, y la hoja de cálculo de ASVS (`.ods` o `.xls`, el formato que pide el enunciado, con portada y formato corporativo, como exige `ACT_RA2_1.pdf`) en `ut2/a22/` y `ut2/a23/`, que además se sube a la tarea de Aules. La hoja cubre **todos** los requisitos L1 (128 en ASVS 4.0.3), con las siete columnas de la plantilla; los que no se hicieron en clase se terminan en casa antes del plazo.
+**Qué se entrega.** Dos cosas: la carpeta `ut2/a21/` de `pps-entregas` con la tabla de las diez vulnerabilidades, y la hoja de cálculo de ASVS (`.ods` o `.xls`, el formato que pide el enunciado, con portada y formato corporativo) en `ut2/a22/` y `ut2/a23/`, que además se sube a la tarea de Aules. La hoja cubre **todos** los requisitos L1 (128 en ASVS 4.0.3), con las siete columnas de la plantilla; los que no se hicieron en clase se terminan en casa antes del plazo.
 
 | Criterio | CE | Peso | Evidencia |
 |---|---|---:|---|
@@ -740,16 +555,16 @@ Los niveles de logro son los de la rúbrica del curso anterior (`ACT_RA2_2.pdf`,
 
 **De qué hoja sale.** De la A2.4 (sesión 12) y de los dos escaneos adicionales que el enunciado pide en casa. **Plazo:** lunes 23 de noviembre a las 23:59. **CE:** c, d.
 
-**Qué se entrega.** La carpeta `ut2/a24/` de `pps-entregas` con el `README.md`, `trivy-log4shell.txt`, `trivy-wordpress.txt`, el inventario de componentes (`sbom.json`) y su análisis, `docker-bench.txt`, el perfil `pps-confinado` y las capturas. El reparto sigue el de la rúbrica del curso anterior (en el enunciado, 35, 35 y 30 % dentro del CE c y 40, 30 y 30 % dentro del CE d), con los dos criterios al 50 % cada uno.
+**Qué se entrega.** La carpeta `ut2/a24/` de `pps-entregas` con el `README.md`, `trivy-log4shell.txt`, `trivy-wordpress.txt`, el inventario de componentes (`sbom.json`) y su análisis, `docker-bench.txt`, el perfil `pps-confinado` y las capturas. El reparto es 35, 35 y 30 % dentro del CE c y 40, 30 y 30 % dentro del CE d, con los dos criterios al 50 % cada uno.
 
 | Criterio | CE | Peso | Evidencia |
 |---|---|---:|---|
-| Práctica 1: escaneo con `trivy` de la imagen Log4Shell, con el paquete, su versión y la versión que lo corrige | c | 17 % | A2.4, paso 2 |
+| Práctica 1: escaneo con `trivy` de la imagen Log4Shell, con el paquete, su versión y la versión que lo corrige | c | 17 % | A2.4, paso 1 |
 | Práctica 2: escaneo de una imagen antigua de WordPress y resumen de por qué es peor que la actual | c | 17 % | A2.4, entrega |
 | Práctica 3: inventario de componentes (SBOM) y su análisis con vulnerabilidades | c | 16 % | A2.4, entrega |
-| Laboratorio Log4Shell contenido (sin salida a Internet), vulnerabilidad comprobada y mitigada, con la corrección definitiva explicada | d | 20 % | A2.4, pasos 3 a 6 |
-| `docker-bench-security` ejecutado y tres hallazgos de secciones distintas explicados (qué comprueba, por qué importa, cómo se resuelve) | d | 15 % | A2.4, pasos 7 y 8 |
-| Perfil de AppArmor propio aplicado a un contenedor y comparado con otro sin perfil | d | 15 % | A2.4, pasos 9 y 10 |
+| Laboratorio Log4Shell contenido (sin salida a Internet), vulnerabilidad comprobada y mitigada, con la corrección definitiva explicada | d | 20 % | A2.4, paso 2 |
+| `docker-bench-security` ejecutado y tres hallazgos de secciones distintas explicados (qué comprueba, por qué importa, cómo se resuelve) | d | 15 % | A2.4, paso 3 |
+| Perfil de AppArmor propio aplicado a un contenedor y comparado con otro sin perfil | d | 15 % | A2.4, paso 4 |
 
 ### ACT_UT2_3 · Seguridad en Unix (xz)
 
@@ -759,31 +574,31 @@ Los niveles de logro son los de la rúbrica del curso anterior (`ACT_RA2_2.pdf`,
 
 | Criterio | CE | Peso | Evidencia |
 |---|---|---:|---|
-| Instantánea previa, máquina aislada y restauración | d | 5 % | A2.5, pasos 2 y 8 |
-| Comportamiento de los tres escenarios: conexión normal en 1 y 2, ejecución de `id` sin autenticación en 3 | d | 30 % | A2.5, pasos 3 a 5 |
-| Cadena `sshd` → `libsystemd` → `liblzma` con `ldd`, orden y salida | d | 25 % | A2.5, paso 6 |
-| Análisis de qué cambia entre versiones y por qué Debian 12 estable no se vio afectado | d | 20 % | A2.5, paso 7 |
-| Al menos dos controles de cadena de suministro concretos | d | 20 % | A2.5, paso 7 |
+| Instantánea previa, máquina aislada y restauración | d | 5 % | A2.5, pasos 2 y 6 |
+| Comportamiento de los tres escenarios: conexión normal en 1 y 2, ejecución de `id` sin autenticación en 3 | d | 30 % | A2.5, paso 3 |
+| Cadena `sshd` → `libsystemd` → `liblzma` con `ldd`, orden y salida | d | 25 % | A2.5, paso 4 |
+| Análisis de qué cambia entre versiones y por qué Debian 12 estable no se vio afectado | d | 20 % | A2.5, paso 5 |
+| Al menos dos controles de cadena de suministro concretos | d | 20 % | A2.5, paso 5 |
 
 ### ACT_UT2_4 · Ransomware (optativa)
 
 No tiene hoja ni tabla de pesos propia: es la actividad de reserva de la [sesión 14](#sesion-14-margen-y-repaso-de-la-unidad-2), cubre los criterios c y d y se valora sobre el informe de análisis y de prevención que allí se describe. Solo suma si el resto de la unidad está entregado.
 
-El enunciado original de cada actividad, con su bibliografía, está en el aula, dentro de la carpeta `RA2-Nivel-seguridad`.
+El enunciado de cada actividad está en el aula.
 
 ## Errores frecuentes en el laboratorio
 
 Para lo general (VM que no arranca, disco lleno, Docker sin permisos, puertos ocupados) mira [Si algo se rompe](../laboratorio.md#si-algo-se-rompe). Aquí, lo específico de esta unidad.
 
-**Log4Shell: el registro no muestra nada al enviar la expresión de prueba.** Hay tres causas habituales. La primera, que el argumento de `-H` va entre comillas dobles y la shell intenta expandir `${java:version}` antes de que `curl` lo vea: tiene que ir entre comillas simples, tal como está en el paso 5 de la A2.4. La segunda, que el contenedor acaba de arrancar y todavía no ha registrado la petición: se espera unos segundos y se repite. La tercera, que se está leyendo el contenedor equivocado: `docker ps` dice cuál corre y `docker logs vulnerable-app 2>&1 | grep "API version"` filtra su registro.
+**Log4Shell: el registro no muestra nada al enviar la expresión de prueba.** Hay tres causas habituales. La primera, que el argumento de `-H` va entre comillas dobles y la shell intenta expandir `${java:version}` antes de que `curl` lo vea: tiene que ir entre comillas simples, tal como está en el paso 2 de la A2.4. La segunda, que el contenedor acaba de arrancar y todavía no ha registrado la petición: se espera unos segundos y se repite. La tercera, que se está leyendo el contenedor equivocado: `docker ps` dice cuál corre y `docker logs vulnerable-app 2>&1 | grep "API version"` filtra su registro.
 
 **Log4Shell: `docker run` dice que el nombre `vulnerable-app` ya está en uso o que el puerto 8082 está ocupado.** Queda un contenedor de un intento anterior. `docker rm -f vulnerable-app` lo quita y `ss -ltnp | grep 8082` dice si hay otro proceso en ese puerto.
 
-**Log4Shell: el segundo `ping` sigue respondiendo después de la regla de `iptables`.** La regla se puso con una IP y el contenedor tiene otra, casi siempre porque se recreó (paso 6) y Docker le asignó una distinta. Se vuelve a leer la IP con `docker inspect` y se repite la regla. Si `iptables` dice que la cadena `DOCKER-USER` no existe, Docker no está arrancado: `systemctl status docker`.
+**Log4Shell: el segundo `ping` sigue respondiendo después de la regla de `iptables`.** La regla se puso con una IP y el contenedor tiene otra, casi siempre porque se recreó (paso 2) y Docker le asignó una distinta. Se vuelve a leer la IP con `docker inspect` y se repite la regla. Si `iptables` dice que la cadena `DOCKER-USER` no existe, Docker no está arrancado: `systemctl status docker`.
 
 **`docker pull` o `trivy` fallan con `toomanyrequests`.** Con treinta alumnos descargando a la vez desde la misma red, el registro aplica su límite de peticiones anónimas. Se espera unos minutos y se repite, o se inicia sesión en Docker Hub con la cuenta del curso (`docker login`). La primera ejecución de `trivy` descarga además su base de datos de vulnerabilidades, y esa descarga puede fallar por el mismo motivo: repetir el mismo comando basta.
 
-**`docker-bench-security` deja en la carpeta de la hoja un repositorio anidado.** El paso 7 clona el repositorio dentro de `ut2/a24/` y `git add .` avisa de `adding embedded git repository` o sube una referencia vacía. Se evita clonando fuera de `pps-entregas` (por ejemplo en `~/`) y dejando en la carpeta de la hoja solo el `docker-bench.txt`. Si ya se hizo, `git rm --cached docker-bench-security` y se borra la carpeta clonada.
+**`docker-bench-security` deja en la carpeta de la hoja un repositorio anidado.** El paso 3 clona el repositorio dentro de `ut2/a24/` y `git add .` avisa de `adding embedded git repository` o sube una referencia vacía. Se evita clonando fuera de `pps-entregas` (por ejemplo en `~/`) y dejando en la carpeta de la hoja solo el `docker-bench.txt`. Si ya se hizo, `git rm --cached docker-bench-security` y se borra la carpeta clonada.
 
 **El `docker-bench.txt` sale con caracteres raros y muchos `[WARN]`.** Los caracteres son los códigos de color del terminal: `sed 's/\x1b\[[0-9;]*m//g' docker-bench.txt` los quita. Los `[WARN]` de la sección 1 (auditoría con `auditd` de los ficheros de Docker) y de la 2 son normales en una máquina de laboratorio recién instalada: el objetivo no es dejar el informe en verde, es entender tres hallazgos. Si sale sin resultados o con `Permission denied`, faltó `sudo`.
 
@@ -799,7 +614,7 @@ Para lo general (VM que no arranca, disco lleno, Docker sin permisos, puertos oc
 
 **xz: `ldd` no muestra `libsystemd` en la salida de `sshd`.** No es un error de la orden: es un resultado, y se anota como tal. La cadena solo existe en los sistemas cuyo `sshd` se compiló con soporte de `systemd`. La hoja pide decir si existe **en esta máquina**, con la orden y su salida como prueba, y explicar qué habría cambiado si existiera.
 
-**xz: `VBoxManage snapshot ... restore` falla o borra los resultados.** Con la VM encendida el comando se niega; hay que apagarla antes (`VBoxManage controlvm debian12 poweroff`). Y al restaurar se pierde todo lo hecho dentro de `debian12` desde la instantánea, así que la carpeta de resultados se copia a `pps01` **antes** (paso 7).
+**xz: `VBoxManage snapshot ... restore` falla o borra los resultados.** Con la VM encendida el comando se niega; hay que apagarla antes (`VBoxManage controlvm debian12 poweroff`). Y al restaurar se pierde todo lo hecho dentro de `debian12` desde la instantánea, así que la carpeta de resultados se copia a `pps01` **antes** (paso 6).
 
 **ASVS: los identificadores de la hoja no coinciden con los del CSV.** Se mezclaron dos versiones del estándar. El curso usa la 4.0.3 (capítulos V1 a V14); la 5.0 tiene otra numeración y otros capítulos. Se descarga el CSV de la versión 4.0.3 y se comprueba que la primera fila indica esa versión.
 

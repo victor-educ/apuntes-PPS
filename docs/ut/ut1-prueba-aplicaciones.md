@@ -6,66 +6,16 @@ Antes de buscar fallos de seguridad en una aplicación hay que saber leerla y po
 
 Lo que va más allá de lo que se hace en clase (ampliaciones, otras herramientas y enlaces para seguir) está en [Para ampliar](../ampliacion.md#ut1-prueba-de-aplicaciones).
 
-## Introducción
-
-Esta unidad se lee en el orden en que se da en clase: primero los conceptos y las herramientas que se manejan, y después las ocho sesiones una detrás de otra, cada una con la teoría que se explica ese día y su hoja de práctica. Al final quedan las cuatro entregas con su rúbrica y los errores frecuentes del laboratorio.
-
-### Qué tienes que saber hacer al terminar
-
-- Comparar lenguajes de bajo, medio y alto nivel por su nivel de abstracción, su modelo de ejecución (compilado, interpretado o con máquina virtual) y el control que dan sobre la máquina, y elegir uno para un caso dado (CE a).
-- Explicar cómo se ejecuta un programa, desde el código fuente hasta el proceso en marcha, pasando por el binario, el intérprete o la máquina virtual y las llamadas al sistema (CE b).
-- Ensamblar, ejecutar y depurar un programa x86-64 sencillo, e identificar en él sus secciones, sus registros y su llamada al sistema (CE b).
-- Reconocer los elementos básicos de un programa (variables, tipos, decisiones, bucles, funciones, errores) en Python, Go y Bash, y darles significado (CE c).
-- Escribir, ejecutar y depurar pruebas unitarias en Python y en Go, y situar cada prueba en su tipo: unitaria, de integración, de sistema, de aceptación o de regresión (CE d).
-- Evaluar qué seguridad da cada lenguaje y su entorno de ejecución (tipado, memoria, aislamiento) y qué riesgos son propios de un contrato inteligente (CE e).
-- Entregar el trabajo con Git: clonar, confirmar, subir, crear ramas y fusionarlas (soporte de todas las entregas del curso).
-
-### Los conceptos de la unidad
-
-Un lunes de octubre, un servicio que llevaba meses funcionando empieza a devolver resultados raros después de actualizar una librería. Nadie ha tocado el código propio. Para averiguar qué ha pasado hay que poder leer el código, ejecutarlo paso a paso, ver qué le pide al sistema operativo y comprobar con pruebas automáticas que el comportamiento anterior sigue intacto. Es lo que se entrena aquí, con un objetivo doble: que quien ponga una aplicación en producción sepa qué está poniendo, y que cada comprobación quede escrita y repetible en un repositorio.
-
-| Herramienta o concepto | Qué es, en una frase | Para qué se usa en esta unidad |
-|---|---|---|
-| VirtualBox y `pps01` | El programa que crea máquinas virtuales y la máquina Ubuntu 24.04 del curso | Tener un puesto igual para todos, aislado del equipo y con instantáneas para volver atrás |
-| NASM y `ld` | El ensamblador que traduce mnemónicos a código máquina y el enlazador que produce el ejecutable | Construir el programa x86-64 de la A1.2 |
-| `gdb` y el depurador web asmdebugger | Depuradores: ejecutan un programa paso a paso y enseñan registros y memoria | Ver qué hace cada instrucción en la A1.3 |
-| `strace` | Muestra las llamadas al sistema que hace un proceso | Comprobar que ensamblador, C y Python acaban pidiendo lo mismo al núcleo |
-| Máquina virtual de un lenguaje (CPython, JVM, EVM) | Programa que ejecuta un código intermedio (bytecode) en lugar de instrucciones de la CPU | Entender el tercer modelo de ejecución, junto al binario nativo y al intérprete |
-| `unittest` y `go test` | Los marcos de pruebas unitarias de Python y de Go | Escribir tres pruebas, una de ellas fallida a propósito, en la A1.4 y la A1.5 |
-| VS Code con las extensiones de Python y de Go | Editor con depurador integrado | Poner puntos de parada y seguir variables en las dos hojas de pruebas |
-| Bash y `bash -x` | El intérprete de órdenes de Linux y su modo de traza | Escribir un script, depurarlo y analizar `LearnBash.sh` en la A1.6 |
-| Sandbox (entorno aislado) | Espacio donde un programa corre sin poder tocar el resto del sistema | Evaluar qué aislamiento da cada lenguaje y cada entorno de ejecución |
-| CryptoZombies y Solidity | Curso guiado en el navegador que enseña a escribir contratos inteligentes en Solidity | Conocer un modelo de ejecución distinto y sus riesgos (A1.7) |
-| Git y GitHub | El control de versiones y el servicio donde vive el repositorio `pps-entregas` | Entregar todas las hojas y aprender ramas, fusiones y remotos con Learn Git Branching |
-| Tipos de prueba | Unitaria, de integración, de sistema, de aceptación y de regresión | Situar cada comprobación en su nivel y elegir cuál falta |
-
-**Cómo está organizada la unidad.** Cada sesión trae primero la teoría que se explica ese día y después su hoja de práctica. En la sesión 1 se presenta el módulo y se prepara el puesto de trabajo. Las sesiones 2 y 3 son de ensamblador: primero ensamblar, ejecutar y localizar las secciones de un programa, comparándolo con el mismo en C y en Python, y después depurarlo con `gdb`. Las sesiones 4 y 5 repiten un mismo programa en Python y en Go con sus pruebas unitarias y su depuración. La sesión 6 pasa a Bash y compara la seguridad de los tres lenguajes. La sesión 7 añade el contrato inteligente y el control de versiones. La sesión 8 es de margen. Las cuatro entregas no tienen sesión propia: se construyen con las hojas y se cierran por su plazo, como se recoge en las [prácticas evaluables](#practicas-evaluables-de-la-unidad).
-
-### Plan de sesiones
-
-Cada sesión de 110 minutos empieza con una explicación corta y sigue con laboratorio. La columna «Se explica» recoge los apartados de teoría que se desarrollan en clase, con su duración aproximada; la columna «Se practica», el trabajo de laboratorio de esa sesión.
-
-| Sesión | Fecha | Tipo | Se explica | Se practica |
-|---:|-------|------|------------|-------------|
-| [1](#sesion-1-presentacion-y-puesto-de-trabajo) | 1 oct | Teoría y práctica | Presentación del módulo, evaluación y normas de entrega (20 min); qué necesita un puesto de trabajo reproducible: máquina virtual, Docker, Git y las cuentas del curso (10 min). | Preparar la máquina virtual con Docker, VS Code y Git, crear las cuentas de GitHub, Docker Hub, PortSwigger y Atenea y el repositorio de entregas. |
-| [2](#sesion-2-lenguajes-y-modelos-de-ejecucion) | 5 oct | Teoría y práctica | Niveles de los lenguajes; compilados, interpretados y con máquina virtual; cómo se ejecuta un programa (25 min). | Ensamblar y ejecutar un programa x86-64, localizar sus secciones y compararlo con el mismo programa en C y en Python. |
-| [3](#sesion-3-ensamblador-y-depurador) | 15 oct | Teoría y práctica | Qué hace un depurador: puntos de parada, registros, pila y memoria (15 min). | Depurar paso a paso el programa anterior con `gdb` y con el depurador web y contestar las preguntas del enunciado. |
-| [4](#sesion-4-python-codigo-fuente-pruebas-y-depuracion) | 19 oct | Teoría y práctica | Elementos básicos de un programa; tipos de prueba y estructura de un test unitario (25 min). | Programa en Python con README, tres tests (uno falla a propósito) y depuración en VS Code. |
-| [5](#sesion-5-go-pruebas-y-depuracion) | 22 oct | Teoría y práctica | Cómo se compila y se prueba un programa en Go y en qué se diferencia de Python (15 min). | El mismo ejercicio en Go: README, tres tests con `go test` y depuración en VS Code. Plazo de ACT_UT1_1. |
-| [6](#sesion-6-bash-y-seguridad-de-los-lenguajes) | 26 oct | Teoría y práctica | Cómo interpreta Bash una orden; qué seguridad ofrece cada lenguaje (25 min). | Script Bash con `bash -x`, análisis de `LearnBash.sh` y comparativa de seguridad de Go, Python y Bash. |
-| [7](#sesion-7-contratos-inteligentes-y-control-de-versiones) | 29 oct | Teoría y práctica | La máquina virtual de Ethereum, los contratos y sus riesgos; ramas, fusiones y remotos en Git (25 min). | CryptoZombies y Learn Git Branching (main y remote) con capturas del nivel de logro. Plazo de ACT_UT1_2. |
-| [8](#sesion-8-margen-y-repaso-de-la-unidad-1) | 2 nov | Margen | Sin teoría nueva. | Repaso y ampliación, o recuperación de lo perdido. Plazo de ACT_UT1_3. |
-
-Las cuatro entregas (ACT_UT1_1 a ACT_UT1_4) no tienen sesión de práctica evaluable: se construyen con las hojas y se cierran en su fecha. Los criterios de cada una están en [Prácticas evaluables de la unidad](#practicas-evaluables-de-la-unidad).
-
 ## Sesión 1 · Presentación y puesto de trabajo
 
 <p class="ut-meta" markdown>1 de octubre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Presentación y evaluación · 20 min&#10;Puesto de trabajo reproducible · 10 min&#10;A1.1 Puesto de trabajo · 80 min" data-dur="Presentación y evaluación · 20 min&#10;Puesto de trabajo reproducible · 10 min&#10;A1.1 Puesto de trabajo · 80 min">:material-school:<i class="dur-barra" style="--teoria:27%"></i>:material-flask:</span></p>
 
 Al acabar esta sesión hay una máquina virtual `pps01` con Docker, Git y VS Code, las cuentas del curso creadas y un repositorio `pps-entregas` propio, clonado en la máquina y con la primera confirmación subida a GitHub. Antes se explica cómo funciona el módulo (qué se evalúa, cómo se entrega, para qué sirven los márgenes) y por qué el puesto de trabajo se monta como una máquina virtual que se puede reconstruir en minutos.
 
-!!! consulta "Material de partida"
-    **Aula** (carpeta `00-General/01 Plantilla lliurable activitats/`): `Normativa_entrega_trabajos.pdf`, con el formato de los documentos que se entregan, y las plantillas de memoria `Plantilla_memoria_tarea.docx` y `Plantilla_memoria_tarea.odt`. **Web**: la plantilla de repositorio del curso anterior, <https://github.com/pkaminasfp/template>. El resto de la sesión (máquina virtual, cuentas, `pps-entregas`) es propio de estos apuntes: el aula de 2024-25 no tiene ficheros sobre él. La presentación completa del módulo está en [Presentación y evaluación](../modulo.md) y el calendario, en [Calendario](../calendario.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Plantilla de repositorio](https://github.com/pkaminasfp/template): el modelo de `README` para `pps-entregas`.
 
 ### Presentación y evaluación
 
@@ -141,57 +91,25 @@ La segunda orden se lanza con la máquina apagada. El mismo resultado se consigu
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la máquina, por una de las dos rutas.
-    - **Ruta A, importar.** Si el aula publica la imagen `pps01.ova`: en VirtualBox, Archivo, Importar servicio virtualizado, elige el fichero y marca "Reinicializar la dirección MAC de todas las tarjetas de red". Unos 10 minutos. Sigue por el paso 2.
-    - **Ruta B, desde la ISO.** Con la ISO de Ubuntu 24.04 LTS de escritorio (unos 6 GB; si no está descargada al empezar la sesión, la instalación se termina en casa y los pasos 2 y 3 no dependen de ella): Nueva, nombre `pps01`, tipo Linux y Ubuntu (64-bit), 4 procesadores, 6144 MB de memoria y disco de 50 GB de reserva dinámica. Si VirtualBox ofrece la instalación desatendida, usa el usuario `alumno` y el nombre de equipo `pps01`; si no, instala con el asistente de Ubuntu con esos mismos valores.
-2. En Configuración, Red, deja el adaptador 1 en NAT y activa el adaptador 2 como "Adaptador solo anfitrión". Arranca la máquina; mientras se instala o arranca, sigue con el paso 3.
-3. Crea las cuentas con el usuario `pps<NIA>` y el correo corporativo: [GitHub](https://github.com/), [Docker Hub](https://hub.docker.com/signup), [PortSwigger Academy](https://portswigger.net/users/register) y [Atenea](https://atenea.ccn-cert.cni.es/registro) (esta última con tu correo de la Generalitat; puede pedir confirmación por correo). Guarda las contraseñas en un gestor de contraseñas o en un cuaderno tuyo, nunca en un fichero del repositorio.
-4. En GitHub, New repository: nombre `pps-entregas`, privado y **sin marcar** ninguna casilla de inicialización. La plantilla del curso anterior no está marcada como plantilla en GitHub, así que no existe el botón "Use this template": se usará como modelo de `README.md`. En Settings, Collaborators, añade a quien corrige, con el usuario que indique el profesor.
-5. Dentro de `pps01`, instala las herramientas. En un aula con treinta equipos descargando a la vez tarda entre 5 y 15 minutos:
+1. Crea `pps01` con los valores de [Máquinas virtuales](../laboratorio.md#maquinas-virtuales) (Ubuntu 24.04 LTS de escritorio, 4 procesadores, 6144 MB de memoria, 50 GB de disco dinámico y usuario `alumno`), con el adaptador de red 1 en NAT y el 2 en «Adaptador solo anfitrión». Si el aula publica la imagen `pps01.ova`, impórtala; si no, instala desde la ISO.
 
-    ```bash
-    sudo apt update && sudo apt install -y git curl build-essential docker.io
-    sudo usermod -aG docker "$USER"
-    sudo snap install code --classic
-    ```
+    *Pista:* al importar, marca «Reinicializar la dirección MAC de todas las tarjetas de red». Si la ISO no está descargada al empezar, la instalación se termina en casa: el paso 2 no depende de ella.
 
-    Cierra la sesión gráfica y vuelve a entrar (el grupo `docker` solo se aplica en una sesión nueva). Comprueba con `docker run --rm hello-world`, que debe terminar con `Hello from Docker!`.
-6. Configura Git y crea la clave SSH con la que se sube al repositorio, sin escribir contraseñas cada vez:
+2. Crea tus cuentas de [GitHub](https://github.com/), [Docker Hub](https://hub.docker.com/signup), [PortSwigger Academy](https://portswigger.net/users/register) y [Atenea](https://atenea.ccn-cert.cni.es/registro) con el usuario `pps<NIA>` y el correo corporativo, y en GitHub el repositorio privado `pps-entregas`, **sin marcar** ninguna casilla de inicialización y con quien corrige como colaborador (el usuario lo indica el profesor).
 
-    ```bash
-    git config --global user.name "pps<NIA>"
-    git config --global user.email "<tu correo corporativo>"
-    ssh-keygen -t ed25519 -C "pps<NIA>@pps01"
-    cat ~/.ssh/id_ed25519.pub
-    ```
+3. Instala en `pps01` `git`, `curl`, `build-essential`, `docker.io` y VS Code, y deja Docker listo para usarse sin `sudo`. Con treinta equipos descargando a la vez tarda entre 5 y 15 minutos.
 
-    Copia la línea que muestra `cat` en GitHub, Settings, SSH and GPG keys, New SSH key. Prueba con `ssh -T git@github.com`: la primera vez pregunta si se confía en el servidor (compara la huella con la [publicada por GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints)) y responde con tu usuario.
-7. Clona el repositorio y la plantilla, y prepara la primera confirmación:
+    *Pista:* VS Code se instala con `snap` (`code --classic`). El grupo `docker` solo se aplica en una sesión nueva: sal de la sesión gráfica y vuelve a entrar.
 
-    ```bash
-    git clone git@github.com:pps<NIA>/pps-entregas.git ~/pps-entregas
-    git clone https://github.com/pkaminasfp/template.git ~/plantilla
-    cd ~/pps-entregas && git branch -M main && mkdir -p ut1 && cp ~/plantilla/README.md README.md
-    ```
+4. Configura Git con `pps<NIA>` y tu correo corporativo, registra en GitHub una clave SSH ed25519 (en la primera conexión, comprueba que la huella es la [publicada por GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints)) y clona `pps-entregas` en `~/pps-entregas`. Deja en él un `README.md` basado en el de la [plantilla de repositorio](https://github.com/pkaminasfp/template), con el título `PPS entregas de pps<NIA>`, las cinco unidades y el árbol de carpetas, y un `ut1/README.md` con una tabla de las hojas A1.1 a A1.7 y una columna «Estado».
 
-    Edita `README.md` (título `PPS entregas de pps<NIA>`, una lista con las cinco unidades y el árbol de carpetas que vas a usar, como hace la plantilla) y crea `ut1/README.md` con una tabla de las hojas A1.1 a A1.7 y una columna "Estado". El aviso de "empty repository" al clonar es normal.
-8. Fija la IP de `pps01` en la red solo anfitrión. Las demás hojas y unidades dan por hecho que es `192.168.56.10`, y el DHCP de VirtualBox no la garantiza. Ubuntu de escritorio usa NetworkManager: mira qué conexión tiene el segundo adaptador (el que no tiene ya la `10.0.2.x` del NAT) y ponle la dirección a mano, sin puerta de enlace para no romper la salida a Internet por el NAT:
+    *Pista:* la plantilla no está marcada como plantilla en GitHub, así que no hay botón «Use this template»: se clona aparte y se copia su `README.md`. Tras clonar el repositorio vacío, deja la rama como `main` con `git branch -M main`.
 
-    ```bash
-    ip -br a
-    nmcli -f NAME,DEVICE con show
-    sudo nmcli con modify "Wired connection 2" ipv4.method manual ipv4.addresses 192.168.56.10/24 ipv4.never-default yes
-    sudo nmcli con up "Wired connection 2"
-    ```
+5. Fija la IP `192.168.56.10/24` en la interfaz del adaptador solo anfitrión, sin puerta de enlace para no romper la salida por el NAT. El resto del curso da por hecha esa dirección, y el DHCP de VirtualBox no la garantiza.
 
-    Sustituye `Wired connection 2` por el nombre que haya mostrado `nmcli` para la interfaz del segundo adaptador (normalmente `enp0s8`). Comprueba con `ip -br a`, que debe mostrar `192.168.56.10/24` en esa interfaz, y con `ping -c 2 192.168.56.1` (el anfitrión). Si el ping no responde, revisa que el adaptador 2 esté en "solo anfitrión" y que la máquina lleve un rato encendida con ese adaptador activo.
-9. Sube el resultado y toma la instantánea de la máquina:
+    *Pista:* se modifica con `nmcli` la conexión que ya tiene esa interfaz (normalmente `enp0s8`); la orden está en [Máquinas virtuales](../laboratorio.md#maquinas-virtuales).
 
-    ```bash
-    git add . && git commit -m "A1.1 puesto de trabajo" && git push -u origin main
-    ```
-
-    Apaga `pps01` y, en VirtualBox, toma una instantánea llamada `a11-base` (o la orden `VBoxManage snapshot pps01 take a11-base` desde el equipo anfitrión).
+6. Sube el resultado y toma, con la máquina apagada, la instantánea `a11-base`.
 
 <span class="et et-com">Comprobación</span> `ip -br a` muestra `192.168.56.10/24` y `ping -c 2 192.168.56.1` responde; `docker run --rm hello-world` responde sin `sudo`; `git --version` y `code --version` dan una versión; `ssh -T git@github.com` te saluda por tu usuario; `git status` en `~/pps-entregas` dice `nothing to commit` y en la página del repositorio en GitHub se ven `README.md` y `ut1/README.md`. Si algo falla, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
@@ -205,8 +123,16 @@ La segunda orden se lanza con la máquina apagada. El mismo resultado se consigu
 
 Al acabar esta sesión hay un programa de ensamblador x86-64 ensamblado, enlazado y ejecutado en `pps01`, con sus secciones localizadas y con sus dos fallos encontrados y corregidos, y una tabla que lo compara con el mismo programa escrito en C y en Python. La teoría da el mapa antes de tocar nada: en qué niveles se escriben los programas, de qué tres maneras llegan a ejecutarse y qué ocurre entre la CPU y el sistema operativo cuando un programa escribe algo en pantalla.
 
-!!! consulta "Material de partida"
-    **Aula** (carpeta `RA1-Prueba-aplicaciones/`): `01 ACT_RA1_1 - Proves d'aplicacions/UD_1.pdf` (el enunciado: lecturas 3.1 y 3.2 y el programa de 3.3) y `R_UD_1.pdf` (la rúbrica); `02 Fonaments de programació/FUN_PRO.pdf` (un capítulo de un libro de C++, solo como referencia de fondo); `04 Material/How Python Works.pdf` y `How Java Works.pdf` (dos artículos sobre bytecode y máquina virtual). **Web** que ya usaba el material: <https://gpfault.net/posts/asm-tut-0.txt.html> (introducción a x86-64, pero escrita para Windows, con FASM y WinDbg: sirve para las ideas, no para las órdenes), <https://web.stanford.edu/class/cs107/guide/x86-64.html> (guía de registros y direccionamiento, en sintaxis AT&T) y <https://www.w0lff4ng.org/conceptos-basicos-de-assembler-y-debugger/> (ensamblador y depurador con NASM). **Apuntes de terceros**: *Apuntes de Puesta en Producción Segura*, unidad 1, apartados de fundamentos, lenguajes y ejecución (licencia CC BY-NC-SA 4.0), <https://github.com/EloyAlbiach/PPS/tree/main/pruebas>, y *Ciberseguridad-PePS*, tema 0, «Iniciación a la programación», <https://psegarrac.github.io/Ciberseguridad-PePS/tema0/iniciaci%C3%B3n/a/la/programaci%C3%B3n/2021/06/01/Iniciaci%C3%B3n-a-la-programaci%C3%B3n.html>. La atribución completa está en [Material de partida](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Guía de x86-64 de Stanford (CS107)](https://web.stanford.edu/class/cs107/guide/x86-64.html): registros y direccionamiento, en sintaxis AT&T.
+    - [Conceptos de ensamblador y depurador](https://www.w0lff4ng.org/conceptos-basicos-de-assembler-y-debugger/): ensamblador y depuración con NASM.
+    - El enunciado de la entrega ACT_UT1_1 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - [Introducción a x86-64](https://gpfault.net/posts/asm-tut-0.txt.html): escrita para Windows (FASM y WinDbg); sirve para las ideas, no para las órdenes.
 
 ### Niveles de los lenguajes
 
@@ -303,84 +229,27 @@ En la sintaxis AT&T, la de la guía de Stanford y la que muestra `gdb` por defec
 
 <span class="et et-obj">Objetivo</span> Ensamblar, enlazar y ejecutar el programa del enunciado, encontrar por qué no se comporta como se explica, corregirlo, localizar sus secciones y compararlo con el mismo programa en C y en Python, con una tabla de mediciones y el resumen de las dos lecturas. Cubre los puntos 3.1, 3.2, 3.3.1 y 3.3.2 del enunciado de ACT_UT1_1.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` con `build-essential` (de la [A1.1](#a11-puesto-de-trabajo-sesion-1)) y el repositorio `~/pps-entregas`. Se han explicado los [niveles de los lenguajes](#niveles-de-los-lenguajes), los [tres modelos de ejecución](#compilados-interpretados-y-con-maquina-virtual) y [cómo llega un programa de la CPU al proceso](#de-la-cpu-al-programa-en-marcha), incluida la forma de una llamada al sistema. El enunciado original (`UD_1.pdf`) sigue siendo la referencia de lo que se entrega.
+<span class="et et-pre">Antes de empezar</span> `pps01` con `build-essential` (de la [A1.1](#a11-puesto-de-trabajo-sesion-1)) y el repositorio `~/pps-entregas`. Se han explicado los [niveles de los lenguajes](#niveles-de-los-lenguajes), los [tres modelos de ejecución](#compilados-interpretados-y-con-maquina-virtual) y [cómo llega un programa de la CPU al proceso](#de-la-cpu-al-programa-en-marcha), incluida la forma de una llamada al sistema. El enunciado de la entrega, en el aula, trae el programa del punto 3.3 y sigue siendo la referencia de lo que se entrega.
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala las herramientas y comprueba la versión de NASM:
+1. Instala `nasm`, `gdb` y `strace`. Crea en `~/pps-entregas/ut1/a12/` el fichero `hola_enunciado.asm` con el programa del punto 3.3 del enunciado, tal cual, y ensámblalo, enlázalo y ejecútalo (punto 3.3.1). Apunta en el README los comandos, la salida y el código de salida.
 
-    ```bash
-    sudo apt install -y nasm gdb strace
-    nasm -v
-    ```
+    *Pista:* la línea `x86_64` del recuadro del enunciado es la etiqueta del lenguaje y no se copia. El objeto tiene que ser de 64 bits (`nasm -f elf64`); las órdenes están en la [chuleta](../chuleta.md#ensamblador-y-depuracion-nasm-ld-gdb).
 
-2. Crea `~/pps-entregas/ut1/a12/` y en ella `hola_enunciado.asm` con el programa del punto 3.3, copiado tal cual. La primera línea del recuadro del enunciado (`x86_64`) es la etiqueta del lenguaje y no forma parte del programa: no la copies.
+2. Compara la salida con lo que el programa debería hacer (punto 3.3.2), encuentra sus dos anomalías y corrígelas en una copia, `hola.asm`, que da el ejecutable `hola`, sin tocar `hola_enunciado.asm`. Explica en el README cada anomalía y su causa.
 
-    ```nasm
-    global _start
+    *Pista:* cuenta con `od -c` los bytes que salen y compáralos con `rdx`; para la otra, compara cómo acaba el programa con la forma de una [llamada al sistema](#de-la-cpu-al-programa-en-marcha).
 
-    section .data
-    message: db "Hello World!", 10
+3. Responde en el README sobre el ejecutable `hola`: en qué sección está el texto y en cuál el código, qué dirección tiene `_start` y si coincide con el punto de entrada, y cuántos bytes ocupa `.text`.
 
-    section .text
-    _start:
-        mov rax, 1
-        mov rdi, 1
-        mov rsi, message
-        mov rdx, 14
-        syscall
+    *Pista:* `readelf`, `nm` y `objdump -d -M intel`. Si `objdump` enseña `eax` donde el fuente dice `rax`, es NASM eligiendo la codificación más corta: el efecto es el mismo.
 
-        mov rax, 60
-        xor rdi, rdi
-    ```
+4. Escribe el mismo programa en C (`hola.c`, compilado como `hola_c`) y en Python (`hola.py`), y compara los tres en una tabla del README: líneas, tamaño, tipo de ejecutable, librerías y número de llamadas al sistema. Comprueba con `strace` que los tres hacen la misma escritura.
 
-3. Ensambla, enlaza y ejecuta (punto 3.3.1). `nasm` produce el fichero objeto, `ld` lo convierte en ejecutable y `echo $?` muestra el código de salida del programa:
+    *Pista:* `strace` escribe por el error estándar, y `-e trace=write` deja solo las escrituras.
 
-    ```bash
-    nasm -f elf64 hola_enunciado.asm -o hola_enunciado.o
-    ld hola_enunciado.o -o hola_enunciado
-    ./hola_enunciado
-    echo $?
-    ```
-
-4. Anota la salida (punto 3.3.2) y lo que no cuadra con lo que explica el enunciado. Cuenta con `./hola_enunciado | od -c` cuántos bytes salen y cuáles son. Hay dos anomalías: una está en el número de bytes (cuenta los caracteres de `message`, salto de línea incluido, y compáralo con `rdx`) y la otra en cómo termina el proceso (compara el final del programa con la forma de la llamada a `write`: cuántas instrucciones lleva).
-5. Copia el fichero a `hola.asm`, corrige las dos anomalías, y repite el paso 3 con esos nombres. Comprueba que `./hola` imprime una línea, que `echo $?` da `0` y que `./hola | wc -c` da `13`. Deja `hola_enunciado.asm` sin tocar: es la prueba de lo que había.
-6. Localiza las secciones del ejecutable. Responde en el README a tres preguntas: en qué sección está el texto y en cuál el código, qué dirección tiene `_start` y si coincide con el punto de entrada, y cuántos bytes ocupa `.text`:
-
-    ```bash
-    readelf -h hola | grep 'Entry point'
-    readelf -S hola
-    nm hola
-    objdump -d -M intel hola
-    objdump -s -j .data hola
-    ```
-
-    Es posible que `objdump` muestre `mov eax,0x1` donde el fuente dice `mov rax, 1`: NASM elige la codificación más corta, y escribir en `eax` deja a cero la mitad alta de `rax`, así que el efecto es el mismo.
-7. Escribe el mismo programa en C y en Python y compílalo:
-
-    ```bash
-    printf '#include <stdio.h>\n\nint main(void) {\n    printf("Hello World!\\n");\n    return 0;\n}\n' > hola.c
-    gcc hola.c -o hola_c
-    echo 'print("Hello World!")' > hola.py
-    ```
-
-8. Mide los tres programas y rellena la tabla del README con líneas de código, tamaño, tipo de ejecutable, librerías y número de llamadas al sistema. Después comprueba que los tres acaban pidiendo lo mismo al núcleo:
-
-    ```bash
-    wc -l hola.asm hola.c hola.py
-    ls -l hola hola_c
-    file hola hola_c
-    ldd hola
-    ldd hola_c
-    strace ./hola 2>&1 >/dev/null | wc -l
-    strace ./hola_c 2>&1 >/dev/null | wc -l
-    strace python3 hola.py 2>&1 >/dev/null | wc -l
-    strace -e trace=write ./hola_c
-    strace -e trace=write python3 hola.py
-    ```
-
-9. Lee los materiales de los puntos 3.1 y 3.2 y escribe en el README un resumen propio de cinco líneas de cada uno: la [guía de x86-64 de Stanford](https://web.stanford.edu/class/cs107/guide/x86-64.html) (registros y direccionamiento; ojo, usa sintaxis AT&T) y el artículo de [conceptos básicos de ensamblador y depurador](https://www.w0lff4ng.org/conceptos-basicos-de-assembler-y-debugger/). De la introducción de la [serie de gpfault](https://gpfault.net/posts/asm-tut-0.txt.html) basta la parte que explica qué es un ensamblador y qué es un depurador: el resto es para Windows. Estas lecturas son el 50 % de la nota del CE a: si no caben en clase, se terminan en casa antes del plazo.
-10. Escribe `ut1/a12/README.md` (comandos del paso 3, salida y las dos anomalías con su causa, respuestas del paso 6, tabla del paso 8 y resúmenes del paso 9), y haz `git add`, `git commit` y `git push`.
+5. Resume en el README, con palabras propias y en cinco líneas cada una, las lecturas de los puntos 3.1 y 3.2: la [guía de x86-64 de Stanford](https://web.stanford.edu/class/cs107/guide/x86-64.html) y el artículo de [conceptos básicos de ensamblador y depurador](https://www.w0lff4ng.org/conceptos-basicos-de-assembler-y-debugger/). Son el 50 % de la nota del CE a: lo que no quepa en clase se termina en casa antes del plazo.
 
 <span class="et et-com">Comprobación</span> `./hola` imprime `Hello World!` y termina con código 0; `./hola | wc -c` da 13; `./hola_enunciado` termina con `Segmentation fault` y código 139. En la tabla, los tres programas muestran `write(1, "Hello World!\n", 13)` como llamada de escritura, y el número de llamadas al sistema crece del ensamblador (unas pocas) al C (decenas) y a Python (centenares). Si `nasm` da un error en la primera línea, has copiado `x86_64`; si `ld` avisa de que no encuentra `_start`, falta `global _start`.
 
@@ -392,8 +261,11 @@ En la sintaxis AT&T, la de la guía de Stanford y la que muestra `gdb` por defec
 
 Al acabar esta sesión el programa de la A1.2 está depurado instrucción a instrucción con `gdb`, con una tabla que dice qué registro cambia en cada paso y por qué el programa del enunciado se cae al final, y un segundo ejercicio hecho en el depurador web. Con eso quedan contestadas las tres preguntas del punto 3.3 del enunciado (ejecutar, salida y análisis con el depurador). La teoría explica qué permite ver un depurador y qué órdenes de `gdb` bastan para la hoja.
 
-!!! consulta "Material de partida"
-    **Aula**: el mismo enunciado, `01 ACT_RA1_1 - Proves d'aplicacions/UD_1.pdf`, punto 3.3.3 (analizar el código con el depurador ensamblador) y la rúbrica `R_UD_1.pdf`. **Web** que ya usaba el material: <http://asmdebugger.com/> y <https://www.w0lff4ng.org/conceptos-basicos-de-assembler-y-debugger/>. Ese depurador web es un emulador pequeño: solo conoce los registros de 32 bits `eax`, `ebx`, `ecx` y `edx` y una treintena de instrucciones (`mov`, `add`, `sub`, `mul`, `div`, `inc`, `dec`, `cmp`, saltos y `loop`), y no entiende `syscall`, secciones ni registros de 64 bits, así que **no puede ejecutar el programa del enunciado tal como está**. La hoja lo usa con un ejercicio equivalente en registros de 32 bits, y el análisis del programa real se hace con `gdb`, que es el depurador de verdad. Documentación de `gdb`: <https://sourceware.org/gdb/current/onlinedocs/gdb.html>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Depurador de ensamblador en el navegador](http://asmdebugger.com/): emulador de 32 bits para un ejercicio equivalente al del enunciado.
+    - [Documentación de gdb](https://sourceware.org/gdb/current/onlinedocs/gdb.html): el depurador con el que se analiza el programa real.
 
 ### Qué hace un depurador
 
@@ -423,44 +295,25 @@ El depurador web y `gdb` son cosas distintas: `gdb` controla un proceso real (ll
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea `~/pps-entregas/ut1/a13/`, copia allí los dos `.asm` y deja `gdb` con la sintaxis del enunciado. Ensambla con información de depuración:
+1. Copia los dos `.asm` de la A1.2 a `~/pps-entregas/ut1/a13/`, ensámblalos y enlázalos con información de depuración, y deja `gdb` mostrando siempre la sintaxis Intel del enunciado.
 
-    ```bash
-    echo 'set disassembly-flavor intel' >> ~/.gdbinit
-    nasm -f elf64 -g -F dwarf hola_enunciado.asm -o hola_enunciado.o && ld hola_enunciado.o -o hola_enunciado
-    nasm -f elf64 -g -F dwarf hola.asm -o hola.o && ld hola.o -o hola
-    ```
+    *Pista:* `nasm -g -F dwarf`, y `set disassembly-flavor intel` en `~/.gdbinit`.
 
-2. Depura el programa del enunciado. Abre `gdb -q ./hola_enunciado`, pon un punto de parada al principio y ejecuta:
+2. Recorre `hola_enunciado` en `gdb` desde `_start`, instrucción a instrucción, y apunta en una tabla del README qué registro cambia en cada una y a qué valor. Antes del `syscall`, mira en memoria lo que va a escribir; después, qué devuelve `write` en `rax` frente a lo que debería devolver.
 
-    ```text
-    (gdb) break _start
-    (gdb) run
-    (gdb) x/8i $rip
-    (gdb) info registers rax rdi rsi rdx
-    ```
+    *Pista:* las órdenes están en la tabla de [Qué hace un depurador](#que-hace-un-depurador).
 
-3. Avanza con `stepi` una instrucción cada vez. Tras cada una, mira `info registers rax rdi rsi rdx` y apunta en una tabla del README, por cada instrucción, qué registro cambia y a qué valor. Antes del `syscall`, comprueba lo que va a escribir con `x/s $rsi` y con `x/14xb $rsi`.
-4. Ejecuta el `syscall` de `write` con `stepi` y mira `info registers rax`: es el valor que devuelve la llamada, el número de bytes escritos. Apúntalo, y compáralo con lo que debería devolver.
-5. Sigue con `stepi` hasta pasar `xor rdi, rdi`. Con `x/3i $rip` mira qué instrucción hay a continuación (una que nadie escribió) y da un `stepi` más: `gdb` avisa de `SIGSEGV`. Con `info registers rax` averigua qué valor tenía `rax` y explica en el README por qué esa instrucción lo usa como dirección y por qué falla.
-6. Sal con `quit` y repite los pasos 2 a 4 con el programa corregido (`./hola`); después sigue hasta el final: no se cae y la ejecución termina con `exited normally`. Comprueba con `p $_exitcode` que el código de salida es 0.
-7. Abre <http://asmdebugger.com/>, borra el ejemplo y pega este ejercicio, que suma 5, 4, 3, 2 y 1. Pulsa "Next Instruction" y, a cada paso, mira `eax`, `ecx` y la bandera `zf`:
+3. Sigue hasta el `SIGSEGV` y explica en el README qué instrucción se ejecutó después del último `xor` (una que nadie escribió), qué valor tenía `rax`, por qué esa instrucción lo usa como dirección y por qué falla.
 
-    ```nasm
-    start:
-        mov eax, 0
-        mov ecx, 5
-    suma:
-        add eax, ecx
-        dec ecx
-        jnz suma
-    exit:
-    ```
+4. Repite el recorrido con el programa corregido, `hola`, hasta el final: no se cae y su código de salida es 0 (`p $_exitcode`).
 
-    Anota los valores de `eax` al final de cada vuelta, cuántas vueltas da el bucle y cuándo se activa `zf` y por qué se sale. Escribe también qué instrucciones del programa de la A1.2 no podría ejecutar este depurador y por qué.
-8. Escribe `ut1/a13/README.md` con las tres respuestas del punto 3.3 del enunciado: los comandos para ejecutar el programa (3.3.1, con un enlace a la A1.2), su salida real y la esperada (3.3.2) y el análisis con los depuradores (3.3.3: la tabla del paso 3, el valor de `rax` tras `write`, la explicación de `SIGSEGV` y el ejercicio del paso 7). Añade una captura de `gdb` parado en `SIGSEGV` y otra del depurador web, con su pie. Haz `git add`, `git commit` y `git push`.
+5. En el [depurador web](http://asmdebugger.com/), escribe un bucle que sume 5, 4, 3, 2 y 1 en `eax`, con `ecx` como contador, y recórrelo mirando `eax`, `ecx` y la bandera `zf`. Anota `eax` al final de cada vuelta, cuántas vueltas da, cuándo se activa `zf` y por qué se sale, y qué instrucciones del programa de la A1.2 no podría ejecutar este depurador y por qué.
 
-<span class="et et-com">Comprobación</span> La tabla del paso 3 tiene una fila por instrucción y dice que, con el programa del enunciado, `rax` vale 14 tras `write`, y que con el corregido vale 13. `gdb` se detuvo con `SIGSEGV` con `rax` a 60 (0x3c). En el depurador web, `eax` acaba en 15 y `zf` pasa a 1 cuando `ecx` llega a 0. Si `gdb` muestra las instrucciones al revés (`mov $0x1,%eax`), falta el `.gdbinit` del paso 1.
+    *Pista:* solo conoce registros de 32 bits y unas treinta instrucciones: bastan `mov`, `add`, `dec` y `jnz`, con las etiquetas escritas como en el ejemplo que trae cargado.
+
+6. Escribe `ut1/a13/README.md` con las tres respuestas del punto 3.3: los comandos (3.3.1, con un enlace a la A1.2), la salida real y la esperada (3.3.2) y el análisis con los depuradores (3.3.3, lo de los pasos 2 a 5). Añade, cada una con su pie, una captura de `gdb` parado en `SIGSEGV` y otra del depurador web.
+
+<span class="et et-com">Comprobación</span> La tabla del paso 2 tiene una fila por instrucción y dice que, con el programa del enunciado, `rax` vale 14 tras `write`, y que con el corregido vale 13. `gdb` se detuvo con `SIGSEGV` con `rax` a 60 (0x3c). En el depurador web, `eax` acaba en 15 y `zf` pasa a 1 cuando `ecx` llega a 0. Si `gdb` muestra las instrucciones al revés (`mov $0x1,%eax`), falta el `.gdbinit` del paso 1.
 
 <span class="et et-ent">Entrega</span> La carpeta `ut1/a13/` de `pps-entregas` con los dos `.asm` y el `README.md` (con las dos capturas). Forma parte de la entrega ACT_UT1_1 (plazo el jueves 22 de octubre, 23:59): con esta hoja y la A1.2 se compone el PDF que se sube a Aules, con la estructura de la normativa (portada, índice, introducción, desarrollo, bibliografía y conclusión). Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
@@ -472,8 +325,15 @@ El depurador web y `gdb` son cosas distintas: `gdb` controla un proceso real (ll
 
 Al acabar esta sesión hay un programa en Python de unas treinta líneas, con su README, tres pruebas unitarias (una fallida a propósito) que se ejecutan con una orden, y una sesión de depuración en VS Code con un punto de interrupción y las variables a la vista. La teoría da el vocabulario para leer cualquier código (los elementos de un programa) y la clasificación de las pruebas, y fija las tres ideas que hacen buena a una prueba unitaria.
 
-!!! consulta "Material de partida"
-    **Aula**: `03 ACT_RA1_2 - Execució d'aplicacions/ACT_2.pdf` (enunciado de ACT_UT1_2: programa en Python y en Go con README, tres tests unitarios de los que uno falla, y depuración en VS Code) y su rúbrica `R_ACT_2.pdf`; `04 Material/How Python Works.pdf` y `How Java Works.pdf` (lectura del punto 3.1); `06 Python/python_1.pdf` (instalación de Anaconda y Jupyter) y `python_2.pdf` (conceptos básicos de Python, como referencia). **Web** que ya usaba el material: <https://docs.python.org/es/3/library/unittest.html>. **Apuntes de terceros**: *Apuntes de Puesta en Producción Segura*, unidad 1, apartados «Elementos de un programa» y «Tipos de pruebas» (licencia CC BY-NC-SA 4.0), <https://github.com/EloyAlbiach/PPS/tree/main/pruebas>, y *Ciberseguridad-PePS*, tema 2, «Aplicación en Python», <https://psegarrac.github.io/Ciberseguridad-PePS/tema2/aplicaci%C3%B3n/en/python/2021/06/01/Aplicaci%C3%B3n-en-python.html>. Atribución completa en [Material de partida](../material.md). El material del aula instala Anaconda; en `pps01` el Python del sistema basta y evita una instalación de varios gigabytes.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Pruebas unitarias en Python (`unittest`)](https://docs.python.org/es/3/library/unittest.html): la referencia del módulo.
+    - El enunciado de la entrega ACT_UT1_2 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - [Documentación de Python](https://docs.python.org/es/3/).
 
 ### Elementos de un programa
 
@@ -571,65 +431,21 @@ Se ejecutan con `python3 -m unittest -v` desde la carpeta del proyecto. El resul
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala la extensión de Python de VS Code y comprueba el intérprete del sistema:
+1. Crea en `~/pps-entregas/ut1/a14/` el `puertos.py` de [Elementos de un programa](#elementos-de-un-programa) y pruébalo con un valor de cada clase de la tabla de particiones y con uno que no sea un número.
 
-    ```bash
-    code --install-extension ms-python.python
-    python3 --version
-    ```
+2. Escribe `test_puertos.py` con tres pruebas de `unittest` de tres tipos: `assertEqual` con un valor de cada clase, `assertRaises` con `65536` y `assertTrue(es_privilegiado(8080))`, que falla a propósito. Ejecútalas, copia al README el `Traceback` de la fallida y explica en dos líneas qué línea falla, qué se esperaba y qué se obtuvo.
 
-2. Crea `~/pps-entregas/ut1/a14/` y `puertos.py` copiando el programa del apartado de teoría. Ejecuta `python3 puertos.py 22 8080 50000 abc 70000` y comprueba que cada línea es lo esperado.
-3. Crea `test_puertos.py` con tres pruebas de tres tipos distintos: una con `assertEqual` (un valor de cada clase de la tabla de particiones), otra con `assertRaises` (`65536`) y una con `assertTrue(es_privilegiado(8080))`, que falla a propósito porque 8080 no es privilegiado. Sigue este esqueleto:
+    *Pista:* la estructura de la clase y la orden que la ejecuta están en [Tipos de prueba y test unitario](#tipos-de-prueba-y-test-unitario).
 
-    ```python
-    import unittest
+3. Depura `puertos.py` en VS Code con los argumentos `22 8080 abc` y un punto de interrupción en `if numero <= LIMITE_SISTEMA:`. Recórrelo entrando y sin entrar en las funciones, anota qué muestran Variables, Inspección (con `numero <= LIMITE_SISTEMA`) y Pila de llamadas y qué valores toma `numero`, y captura VS Code parado.
 
-    from puertos import clasificar_puerto, es_privilegiado
+    *Pista:* abre la carpeta `a14`, con la extensión `ms-python.python`. VS Code genera `.vscode/launch.json` desde la vista Ejecutar y depurar: solo falta añadir `args` (y cambiar `"type": "debugpy"` por `python` si no lo reconoce).
 
+4. Para el punto 3.1, localiza `LOAD_CONST`, `STORE_NAME` y `CALL` en el bytecode de tu programa (`python3 -m dis`) y escribe en el README cinco líneas sobre cómo lo ejecuta CPython y qué es `__pycache__`, apoyándote en las dos lecturas de ese punto (Python y Java) y en [Compilados, interpretados y con máquina virtual](#compilados-interpretados-y-con-maquina-virtual).
 
-    class PruebasPuertos(unittest.TestCase):
+    *Pista:* el primer `CALL` es la llamada a `main()`; los de `int()`, `print()` y las funciones salen más abajo, dentro de sus propios objetos de código.
 
-        def test_valor_por_rango(self):
-            self.assertEqual(clasificar_puerto(22), "sistema")
-            self.assertEqual(clasificar_puerto(8080), "usuario")
-            self.assertEqual(clasificar_puerto(50000), "dinámico")
-
-        def test_fuera_de_rango(self):
-            with self.assertRaises(ValueError):
-                clasificar_puerto(65536)
-
-        def test_que_falla_a_proposito(self):
-            # 8080 no es privilegiado: la aserción es falsa y el test falla
-            self.assertTrue(es_privilegiado(8080))
-
-
-    if __name__ == "__main__":
-        unittest.main()
-    ```
-
-4. Ejecuta `python3 -m unittest -v`. Debe salir `FAILED (failures=1)`. Copia el `Traceback` completo al README y explica en dos líneas qué línea falla, qué se esperaba y qué se obtuvo.
-5. Depura con VS Code. Abre la carpeta con `code ~/pps-entregas/ut1/a14`, elige el intérprete (paleta de comandos con Ctrl+Mayús+P, «Python: Seleccionar intérprete», *Select Interpreter* en inglés) y crea `.vscode/launch.json` con los argumentos del programa:
-
-    ```json
-    {
-        "version": "0.2.0",
-        "configurations": [
-            {
-                "name": "puertos",
-                "type": "debugpy",
-                "request": "launch",
-                "program": "${workspaceFolder}/puertos.py",
-                "args": ["22", "8080", "abc"],
-                "console": "integratedTerminal"
-            }
-        ]
-    }
-    ```
-
-    Si la extensión es antigua y no reconoce `debugpy`, cambia el `type` por `python`.
-6. Pon un punto de interrupción (*breakpoint*) en la línea `if numero <= LIMITE_SISTEMA:` (clic a la izquierda del número de línea) y pulsa F5. Recorre el programa con F10 (paso sin entrar en las funciones), F11 (entrando) y F5 (continuar). Anota qué ves en los paneles Variables, Inspección (añade `numero <= LIMITE_SISTEMA`) y Pila de llamadas, y qué valores toma `numero` en cada parada.
-7. Para el punto 3.1, ejecuta `python3 -m dis puertos.py | head -60` (el primer `CALL` corresponde a la llamada a `main()` al final del módulo; los `CALL` de `int()`, `print()` y las funciones aparecen más abajo, dentro de sus objetos de código) y localiza en la salida `LOAD_CONST`, `STORE_NAME` y `CALL`. Escribe en el README cinco líneas que expliquen cómo ejecuta CPython tu programa (bytecode y máquina virtual) y qué es `__pycache__`, apoyándote en `How Python Works.pdf` y en el apartado de [compilados, interpretados y con máquina virtual](#compilados-interpretados-y-con-maquina-virtual).
-8. Escribe `ut1/a14/README.md` con cuatro apartados: qué hace el programa, cómo se ejecuta (comando y ejemplo de salida), cómo se prueba (comando, qué comprueba cada test y por qué uno falla) y cómo se depura (capturas y las secciones relevantes del programa). Haz `git add`, `git commit` y `git push`.
+5. Escribe `ut1/a14/README.md` con cuatro apartados: qué hace el programa, cómo se ejecuta (comando y ejemplo de salida), cómo se prueba (comando, qué comprueba cada test y por qué uno falla) y cómo se depura (capturas y secciones relevantes del programa).
 
 <span class="et et-com">Comprobación</span> `python3 puertos.py 22 8080 50000 abc 70000` da cinco líneas coherentes; `python3 -m unittest -v` muestra dos `ok` y un `FAIL`; el depurador se detiene en tu punto de interrupción con `numero` visible. Si VS Code dice `ModuleNotFoundError: No module named 'puertos'` al probar, has abierto una carpeta distinta de `a14`.
 
@@ -643,8 +459,11 @@ Se ejecutan con `python3 -m unittest -v` desde la carpeta del proyecto. El resul
 
 Al acabar esta sesión el mismo programa de la sesión anterior existe en Go, con su README, sus tres pruebas ejecutadas con `go test` (una fallida a propósito) y su depuración en VS Code, y hay una comparación escrita de qué cambia respecto a Python. La teoría cuenta cómo se compila y se prueba un programa en Go, con el programa y sus pruebas enteros para copiarlos.
 
-!!! consulta "Material de partida"
-    **Aula**: `03 ACT_RA1_2 - Execució d'aplicacions/ACT_2.pdf`, punto 3.3 (programa en Go con README, tres tests, depuración con el plugin de Go) y la rúbrica `R_ACT_2.pdf`; `05 Go/Go.pdf` (el libro *How To Code in Go*, de DigitalOcean, con licencia CC BY-NC-SA; referencia del lenguaje). **Web** que ya usaba el material: <https://go.dev/doc/tutorial/add-a-test>, el tutorial oficial de pruebas. También <https://go.dev/doc/install> (instalación) y <https://pkg.go.dev/testing> (el paquete `testing`). El libro del aula explica la instalación en Ubuntu 18.04: en `pps01` (Ubuntu 24.04) basta el paquete del sistema, que se instala con una orden.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Añadir un test en Go](https://go.dev/doc/tutorial/add-a-test): el tutorial oficial de pruebas.
+    - [Instalación de Go](https://go.dev/doc/install) y [paquete `testing`](https://pkg.go.dev/testing).
 
 ### Go: compilar, probar y depurar
 
@@ -768,46 +587,21 @@ Las órdenes de cada día son `go run . 22 8080 abc`, `go test -v` (cada prueba 
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala Go y la extensión de VS Code:
+1. Instala Go (`golang-go`) y la extensión `golang.go` de VS Code, crea en `~/pps-entregas/ut1/a15/` el módulo `puertos` con el `main.go` de [Go: compilar, probar y depurar](#go-compilar-probar-y-depurar) y ejecútalo con los mismos argumentos que en Python. Anota por qué el error de `abc` es distinto.
 
-    ```bash
-    sudo apt install -y golang-go
-    go version
-    code --install-extension golang.go
-    ```
+    *Pista:* `go mod init` se lanza dentro de `a15`, no en `ut1` ni en la raíz del repositorio.
 
-2. Crea `~/pps-entregas/ut1/a15/` y, dentro, el módulo y el programa. `main.go` se copia del apartado de teoría:
+2. Crea `main_test.go` con las tres pruebas del mismo apartado, ejecútalas viendo el resultado de cada una y explica la salida en el README: qué línea falla, qué se esperaba y qué se obtuvo.
 
-    ```bash
-    cd ~/pps-entregas/ut1/a15 && go mod init puertos
-    go run . 22 8080 50000 abc 70000
-    ```
+3. Depura el programa en VS Code con los argumentos `22 8080 abc` y un punto de interrupción en el `switch` de `Clasificar`; anota los valores de `numero` y `clase` y captura VS Code parado.
 
-    Comprueba que las cinco líneas dicen lo mismo que en Python; el mensaje del error de `abc` es distinto, y conviene anotar por qué.
-3. Crea `main_test.go` con las tres pruebas del apartado de teoría. Ejecuta `go test -v`: debe salir `FAIL` con `TestEsPrivilegiadoFallaAProposito`. Copia al README la salida y explica qué línea falla, qué se esperaba y qué se obtuvo.
-4. Ejecuta `gofmt -l .` (no debe listar nada) y `go vet`. Después `go build` y `ls -l puertos`, y anota el tamaño del binario.
-5. Abre `code ~/pps-entregas/ut1/a15`. La primera vez, VS Code propone instalar las herramientas de Go: acepta (o «Go: Install/Update Tools» en la paleta, marcando `dlv` y `gopls`). Si `dlv` falla, `sudo apt install -y delve` lo instala desde el sistema.
-6. Depura el programa: pon un punto de interrupción en `switch {` de `Clasificar`, y en `.vscode/launch.json` usa esta configuración, con la que F5 lanza el programa con argumentos:
+    *Pista:* acepta las herramientas de Go que propone instalar VS Code (al menos `dlv` y `gopls`). En `.vscode/launch.json`, `"type": "go"` con `"program": "${workspaceFolder}"` y los `args`.
 
-    ```json
-    {
-        "version": "0.2.0",
-        "configurations": [
-            {
-                "name": "puertos",
-                "type": "go",
-                "request": "launch",
-                "mode": "auto",
-                "program": "${workspaceFolder}",
-                "args": ["22", "8080", "abc"]
-            }
-        ]
-    }
-    ```
+4. Compara Go con Python en una tabla del README hecha con lo observado, no con la teoría: el error ante `abc`, cómo se ve el test fallido, tamaño y forma de lo que se distribuye, y qué rechaza el compilador de Go que Python dejaría pasar.
 
-    Recorre con F10 y F11, anota los valores de `numero` y `clase` en los paneles, y captura VS Code parado.
-7. Escribe en el README una tabla de diferencias con Python con lo que has observado (no con lo que dice la teoría): qué error dio cada lenguaje ante `abc`, cómo se vio cada test fallido, tamaño y forma de lo que se distribuye, y qué cosas rechaza el compilador de Go que Python habría dejado pasar (prueba, por ejemplo, a declarar una variable sin usarla).
-8. Escribe `ut1/a15/README.md` con los mismos cuatro apartados que en la A1.4 (qué hace, cómo se ejecuta, cómo se prueba, cómo se depura) y la tabla del paso 7. Haz `git add`, `git commit` y `git push`.
+    *Pista:* compila con `go build`, y pasa `gofmt -l .` (no debe listar nada) y `go vet`. Para ver qué rechaza el compilador, declara una variable sin usarla.
+
+5. Escribe `ut1/a15/README.md` con los cuatro apartados de la A1.4 y la tabla del paso 4.
 
 <span class="et et-com">Comprobación</span> `go run . 22 8080 50000 abc 70000` da cinco líneas; `go test -v` termina con `FAIL` y marca solo `TestEsPrivilegiadoFallaAProposito`; `gofmt -l .` no imprime nada; el depurador se detiene en tu punto de interrupción con `numero` visible. Si aparece `go: go.mod file not found`, falta el `go mod init`; si `go test` responde `no test files`, el fichero no acaba en `_test.go`.
 
@@ -821,8 +615,12 @@ Las órdenes de cada día son `go run . 22 8080 abc`, `go test -v` (cada prueba 
 
 Al acabar esta sesión hay un script de Bash depurado con `bash -x`, un análisis de `LearnBash.sh` que compara lo que el script dice que hace con lo que hace de verdad, y una comparativa de la seguridad de Go, Python y Bash apoyada en experimentos propios. Es la sesión del CE e: qué protecciones da cada lenguaje y cuáles deja a quien programa. La teoría explica primero qué hace Bash con cada línea, porque de ahí salen los errores de seguridad típicos de los scripts, y después los criterios con los que se compara un lenguaje.
 
-!!! consulta "Material de partida"
-    **Aula**: `07 ACT_RA1_3 - BASH programming/UD_3 .pdf` (enunciado de ACT_UT1_3: leer los dos materiales, escribir y depurar un script, hacer el tutorial de `krother`, analizar `LearnBash.sh` y evaluar la seguridad de Go, Python y Bash; no tiene rúbrica propia); `08 Material/LearnBash.sh`, `How Does the Shell Command ls Work Internally.pdf` e `Introduction to Bash Scripting.pdf` (dos artículos web, de la lectura de los puntos 3.1 y 3.2). **Web** que ya usaba el material: <https://github.com/krother/bash_tutorial> (tutorial de línea de órdenes con una palabra secreta de 22 caracteres) y <https://tldp.org/LDP/Bash-Beginners-Guide/html/sect_02_03.html> (depuración de scripts). Referencia general: <https://www.gnu.org/software/bash/manual/bash.html>. **Apuntes de terceros**: *Apuntes de Puesta en Producción Segura*, unidad 1, apartado «Seguridad en los lenguajes de programación y sus entornos de ejecución (Sandboxes)» (licencia CC BY-NC-SA 4.0), <https://github.com/EloyAlbiach/PPS/tree/main/pruebas>. Atribución completa en [Material de partida](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Tutorial de línea de órdenes (krother)](https://github.com/krother/bash_tutorial): el tutorial de la actividad.
+    - [Depuración de scripts de Bash](https://tldp.org/LDP/Bash-Beginners-Guide/html/sect_02_03.html) y [manual de Bash](https://www.gnu.org/software/bash/manual/bash.html).
+    - El enunciado de la entrega ACT_UT1_3 está en el aula.
 
 ### Bash por dentro
 
@@ -939,77 +737,27 @@ El criterio habitual: el lenguaje reduce la probabilidad de un fallo y el aislam
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea `~/pps-entregas/ut1/a16/` y en ella `puertos.sh` con el script del apartado de teoría. Dale permiso (`chmod +x puertos.sh`) y ejecútalo: `./puertos.sh 22 8080 50000 abc 70000 '*'; echo $?`. Debe clasificar tres, rechazar `abc` y `*` como no numéricos y `70000` como fuera de rango, y terminar con código 1.
-2. Depúralo (punto 3.3). Ejecuta `bash -n puertos.sh`, después `bash -x ./puertos.sh 22 abc 2>&1 | tee traza1.txt` y `PS4='+ ${LINENO}: ' bash -x ./puertos.sh 8080 2>&1 | tee traza2.txt`. En el README explica tres cosas de las trazas: por qué unas líneas llevan `+` y otras `++`, en qué momento se ve el valor de `$texto` ya sustituido, y qué línea de la traza corresponde a la comprobación de `abc`.
-3. Analiza `LearnBash.sh` (punto 3.5) sin ejecutarlo entero: contiene `read` (espera datos), `sleep`, `sudo`, `rm`, `man` e `info` (abren visores), y un `\ping` sin límite de paquetes que no termina. Cópialo a `~/pps-entregas/ut1/a16/`, comprueba su sintaxis con `bash -n LearnBash.sh` y ejecuta solo dos tramos, en un directorio vacío de pruebas:
+1. Crea `puertos.sh` en `~/pps-entregas/ut1/a16/` con el script de [Bash por dentro](#bash-por-dentro) y ejecútalo con `22 8080 50000 abc 70000 '*'`. Depúralo (punto 3.3): comprueba su sintaxis sin ejecutarlo y guarda las trazas `traza1.txt`, con `22 abc`, y `traza2.txt`, con `8080` y el número de línea en cada orden. Explica en el README por qué unas líneas llevan `+` y otras `++`, cuándo se ve `$texto` ya sustituido y qué línea corresponde a la comprobación de `abc`.
 
-    ```bash
-    mkdir -p /tmp/lb && cd /tmp/lb
-    sed -n '1,115p' ~/pps-entregas/ut1/a16/LearnBash.sh > bloque1.sh
-    sed -n '122,164p' ~/pps-entregas/ut1/a16/LearnBash.sh > bloque2.sh
-    bash -x bloque1.sh 2>&1 | tee traza-bloque1.txt
-    printf 'alumno\n15\n' | bash bloque2.sh 2>&1 | tee salida-bloque2.txt
-    ```
+    *Pista:* la traza sale por el error estándar, y el número de línea se añade con `PS4`.
 
-    Rellena en el README una tabla con al menos ocho líneas: la línea del script, lo que dice su comentario `# =>`, lo que ha salido y si coincide. Busca las que no coinciden y explica por qué: hay una en el tramo de expansión de llaves (`{$from..$to}`), que se explica con el orden de las expansiones de la teoría. Con la entrada `alumno`, `$USER` coincide con el nombre: mira qué mensaje sale y por qué.
-4. Empieza el tutorial de `krother` (punto 3.4): `git clone https://github.com/krother/bash_tutorial.git ~/bash_tutorial`, abre su README y haz el capítulo 1 (unos 5 minutos). Apunta en el README un comando por capítulo y las letras obtenidas. Los capítulos 2 a 6 y la palabra completa de 22 caracteres se terminan **en casa antes del plazo** (el 2 de noviembre); es un tutorial a ritmo propio.
-5. Haz los experimentos de la comparativa (punto 3.6) en una carpeta `experimentos/` y guarda cada salida en el README. Los de Python y Bash, en una línea cada uno:
+2. Analiza `LearnBash.sh` (punto 3.5) sin ejecutarlo entero: cópialo a `a16`, comprueba su sintaxis y ejecuta, en un directorio vacío como `/tmp/lb`, solo las líneas 1 a 115 con traza y las 122 a 164 con la entrada `alumno` y `15`. Rellena en el README una tabla de al menos ocho líneas (línea, comentario `# =>`, salida y si coincide), explica las que no coinciden y qué mensaje sale con `alumno`, que coincide con `$USER`, y por qué.
 
-    | Experimento | Python | Bash |
-    |---|---|---|
-    | Sumar un texto y un número | `python3 -c 'print("5" + 3)'` | `a="5"; echo $((a + 3))` |
-    | Índice fuera de rango | `python3 -c 'l=[1,2,3]; print(l[10])'` | `a=(1 2 3); echo "[${a[10]}]"` |
-    | Desbordar un entero de 64 bits | `python3 -c 'print(9223372036854775807 + 1)'` | `echo $((9223372036854775807 + 1))` |
+    *Pista:* entero se cuelga o hace daño (`read`, `sudo`, `rm`, `man` y un `ping` sin fin). Una de las que no coinciden está en la expansión de llaves: la explica el orden de las expansiones de la teoría.
 
-    Los de Go, en dos ficheros en casa antes del plazo. `tipos.go` no compila, y esa es la prueba (`go run tipos.go`):
+3. Haz el capítulo 1 del [tutorial de `krother`](https://github.com/krother/bash_tutorial) (punto 3.4) y apunta en el README un comando por capítulo y las letras obtenidas. Los capítulos 2 a 6 y la palabra completa de 22 caracteres se terminan **en casa antes del plazo**.
 
-    ```go
-    package main
+4. Haz en `experimentos/` los cuatro experimentos del punto 3.6, con su salida en el README: sumar un texto y un número, leer el elemento 10 de una lista de tres, sumar 1 a `9223372036854775807` e inyectar `hola; echo ORDEN_INYECTADA` pegado a una orden y como argumento aparte, contando cuántas órdenes se ejecutan. Python y Bash, en clase; Go, en casa antes del plazo, en `tipos.go` (el primero) y `experimentos.go` (los otros tres).
 
-    import "fmt"
+    *Pista:* en Bash, imprime el elemento entre corchetes, y el argumento aparte es `bash -c 'echo "$1"' _ "$entrada"`; en Python, `os.system` frente a `subprocess.run` con una lista. En Go, índice y número en variables (con constantes no compila) y la orden con `exec.Command`.
 
-    func main() {
-    	a, b := "5", 3
-    	fmt.Println(a + b)
-    }
-    ```
+5. Escribe la comparativa (punto 3.6) en el README. En clase, la tabla de siete criterios de [Seguridad de los lenguajes](#seguridad-de-los-lenguajes) con una columna por lenguaje (Go, Python, Bash) y, en cada celda, una valoración (alta, media o baja) y una evidencia propia. **En casa, antes del plazo**, unas quince líneas de conclusión con la recomendación de lenguaje y de aislamiento para tres casos: una utilidad que recibe nombres de fichero escritos por usuarios, un script de copia de seguridad nocturno del servidor y un servicio de red que atiende a desconocidos.
 
-    Y `experimentos.go`, que se lanza con `go run experimentos.go indice`, `desborde` o `exec 'hola; echo ORDEN_INYECTADA'`:
-
-    ```go
-    package main
-
-    import (
-    	"fmt"
-    	"math"
-    	"os"
-    	"os/exec"
-    )
-
-    func main() {
-    	lista := []int{1, 2, 3}
-    	i := 10
-    	grande := int64(math.MaxInt64)
-    	switch os.Args[1] {
-    	case "indice":
-    		fmt.Println(lista[i])
-    	case "desborde":
-    		grande++
-    		fmt.Println(grande)
-    	case "exec":
-    		salida, _ := exec.Command("echo", os.Args[2]).Output()
-    		fmt.Print(string(salida))
-    	}
-    }
-    ```
-
-    El cuarto experimento es la inyección, con una cadena de manual que solo imprime un texto. En Bash, `entrada='hola; echo ORDEN_INYECTADA'` y después `bash -c "echo $entrada"` frente a `bash -c 'echo "$1"' _ "$entrada"`; en Python, `os.system("echo " + entrada)` frente a `subprocess.run(["echo", entrada])`. Anota en cada caso cuántas órdenes se ejecutan.
-6. Escribe la comparativa (punto 3.6) en `ut1/a16/README.md`. En clase, la tabla de siete criterios del apartado de teoría con tres columnas (Go, Python, Bash), en cada celda una valoración (alta, media o baja) y una evidencia propia (la salida de un experimento o una línea del material). **En casa, antes del plazo**, la conclusión de unas quince líneas con la recomendación de lenguaje y de aislamiento para tres casos: una utilidad que recibe nombres de fichero escritos por usuarios, un script de copia de seguridad nocturno del servidor y un servicio de red que atiende a desconocidos.
-7. Haz `git add`, `git commit` y `git push` de lo hecho en clase. **En casa, antes del plazo**, resume en cinco líneas cada una de las dos lecturas del aula (puntos 3.1 y 3.2): qué hace Bash desde que se pulsa Intro y qué aporta un script sobre escribir las órdenes a mano, y vuelve a subir.
+6. **En casa, antes del plazo**, resume en cinco líneas cada una de las lecturas del aula (puntos 3.1 y 3.2): qué hace Bash desde que se pulsa Intro y qué aporta un script frente a teclear las órdenes a mano.
 
 <span class="et et-com">Comprobación</span> `./puertos.sh` termina con 1 con esos argumentos y con 0 si solo se pasa `22`; el tramo 1 de `LearnBash.sh` reproduce sus comentarios salvo la línea de `{$from..$to}`, que imprime `{1..10}`; los cuatro experimentos tienen su salida en el README (en Python, `TypeError` y `IndexError` y el entero sin desbordar; en Bash, `8`, `[]` y `-9223372036854775808`; en Go, un error de compilación, un `panic: runtime error: index out of range [10] with length 3` y `-9223372036854775808`), y en la inyección Bash y Python ejecutan dos órdenes con la cadena pegada y una con el argumento separado (Go, con `exec`, imprime la cadena entera como un solo argumento). Si `./puertos.sh` da `Permission denied`, falta el `chmod +x`; si sale `$'\r': command not found`, el fichero se creó en Windows con finales de línea `CRLF` y se arregla con `sed -i 's/\r$//' puertos.sh`.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a16/` con `puertos.sh`, las trazas, `LearnBash.sh`, `experimentos/` y el `README.md`. Forma parte de la entrega ACT_UT1_3 (plazo el lunes 2 de noviembre, 23:59). El tutorial de `krother` es a ritmo propio: la hoja fija el capítulo 1 en clase y el resto se completa **en casa antes del plazo**, igual que la conclusión del paso 6 y los resúmenes del paso 7. Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
+<span class="et et-ent">Entrega</span> La carpeta `ut1/a16/` con `puertos.sh`, las trazas, `LearnBash.sh`, `experimentos/` y el `README.md`. Forma parte de la entrega ACT_UT1_3 (plazo el lunes 2 de noviembre, 23:59). El tutorial de `krother` es a ritmo propio: la hoja fija el capítulo 1 en clase y el resto se completa **en casa antes del plazo**, igual que la conclusión del paso 5 y los resúmenes del paso 6. Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
 <span class="et et-ext">Si te sobra tiempo</span> Instala `shellcheck` (`sudo apt install -y shellcheck`), pásalo por `puertos.sh` y por `LearnBash.sh` y anota qué avisos da y cuáles corresponden a los riesgos de la tabla de teoría (variables sin comillas, `read` sin `-r`). Añade `set -euo pipefail` al principio de `puertos.sh` y comprueba qué cambia con `abc`.
 
@@ -1019,8 +767,16 @@ El criterio habitual: el lenguaje reduce la probabilidad de un fallo y el aislam
 
 Al acabar esta sesión hay una primera lección de CryptoZombies y los cuatro primeros niveles de Learn Git Branching hechos, una rama fusionada de verdad en `pps-entregas`, y el plan para terminar en casa lo que queda antes del plazo. La teoría añade una variante del modelo de máquina virtual (la de Ethereum, que ejecutan a la vez miles de nodos), los riesgos propios de un contrato inteligente y lo justo de Git para entregar y para entender ramas, fusiones y remotos.
 
-!!! consulta "Material de partida"
-    **Aula**: `09 ACT_RA1_4 - Solidity + GIT/ACT_4.pdf` (enunciado de ACT_UT1_4: leer tres materiales, hacer CryptoZombies con captura del nivel de logro y analizar los capítulos 9 a 12 de la lección 5, y hacer Learn Git Branching, bloques `main` y `remote`, con captura; se entrega documentación con el formato de la normativa); `10 Blockchain/Blockchain.pdf` (presentación de blockchain y Ethereum); `11 Material/`: `Blockchain Basics Ethereum Explained.pdf`, `How Ethereum Works Part.pdf` y `Ethereum Virtual Machine.pdf` (tres artículos web, el punto 3.1). **Web** que ya usaba el material: <https://cryptozombies.io> (curso *Solidity: Beginner to Intermediate Smart Contracts*, seis lecciones), <https://cryptozombies.io/en/solidity_advanced> (extra) y <https://learngitbranching.js.org/> (extra: *Advanced Topics* y *Advanced Git Remotes*). **Apuntes de terceros**: *Ciberseguridad-PePS*, tema 1, «Git», <https://psegarrac.github.io/Ciberseguridad-PePS/tema1/git/2020/11/01/Git.html>. El curso de CryptoZombies está escrito para Solidity 0.5, una versión antigua: sigue sirviendo para aprender la estructura, pero un contrato actual usa 0.8 o posterior, que cambia sobre todo la aritmética (ver los riesgos). Atribución completa en [Material de partida](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [CryptoZombies](https://cryptozombies.io): el curso de contratos inteligentes en Solidity.
+    - [Learn Git Branching](https://learngitbranching.js.org/): visualización de ramas y remotos.
+    - El enunciado de la entrega ACT_UT1_4 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - [CryptoZombies avanzado](https://cryptozombies.io/en/solidity_advanced): sirve para ver cómo se prueba un contrato, aunque las herramientas que usa ya no se mantienen.
 
 ### La máquina virtual de Ethereum
 
@@ -1136,28 +892,19 @@ Si dos ramas tocan las mismas líneas, la fusión se detiene con un conflicto: G
 
 <span class="et et-pas">Pasos</span>
 
-1. Abre <https://cryptozombies.io>, entra en el curso *Solidity: Beginner to Intermediate Smart Contracts* y haz la lección 1 completa (*Making the Zombie Factory*, unos 40 minutos). Si pide iniciar sesión para guardar el avance, hazlo: sin él no hay captura del nivel de logro. Fíjate en la línea `pragma solidity` del editor: es la versión del lenguaje.
-2. Abre <https://learngitbranching.js.org/?locale=es_ES>, pestaña *Main*, y haz *Introduction Sequence* (4 niveles, unos 10 minutos). Cada nivel se comprueba con `levels` y `show goal`; el objetivo es que el árbol final coincida con el objetivo.
-3. Repite en `pps-entregas` lo que acabas de simular, con Git de verdad:
+1. En [CryptoZombies](https://cryptozombies.io), curso *Solidity: Beginner to Intermediate Smart Contracts*, haz la lección 1 (*Making the Zombie Factory*, unos 40 minutos) con la sesión iniciada: sin ella no queda nivel de logro que capturar. Fíjate en la versión que declara `pragma solidity`.
 
-    ```bash
-    cd ~/pps-entregas && mkdir -p ut1/a17 && git switch -c a17-prueba
-    echo "prueba de rama" > ut1/a17/rama.txt
-    git add . && git commit -m "A1.7 prueba de rama"
-    git switch main
-    echo "A1.7 en curso" >> ut1/README.md
-    git add . && git commit -m "A1.7 estado"
-    git merge --no-edit a17-prueba
-    git log --oneline --graph
-    git push
-    ```
+2. Haz *Introduction Sequence* en la pestaña *Main* de [Learn Git Branching](https://learngitbranching.js.org/?locale=es_ES) (4 niveles) y repítelo en `pps-entregas` con Git de verdad: la rama `a17-prueba` con un commit que cree `ut1/a17/rama.txt`, otro commit en `main` que toque `ut1/README.md`, la fusión y la subida. Copia al README la salida de `git log --oneline --graph` y explica en dos líneas qué muestra.
 
-    Copia al README la salida de `git log --oneline --graph` y explica en dos líneas qué muestra.
-4. Captura la página del curso de CryptoZombies (el porcentaje de cada lección) y la pantalla de selección de niveles de *Main* de Learn Git Branching, con los niveles hechos marcados (al terminar el resto en casa, se repite). Guárdalas en `ut1/a17/` con nombres descriptivos.
-5. Escribe `ut1/a17/README.md` con tres apartados: qué has hecho hoy, con las capturas y sus pies; qué hace el contrato de la lección 1 y con qué elemento de Solidity (por ejemplo, qué guarda `Zombie[] public zombies` y dónde), en unas cinco líneas; y la lista de lo que queda para casa. Haz `git add`, `git commit` y `git push`.
-6. **En casa, antes del jueves 5 de noviembre**, completa lo que queda (son plataformas a ritmo propio: la hoja fija lo que se hace en clase y el resto se termina fuera): las lecciones 2 a 6 de CryptoZombies, el resto de `main` en Learn Git Branching (*Ramping Up*, *Moving Work Around* y *A Mixed Bag*) y todo el bloque `remote` (*Push & Pull*, 8 niveles). Captura al terminar cada bloque.
-7. Lee en casa los tres artículos del punto 3.1 y escribe en el README ocho líneas sobre la EVM como modelo de ejecución: qué la distingue de CPython, quién ejecuta el código y qué es el gas.
-8. En casa, antes del plazo, analiza los capítulos 9 a 12 de la lección 5 (punto 3.2.2) y responde por escrito: qué es un desbordamiento y qué valor tiene `uint8 numero = 255; numero++`; qué hace SafeMath y qué añade `using SafeMath for uint256`; por qué el curso necesita además `SafeMath32` y `SafeMath16` (la explicación está en el capítulo 11); y qué cambia con Solidity 0.8 y por qué ya no haría falta SafeMath.
+    *Pista:* sin el commit en `main`, la fusión es un avance rápido y el grafo no muestra ningún desvío.
+
+3. Guarda en `ut1/a17/` una captura de la página del curso de CryptoZombies, con el porcentaje de cada lección, y otra de los niveles de *Main* hechos. Escribe `ut1/a17/README.md` con tres apartados: lo hecho hoy, con las capturas y sus pies; qué hace el contrato de la lección 1 y con qué elemento de Solidity (por ejemplo, qué guarda `Zombie[] public zombies` y dónde), en unas cinco líneas; y lo que queda para casa.
+
+4. **En casa, antes del jueves 5 de noviembre**, completa las lecciones 2 a 6 de CryptoZombies, el resto de *Main* (*Ramping Up*, *Moving Work Around* y *A Mixed Bag*) y todo *Remote* (*Push & Pull*, 8 niveles), con una captura al terminar cada bloque.
+
+5. En casa, lee los tres artículos del punto 3.1 y escribe en el README ocho líneas sobre la EVM como modelo de ejecución: qué la distingue de CPython, quién ejecuta el código y qué es el gas.
+
+6. En casa, antes del plazo, analiza los capítulos 9 a 12 de la lección 5 (punto 3.2.2) y responde: qué es un desbordamiento y qué vale `uint8 numero = 255; numero++`; qué hace SafeMath y qué añade `using SafeMath for uint256`; por qué el curso necesita además `SafeMath32` y `SafeMath16` (lo explica el capítulo 11); y qué cambia con Solidity 0.8 y por qué ya no haría falta SafeMath.
 
 <span class="et et-com">Comprobación</span> `git log --oneline --graph` muestra un desvío y una confirmación de fusión; en GitHub aparecen `ut1/a17/rama.txt` y el README; la lección 1 aparece completada en CryptoZombies y los cuatro niveles de *Introduction Sequence* marcados en Learn Git Branching. Antes del plazo, las seis lecciones a 100 %, los 17 niveles de *Main* y los 8 de *Remote*, cada bloque con su captura.
 
@@ -1171,12 +918,12 @@ Si dos ramas tocan las mismas líneas, la fusión se detiene con un conflicto: G
 
 Esta sesión no trae contenido nuevo: absorbe el retraso de las clases que se hayan perdido en las sesiones 1 a 7 y, si no se ha perdido ninguna, sirve para repasar y ampliar. Hoy vence el plazo de ACT_UT1_3 y el de ACT_UT1_4 vence el jueves 5 de noviembre; los plazos no se mueven aunque se haya perdido una clase.
 
-!!! consulta "Material de partida"
-    **Aula**: `09 ACT_RA1_4 - Solidity + GIT/ACT_4.pdf`, apartados «Extra» (CryptoZombies avanzado y *Advanced Topics* y *Advanced Git Remotes* de Learn Git Branching). **Web**: <https://cryptozombies.io/en/solidity_advanced> y <https://learngitbranching.js.org/>. El curso avanzado de CryptoZombies se apoya en Truffle y Ganache, cuya retirada anunció su fabricante en 2023 (lo indica el propio [repositorio de Truffle](https://github.com/trufflesuite/truffle)): sigue sirviendo para ver cómo se prueba un contrato, pero la herramienta que se usa hoy es otra (Hardhat o Foundry).
+!!! consulta "Recursos de la sesión"
+    No hay material nuevo: se repasa la unidad y, si queda tiempo, se completan [CryptoZombies avanzado](https://cryptozombies.io/en/solidity_advanced) y los temas avanzados de [Learn Git Branching](https://learngitbranching.js.org/).
 
 **Si no se ha perdido ninguna clase**
 
-- Repasar la unidad con la lista de criterios de la introducción de la unidad y comprobar que cada criterio (a a e) tiene su evidencia en `pps-entregas`.
+- Repasar la unidad con los criterios de las [prácticas evaluables](#practicas-evaluables-de-la-unidad) y comprobar que cada criterio (a a e) tiene su evidencia en `pps-entregas`.
 - Terminar en el aula lo que quede de CryptoZombies y de Learn Git Branching para el plazo del jueves 5 de noviembre.
 - Ampliar (sube el nivel de logro de ACT_UT1_4): el bloque avanzado de CryptoZombies y los bloques *Advanced Topics* y *Advanced Git Remotes* de Learn Git Branching.
 - Aprovechar para pasar un `shellcheck` a `puertos.sh` y una cobertura a las pruebas de Python y Go, que son los «Si te sobra tiempo» de las hojas A1.4 a A1.6.
@@ -1199,7 +946,7 @@ La unidad tiene cuatro entregas, ACT_UT1_1 a ACT_UT1_4, y ninguna tiene sesión 
 | ACT_UT1_3 · Bash programming | A1.6 | lunes 2 de noviembre, 23:59 | a, e |
 | ACT_UT1_4 · Solidity + Git | A1.7 | jueves 5 de noviembre, 23:59 | b, e |
 
-Cada fila de las tablas de criterios se califica en uno de los niveles de la rúbrica del aula. Las columnas son las de las rúbricas originales del aula (`R_UD_1.pdf` y `R_ACT_2.pdf`); ACT_UT1_3 y ACT_UT1_4 no tienen rúbrica propia y aplican los niveles de la segunda.
+Cada fila de las tablas de criterios se califica en uno de los niveles de la rúbrica. ACT_UT1_3 y ACT_UT1_4 no tienen rúbrica propia y aplican los niveles de la segunda.
 
 | Nivel | ACT_UT1_1 | ACT_UT1_2, ACT_UT1_3 y ACT_UT1_4 |
 |---:|---|---|
@@ -1218,22 +965,22 @@ Sale de las hojas [A1.2](#a12-ensamblador-lectura-y-ejecucion-sesion-2) y [A1.3]
 
 **Qué se entrega.** Un PDF en Aules con la estructura de la normativa (portada, índice, introducción, desarrollo, bibliografía y conclusión) que reúne las tres respuestas del punto 3.3 del enunciado, y las carpetas `ut1/a12/` y `ut1/a13/` de `pps-entregas`, cuya URL se indica en la tarea.
 
-- [ ] Resumen propio de las dos lecturas, x86-64 y ensamblador y depurador (`ut1/a12/README.md`, paso 9 de la A1.2).
-- [ ] Comandos, salida real y salida esperada de `hola_enunciado.asm`, con sus dos anomalías y su corrección en `hola.asm` (A1.2, pasos 2 a 5).
-- [ ] Secciones del ejecutable y tabla comparativa del programa en ensamblador, C y Python (A1.2, pasos 6 a 8).
-- [ ] Análisis con `gdb`: tabla de registros por instrucción, `rax` tras `write`, causa del `SIGSEGV` y pila (A1.3, pasos 2 a 7).
-- [ ] Ejercicio del depurador web y las dos capturas con su pie (A1.3, pasos 8 y 9).
+- [ ] Resumen propio de las dos lecturas, x86-64 y ensamblador y depurador (`ut1/a12/README.md`, paso 5 de la A1.2).
+- [ ] Comandos, salida real y salida esperada de `hola_enunciado.asm`, con sus dos anomalías y su corrección en `hola.asm` (A1.2, pasos 1 y 2).
+- [ ] Secciones del ejecutable y tabla comparativa del programa en ensamblador, C y Python (A1.2, pasos 3 y 4).
+- [ ] Análisis con `gdb`: tabla de registros por instrucción, `rax` tras `write`, causa del `SIGSEGV` y pila (A1.3, pasos 2 a 4).
+- [ ] Ejercicio del depurador web y las dos capturas con su pie (A1.3, pasos 5 y 6).
 
 | Criterio | CE | Peso | De dónde sale |
 |---|---|---|---|
-| Lectura 3.1: arquitectura x86-64 (registros, direccionamiento y sintaxis) | a | 25 % | A1.2, paso 9 |
-| Lectura 3.2: conceptos de ensamblador y depurador | a | 25 % | A1.2, paso 9 |
-| 3.3, el programa: ensamblado, enlazado, ejecutado y comparado con C y Python | b | 12,5 % | A1.2, pasos 2 a 8 |
-| 3.3.1, ejecución: comandos exactos y resultado, con las dos anomalías corregidas | b | 12,5 % | A1.2, pasos 3 a 5 |
-| 3.3.2, salida: la real frente a la esperada, con las secciones localizadas | b | 12,5 % | A1.2, pasos 4 y 6 |
+| Lectura 3.1: arquitectura x86-64 (registros, direccionamiento y sintaxis) | a | 25 % | A1.2, paso 5 |
+| Lectura 3.2: conceptos de ensamblador y depurador | a | 25 % | A1.2, paso 5 |
+| 3.3, el programa: ensamblado, enlazado, ejecutado y comparado con C y Python | b | 12,5 % | A1.2, pasos 1 a 4 |
+| 3.3.1, ejecución: comandos exactos y resultado, con las dos anomalías corregidas | b | 12,5 % | A1.2, pasos 1 y 2 |
+| 3.3.2, salida: la real frente a la esperada, con las secciones localizadas | b | 12,5 % | A1.2, pasos 2 y 3 |
 | 3.3.3, análisis con depuradores: tabla de `gdb`, `SIGSEGV` explicado y ejercicio web | b | 12,5 % | A1.3 |
 
-Los pesos de la rúbrica original reparten el 50 % del CE a en dos lecturas iguales y el 25 % de cada punto del CE b entre sus cuatro apartados; aquí cada CE pesa lo mismo dentro de la entrega y las cuatro filas del CE b quedan en 12,5 % cada una. Las filas de lectura no suben del nivel «lectura». El enunciado original (`UD_1.pdf`) y la rúbrica (`R_UD_1.pdf`) están en el aula, en `RA1-Prueba-aplicaciones/01 ACT_RA1_1`.
+Los pesos de la rúbrica reparten el 50 % del CE a en dos lecturas iguales y el 25 % de cada punto del CE b entre sus cuatro apartados; aquí cada CE pesa lo mismo dentro de la entrega y las cuatro filas del CE b quedan en 12,5 % cada una. Las filas de lectura no suben del nivel «lectura». El enunciado y la rúbrica de la entrega están en el aula.
 
 ### ACT_UT1_2 · Ejecución de aplicaciones
 
@@ -1241,45 +988,45 @@ Sale de las hojas [A1.4](#a14-python-programa-tests-y-depuracion-sesion-4) y [A1
 
 **Qué se entrega.** Las carpetas `ut1/a14/` y `ut1/a15/` de `pps-entregas` con los programas, sus pruebas, `.vscode/launch.json`, un README por lenguaje y las capturas. El enunciado no pide PDF: el README es el documento evaluado, y la carpeta tiene que abrirse sin instalar nada más que lo que el propio README indica.
 
-- [ ] Lectura de cómo se ejecutan Python y Java, resumida en el README de la A1.4 (paso 8).
-- [ ] Programa en Python con README: qué hace, cómo se ejecuta y ejemplo de salida (A1.4, pasos 2 y 9).
-- [ ] Tres tests unitarios en Python, uno fallido con su `Traceback` explicado (A1.4, pasos 3 y 4).
-- [ ] Depuración en Python con puntos de interrupción, paneles y una prueba depurada (A1.4, pasos 5 a 7).
-- [ ] Programa en Go con README y tabla de diferencias con Python (A1.5, pasos 2 y 8).
-- [ ] Tres tests en Go, uno fallido, con la salida de `go test -v` explicada (A1.5, pasos 3 y 4).
-- [ ] Depuración en Go de programa y de prueba, con capturas (A1.5, pasos 5 a 7).
+- [ ] Lectura de cómo se ejecutan Python y Java, resumida en el README de la A1.4 (paso 4).
+- [ ] Programa en Python con README: qué hace, cómo se ejecuta y ejemplo de salida (A1.4, pasos 1 y 5).
+- [ ] Tres tests unitarios en Python, uno fallido con su `Traceback` explicado (A1.4, paso 2).
+- [ ] Depuración en Python con puntos de interrupción, paneles y una prueba depurada (A1.4, paso 3).
+- [ ] Programa en Go con README y tabla de diferencias con Python (A1.5, pasos 1, 4 y 5).
+- [ ] Tres tests en Go, uno fallido, con la salida de `go test -v` explicada (A1.5, paso 2).
+- [ ] Depuración en Go de programa y de prueba, con capturas (A1.5, paso 3).
 
 | Criterio | CE | Peso | De dónde sale |
 |---|---|---|---|
-| 3.1 Lectura: ejecución de código en Python y en Java | c | 5 % | A1.4, paso 8 |
-| 3.2 Programa en Python con README: función, decisión, bucle y caso de error identificados | c | 20 % | A1.4, pasos 2 y 9 |
-| 3.3 Programa en Go con README: los mismos elementos, con el módulo y el binario | c | 20 % | A1.5, pasos 1, 2 y 4 |
-| Tabla de diferencias entre Python y Go, hecha con lo observado | c | 5 % | A1.5, paso 8 |
-| 3.2.1 Tests en Python: tres tipos distintos, uno falla, README con cómo ejecutarlos | d | 15 % | A1.4, pasos 3 y 4 |
-| 3.2.2 Depuración en Python: secciones relevantes y capturas | d | 10 % | A1.4, pasos 5 a 7 |
-| 3.3.1 Tests en Go: tres tipos distintos, uno falla, README con cómo ejecutarlos | d | 15 % | A1.5, pasos 3 y 4 |
-| 3.3.2 Depuración en Go: secciones relevantes y capturas | d | 10 % | A1.5, pasos 5 a 7 |
+| 3.1 Lectura: ejecución de código en Python y en Java | c | 5 % | A1.4, paso 4 |
+| 3.2 Programa en Python con README: función, decisión, bucle y caso de error identificados | c | 20 % | A1.4, pasos 1 y 5 |
+| 3.3 Programa en Go con README: los mismos elementos, con el módulo y el binario | c | 20 % | A1.5, pasos 1, 4 y 5 |
+| Tabla de diferencias entre Python y Go, hecha con lo observado | c | 5 % | A1.5, paso 4 |
+| 3.2.1 Tests en Python: tres tipos distintos, uno falla, README con cómo ejecutarlos | d | 15 % | A1.4, paso 2 |
+| 3.2.2 Depuración en Python: secciones relevantes y capturas | d | 10 % | A1.4, paso 3 |
+| 3.3.1 Tests en Go: tres tipos distintos, uno falla, README con cómo ejecutarlos | d | 15 % | A1.5, paso 2 |
+| 3.3.2 Depuración en Go: secciones relevantes y capturas | d | 10 % | A1.5, paso 3 |
 
-En la rúbrica original el CE d reparte 30, 20, 30 y 20 % entre sus cuatro apartados y el CE c 10, 40 y 40 % entre la lectura y los dos programas; aquí cada CE pesa la mitad de la entrega y las proporciones internas se mantienen (el CE c cede un 5 % a la tabla de diferencias, que la A1.5 pide para comparar). El enunciado original (`ACT_2.pdf`) y la rúbrica (`R_ACT_2.pdf`) están en el aula, en `RA1-Prueba-aplicaciones/03 ACT_RA1_2`.
+En la rúbrica el CE d reparte 30, 20, 30 y 20 % entre sus cuatro apartados y el CE c 10, 40 y 40 % entre la lectura y los dos programas; aquí cada CE pesa la mitad de la entrega y las proporciones internas se mantienen (el CE c cede un 5 % a la tabla de diferencias, que la A1.5 pide para comparar). El enunciado y la rúbrica de la entrega están en el aula.
 
 ### ACT_UT1_3 · Bash programming
 
 Sale de la hoja [A1.6](#a16-bash-y-seguridad-de-los-lenguajes-sesion-6). Cubre el CE a (comparar lenguajes: Bash frente a Go y Python en el programa de puertos y en los experimentos) y el CE e (evaluar la seguridad que proporciona cada lenguaje). Plazo: **lunes 2 de noviembre, 23:59**, el día de la sesión de margen.
 
-**Qué se entrega.** La carpeta `ut1/a16/` de `pps-entregas` con `puertos.sh`, las trazas, `LearnBash.sh`, `experimentos/` y un `README.md` que incluye la comparativa. El enunciado de 2024-25 no fija formato de documento; se propone el mismo README de las demás hojas. El tutorial de `krother` es a ritmo propio: en clase se hace el capítulo 1 y el resto **se completa en casa antes del plazo**.
+**Qué se entrega.** La carpeta `ut1/a16/` de `pps-entregas` con `puertos.sh`, las trazas, `LearnBash.sh`, `experimentos/` y un `README.md` que incluye la comparativa. El enunciado no fija formato de documento; se propone el mismo README de las demás hojas. El tutorial de `krother` es a ritmo propio: en clase se hace el capítulo 1 y el resto **se completa en casa antes del plazo**.
 
 | Criterio | CE | Peso | De dónde sale |
 |---|---|---|---|
-| 3.1 Lectura: cómo ejecuta Bash una orden (fork, exec y expansiones) | a | 5 % | A1.6, paso 7 |
-| 3.2 Lectura: introducción a los scripts de Bash | a | 5 % | A1.6, paso 7 |
-| 3.3 Script simple y su depuración: `bash -n`, `bash -x`, `PS4` y las tres preguntas sobre las trazas | a | 15 % | A1.6, pasos 1 y 2 |
-| 3.4 Tutorial de `krother`: capítulos completados, un comando por capítulo y la palabra final | a | 10 % | A1.6, paso 4 y trabajo en casa |
-| 3.5 Análisis de `LearnBash.sh`: tabla de al menos ocho líneas, con las que no coinciden explicadas | a | 15 % | A1.6, paso 3 |
-| 3.6 Experimentos: los cuatro (tipos, índice, desbordamiento e inyección) con su salida en Go, Python y Bash | e | 20 % | A1.6, paso 5 |
-| 3.6 Tabla de siete criterios con valoración y evidencia propia en cada celda | e | 15 % | A1.6, paso 6 |
-| 3.6 Recomendación de lenguaje y aislamiento para los tres casos, fundamentada | e | 15 % | A1.6, paso 6 |
+| 3.1 Lectura: cómo ejecuta Bash una orden (fork, exec y expansiones) | a | 5 % | A1.6, paso 6 |
+| 3.2 Lectura: introducción a los scripts de Bash | a | 5 % | A1.6, paso 6 |
+| 3.3 Script simple y su depuración: `bash -n`, `bash -x`, `PS4` y las tres preguntas sobre las trazas | a | 15 % | A1.6, paso 1 |
+| 3.4 Tutorial de `krother`: capítulos completados, un comando por capítulo y la palabra final | a | 10 % | A1.6, paso 3 y trabajo en casa |
+| 3.5 Análisis de `LearnBash.sh`: tabla de al menos ocho líneas, con las que no coinciden explicadas | a | 15 % | A1.6, paso 2 |
+| 3.6 Experimentos: los cuatro (tipos, índice, desbordamiento e inyección) con su salida en Go, Python y Bash | e | 20 % | A1.6, paso 4 |
+| 3.6 Tabla de siete criterios con valoración y evidencia propia en cada celda | e | 15 % | A1.6, paso 5 |
+| 3.6 Recomendación de lenguaje y aislamiento para los tres casos, fundamentada | e | 15 % | A1.6, paso 5 |
 
-Estos criterios son una propuesta a partir de los seis puntos del enunciado (`UD_3 .pdf`, en `RA1-Prueba-aplicaciones/07 ACT_RA1_3`): el punto 3.6 se divide en tres filas porque es el único que cubre el CE e y el que pide juicio propio.
+Estos criterios son una propuesta a partir de los seis puntos del enunciado: el punto 3.6 se divide en tres filas porque es el único que cubre el CE e y el que pide juicio propio.
 
 ### ACT_UT1_4 · Solidity + Git
 
@@ -1289,17 +1036,17 @@ Sale de la hoja [A1.7](#a17-solidity-y-git-sesion-7). Cubre el CE b (modelos de 
 
 | Criterio | CE | Peso | De dónde sale |
 |---|---|---|---|
-| 3.1 Lectura: los tres artículos y las ocho líneas sobre la EVM (qué la distingue de CPython, quién ejecuta, qué es el gas) | b | 15 % | A1.7, paso 7 |
-| 3.2.1 CryptoZombies: seis lecciones al 100 %, con captura y documentación de cada bloque | b | 15 % | A1.7, pasos 1, 4 y 6 |
-| 3.3.1 Learn Git Branching, bloque `main`: 17 niveles, con captura y documentación | b | 10 % | A1.7, pasos 2, 4 y 6 |
-| 3.3.2 Learn Git Branching, bloque `remote`: 8 niveles, con captura y documentación | b | 10 % | A1.7, paso 6 |
-| Análisis de la lección 1: qué hace el contrato y con qué elemento de Solidity (por ejemplo, qué guarda `Zombie[] public zombies`) | e | 20 % | A1.7, paso 5 |
-| 3.2.2 Capítulos 9 a 12 de la lección 5: desbordamiento y SafeMath (`uint8` a 255, `using SafeMath for uint256`) | e | 20 % | A1.7, paso 8 |
-| 3.2.2 Capítulos 9 a 12: por qué `SafeMath32` y `SafeMath16` y qué cambia con Solidity 0.8 | e | 10 % | A1.7, paso 8 |
+| 3.1 Lectura: los tres artículos y las ocho líneas sobre la EVM (qué la distingue de CPython, quién ejecuta, qué es el gas) | b | 15 % | A1.7, paso 5 |
+| 3.2.1 CryptoZombies: seis lecciones al 100 %, con captura y documentación de cada bloque | b | 15 % | A1.7, pasos 1, 3 y 4 |
+| 3.3.1 Learn Git Branching, bloque `main`: 17 niveles, con captura y documentación | b | 10 % | A1.7, pasos 2, 3 y 4 |
+| 3.3.2 Learn Git Branching, bloque `remote`: 8 niveles, con captura y documentación | b | 10 % | A1.7, paso 4 |
+| Análisis de la lección 1: qué hace el contrato y con qué elemento de Solidity (por ejemplo, qué guarda `Zombie[] public zombies`) | e | 20 % | A1.7, paso 3 |
+| 3.2.2 Capítulos 9 a 12 de la lección 5: desbordamiento y SafeMath (`uint8` a 255, `using SafeMath for uint256`) | e | 20 % | A1.7, paso 6 |
+| 3.2.2 Capítulos 9 a 12: por qué `SafeMath32` y `SafeMath16` y qué cambia con Solidity 0.8 | e | 10 % | A1.7, paso 6 |
 
-Estos criterios son una propuesta a partir del enunciado (`ACT_4.pdf`, en `RA1-Prueba-aplicaciones/09 ACT_RA1_4`), que no trae rúbrica. La rama fusionada de `pps-entregas` (paso 3 de la A1.7) no puntúa aparte: es la prueba de que Git se usa de verdad, y se tiene en cuenta en la documentación de las filas de Git.
+Estos criterios son una propuesta a partir del enunciado, que no trae rúbrica. La rama fusionada de `pps-entregas` (paso 2 de la A1.7) no puntúa aparte: es la prueba de que Git se usa de verdad, y se tiene en cuenta en la documentación de las filas de Git.
 
-El enunciado original de cada entrega está en el aula, en la carpeta de su actividad, y es la referencia de lo que se entrega si algún detalle de estos apuntes lo contradice.
+El enunciado de cada entrega está en el aula y es la referencia de lo que se entrega si algún detalle de estos apuntes lo contradice.
 
 ## Errores frecuentes en el laboratorio
 
@@ -1311,7 +1058,9 @@ Los fallos están ordenados por hoja. Los de carácter general del laboratorio (
 
 **A1.1 · `Permission denied (publickey)` al hacer `git clone` o `git push`.** La clave pública no está en GitHub, se pegó incompleta, o el repositorio se clonó por HTTPS y se sube por SSH. Arreglo: `ssh -T git@github.com` tiene que saludar por el usuario; `cat ~/.ssh/id_ed25519.pub` se copia entero, en una sola línea; y `git remote -v` debe mostrar una URL que empiece por `git@github.com:`.
 
-**A1.1 y A1.7 · `Author identity unknown` o `Please tell me who you are` al confirmar o fusionar.** Falta `user.name` y `user.email`. Arreglo: los dos `git config --global` del paso 6 de la A1.1. Sin ellos ni el `commit` ni el `merge` con confirmación de fusión salen adelante.
+**A1.1 y A1.7 · `Author identity unknown` o `Please tell me who you are` al confirmar o fusionar.** Falta `user.name` y `user.email`. Arreglo: configurarlos con `git config --global`, como en el paso 4 de la A1.1. Sin ellos ni el `commit` ni el `merge` con confirmación de fusión salen adelante.
+
+**A1.1 · `ping -c 2 192.168.56.1` no responde con la IP ya fijada.** El adaptador 2 no está como «Adaptador solo anfitrión», o la interfaz todavía no ha levantado la conexión. Arreglo: revisar el adaptador en Configuración, Red, esperar un poco y comprobar con `ip -br a` que la interfaz tiene `192.168.56.10/24`.
 
 **A1.1 · `remote: Repository not found` al subir, o quien corrige no ve la entrega.** El nombre del repositorio o del usuario no coincide (`pps<NIA>` sin más caracteres), o falta añadir a quien corrige como colaborador de un repositorio privado. Arreglo: comprobar la URL con `git remote -v` y revisar Settings, Collaborators antes de cada plazo.
 
@@ -1327,7 +1076,7 @@ Los fallos están ordenados por hoja. Los de carácter general del laboratorio (
 
 **A1.3 · `gdb` muestra `mov $0x1,%eax` en lugar de `mov eax,0x1`, o `The program is not being run` al hacer `stepi`.** Lo primero es la sintaxis AT&T por defecto: falta el `.gdbinit` del paso 1, o se escribió con un error. Lo segundo, el programa ya terminó, o no se lanzó `run` antes de `stepi`; `x/s $rsi` antes de `run` da `Cannot access memory` por lo mismo. Arreglo: `break _start`, `run` y solo entonces `stepi`.
 
-**A1.3 · El depurador web da error al pegar el programa.** El emulador de asmdebugger solo entiende registros de 32 bits y unas treinta instrucciones: no admite `syscall`, secciones ni `rax`. Arreglo: pegar solo el ejercicio de la hoja (`eax`, `ecx`, `jnz`), y el programa real depurarlo con `gdb`.
+**A1.3 · El depurador web da error al pegar el programa.** El emulador de asmdebugger solo entiende registros de 32 bits y unas treinta instrucciones: no admite `syscall`, secciones ni `rax`. Arreglo: escribir el ejercicio de la hoja solo con registros de 32 bits y las instrucciones que conoce (`mov`, `add`, `dec`, `jnz`), y el programa real depurarlo con `gdb`.
 
 **A1.4 · `python3 -m unittest` dice `Ran 0 tests` o la vista de Pruebas de VS Code no descubre nada.** Los tests no se descubren si el fichero no empieza por `test` (con el patrón `test_*.py`), si el nombre lleva guiones (`test-puertos.py` no se puede importar), si el método no empieza por `test`, si el fichero tiene un error de sintaxis o si se ejecuta desde otra carpeta. Arreglo: `test_puertos.py` con métodos `test_...`, desde la carpeta `a14` y con `unittest` configurado en la vista de Pruebas con el patrón `test_*.py`.
 
@@ -1341,7 +1090,7 @@ Los fallos están ordenados por hoja. Los de carácter general del laboratorio (
 
 **A1.5 · El depurador de Go no arranca: `dlv` no se encuentra o `Failed to continue`.** La extensión de Go no ha instalado sus herramientas (hacen falta descargas y un intérprete de Go reciente), o se lanza con `mode: auto` desde una carpeta sin `go.mod`. Arreglo: «Go: Install/Update Tools» con `dlv` y `gopls`, o `go install github.com/go-delve/delve/cmd/dlv@latest`, y abrir la carpeta que tiene el `go.mod`.
 
-**A1.5 · `declared and not used` o `imported and not used` al compilar.** Es el compilador de Go haciendo su trabajo: rechaza lo que Python dejaría pasar. Arreglo: usar la variable o quitarla; `gofmt -l .` y `go vet` ayudan a detectar lo demás. En el paso 8 es una observación para la tabla, no un error.
+**A1.5 · `declared and not used` o `imported and not used` al compilar.** Es el compilador de Go haciendo su trabajo: rechaza lo que Python dejaría pasar. Arreglo: usar la variable o quitarla; `gofmt -l .` y `go vet` ayudan a detectar lo demás. En el paso 4 es una observación para la tabla, no un error.
 
 **A1.6 · `Permission denied` al ejecutar `./puertos.sh`, o `$'\r': command not found`.** Falta `chmod +x`, o el fichero se creó con finales de línea `CRLF`. Arreglo: `chmod +x puertos.sh` y `sed -i 's/\r$//' puertos.sh`. Si el script se lanza con `sh puertos.sh`, el error es distinto: `sh` es `dash` en Ubuntu y no entiende `[[` ni `((`; se lanza con `bash` o directamente con `./`.
 
@@ -1355,6 +1104,6 @@ Los fallos están ordenados por hoja. Los de carácter general del laboratorio (
 
 **A1.7 · Learn Git Branching pierde los niveles hechos.** Su avance se guarda en el navegador. Arreglo: usar siempre el mismo navegador y perfil, no borrar datos del sitio y capturar la pantalla de niveles al terminar cada bloque, por si acaso.
 
-**A1.7 · `git merge` no crea confirmación de fusión, abre un editor o `git push` responde `rejected ... non-fast-forward`.** Sin ningún commit nuevo en `main` desde que se creó la rama, la fusión es un avance rápido y no deja desvío que ver en `git log --graph`: por eso el paso 3 hace un commit en `main` antes de fusionar. El editor se abre si falta `--no-edit`; se cierra guardando. El rechazo aparece si el remoto tiene commits que faltan en local: `git pull --rebase` y de nuevo `git push`. Si la rama se llama `master` en vez de `main`, `git branch -M main` (paso 7 de la A1.1).
+**A1.7 · `git merge` no crea confirmación de fusión, abre un editor o `git push` responde `rejected ... non-fast-forward`.** Sin ningún commit nuevo en `main` desde que se creó la rama, la fusión es un avance rápido y no deja desvío que ver en `git log --graph`: por eso el paso 2 hace un commit en `main` antes de fusionar. El editor se abre si falta `--no-edit`; se cierra guardando. El rechazo aparece si el remoto tiene commits que faltan en local: `git pull --rebase` y de nuevo `git push`. Si la rama se llama `master` en vez de `main`, `git branch -M main` (paso 4 de la A1.1).
 
 **Todas las entregas · El PDF se corrige como no evaluado, o la captura revela una clave.** El PDF no sigue la normativa (falta portada o índice, márgenes de 3 cm y 2,5 cm, letra de 12 puntos e interlineado de 1,5, figuras con pie) o se subió otro fichero. Además, las capturas del terminal o de GitHub pueden mostrar contraseñas, tokens o la clave privada. Arreglo: repasar la lista de la normativa antes de subir y recortar o repetir la captura sin datos secretos.

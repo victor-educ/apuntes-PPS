@@ -10,86 +10,16 @@ Una aplicación que funciona en el portátil de quien la escribe todavía no est
 !!! ojo "Montar docker.sock en Jenkins equivale a dar root"
     Para que las etapas de Jenkins construyan imágenes, el contenedor `jenkins` necesita hablar con el demonio de Docker, y la forma más corta es montar el socket del anfitrión (`-v /var/run/docker.sock:/var/run/docker.sock`). Quien controla ese socket puede arrancar un contenedor privilegiado que monte el disco del anfitrión entero, así que cualquiera que pueda editar un `Jenkinsfile` (o un pull request que lo modifique) obtiene en la práctica root en la máquina. En el laboratorio se acepta, porque `pps01` es una VM propia sin datos de nadie y con instantánea. En producción no: se usa un agente efímero aislado y dedicado a construir, un demonio de Docker sin privilegios (rootless) o un constructor de imágenes que no necesite el socket (Kaniko, Buildah), y la construcción de código que viene de ramas no revisadas queda fuera del controlador. La [sesión 43](#sesion-43-pipeline-seguro-componentes-y-secretos) vuelve sobre esto con los secretos.
 
-## Introducción
-
-Esta unidad se lee en el orden en que se da en clase: primero los conceptos y las herramientas que se manejan, y después las veintidós sesiones una detrás de otra, cada una con la teoría que se explica ese día y su hoja de práctica. Es la unidad más larga del módulo y va de menos a más: al principio se define el problema y se protege el código; en el centro se automatiza la construcción y la infraestructura; al final se orquesta, se vigila y se ensaya la recuperación.
-
-### Qué tienes que saber hacer al terminar
-
-- Describir los principios y objetivos de DevOps, situar la seguridad en cada fase del ciclo de entrega y distinguir escalado vertical y horizontal, virtualización y contenedores (CE a).
-- Administrar un repositorio en equipo: crear una organización con roles y permisos, proteger la rama principal y trabajar con pull requests de revisión obligatoria (CE b).
-- Construir y probar una aplicación Java con Maven, y montar un sistema de integración continua con Jenkins conectado a GitHub, con el pipeline escrito como código en un `Jenkinsfile` y ejecutado también dentro de contenedores (CE c).
-- Hacer que el pipeline sea seguro: analizar las dependencias con OWASP Dependency-Check, guardar las credenciales en Jenkins y no en el código, y romper la construcción cuando aparece una vulnerabilidad crítica (CE c).
-- Crear una máquina con Terraform y configurarla con Ansible de forma repetible, sin secretos en el estado ni en el repositorio, y validar el resultado del despliegue (CE d).
-- Desplegar la aplicación en K3s con varias réplicas, en un nodo y en alta disponibilidad, y verificarlo con `kubectl` y K9s (CE d).
-- Monitorizar el sistema con Prometheus y Grafana, leer sus métricas y definir una alerta (CE e).
-- Provocar fallos controlados, medir cómo reacciona el sistema y decir qué se recupera solo y qué no (CE e).
-- Redactar un plan de recuperación con RTO y RPO, comprobarlo con una restauración de prueba y documentarlo (CE f).
-- Cerrar el ciclo con una retrospectiva del equipo y las métricas de despliegue como bucle de retroalimentación (CE g).
-
-### Los conceptos de la unidad
-
-Un jueves por la tarde, quien mantiene la aplicación corrige un fallo, sube el cambio y lo copia a mano al servidor. Lo probó en su máquina con otra versión de Java, no pasó las pruebas porque «era un cambio pequeño» y el fichero de configuración del servidor guarda la contraseña de la base de datos en claro dentro del repositorio. El servicio cae, nadie sabe qué versión hay en producción y volver atrás exige recordar qué se tocó. Lo que se busca cabe en una frase: que cada cambio pase por el mismo camino automático (construir, probar, analizar, empaquetar, desplegar, vigilar), que ese camino esté escrito en ficheros revisables y que, si algo falla, haya un procedimiento ensayado para volver a un estado bueno.
-
-| Herramienta o concepto | Qué es, en una frase | Para qué se usa en esta unidad |
-|---|---|---|
-| DevOps | Cultura y prácticas que unen desarrollo y operación para entregar cambios pequeños, frecuentes y seguros | Marco de toda la unidad; el pipeline de entrega dibuja dónde entra la seguridad en cada fase |
-| Git y GitHub (roles y ramas protegidas) | Control de versiones y plataforma que reparte permisos (read, triage, write, maintain, admin) y obliga a revisar antes de fusionar | Que nadie cambie la rama principal sin pull request y sin revisión |
-| Maven | Sistema de construcción de proyectos Java que compila, prueba y empaqueta con un ciclo de vida fijo | Construir `pps-app` y generar el informe de pruebas |
-| Jenkins | Servidor de integración continua: recibe un cambio del repositorio, ejecuta el pipeline y dice si pasó | Construir, probar, analizar y publicar la imagen en cada cambio de `pps-app` |
-| Jenkinsfile | Fichero en la raíz del repositorio que describe el pipeline en etapas | Que el proceso de construcción viaje con el código y se revise como él |
-| Docker, Dockerfile y compose | Empaquetado de la aplicación en una imagen que corre igual en cualquier sitio, y descripción de varios contenedores a la vez | Imagen `pps<NIA>/pps-app`, tests dentro del contenedor y despliegue del balanceo de carga |
-| OWASP Dependency-Check | Analizador que compara las dependencias del proyecto con las vulnerabilidades publicadas | Hacer que el pipeline falle ante una vulnerabilidad crítica |
-| Credenciales de Jenkins | Almacén cifrado de secretos que el pipeline lee por identificador sin exponerlos en el código | Guardar el token de GitHub y la contraseña de Docker Hub (`github-token`, `dockerhub`) |
-| Terraform (y OpenTofu) | Herramienta que lee ficheros con la infraestructura deseada, la compara con lo que existe y crea o cambia lo necesario | Crear la VM `destino01` por código, con variables y sin secretos en el estado |
-| Ansible | Programa que entra por SSH en las máquinas y las deja como se le pide, de forma idempotente | Actualizar `destino01`, instalar Apache y desplegar una aplicación |
-| K3s y K9s | K3s es una distribución ligera de Kubernetes; K9s, un panel de terminal para ver y manejar el clúster | Orquestar `pps-app` y nginx con réplicas, en un nodo y en tres (`k3s-1`, `k3s-2`, `k3s-3`) |
-| Prometheus y Grafana | Prometheus recoge y guarda métricas; Grafana las dibuja en paneles y lanza alertas | Vigilar `destino01` con `node_exporter` desde `pps01` y comprobar la reacción a fallos |
-| Ingeniería del caos | Práctica de provocar fallos controlados para comprobar que el sistema reacciona como se espera | Matar un contenedor, un pod o un nodo y medir cuánto tarda en recuperarse |
-| RTO y RPO | Tiempo máximo aceptable para volver a dar servicio y cantidad máxima de datos que se puede perder | Dimensionar el plan de recuperación y la copia del volumen |
-| Retrospectiva | Reunión corta del equipo (qué salió bien, qué mejorar, acciones) que cierra un ciclo de trabajo | Bucle de retroalimentación tras la recuperación y tras el proyecto |
-
-**Cómo está organizada la unidad.** Cinco bloques, cada uno con un `examen` breve al final que dice qué se evalúa: DevOps y Git (sesiones 37 a 39), Jenkins y CI (40 a 43, cierra ACT_UT5_1), infraestructura como código (44 a 48, cierra ACT_UT5_2), orquestación y monitorización (49 a 53, cierran ACT_UT5_4 y ACT_UT5_3) y fallos, recuperación y proyecto integrador (54 a 57, con ACT_UT5_5). Las sesiones 47 y 58 son de margen. `pps-app`, la aplicación Java con su `Jenkinsfile`, acompaña a toda la unidad.
-
-Las direcciones y los puertos de todas las máquinas están en el [laboratorio](../laboratorio.md#maquinas-virtuales) y los nombres de las cuentas y los repositorios, en [cuentas y repositorios](../laboratorio.md#cuentas-y-repositorios). Las evidencias de cada hoja se suben a `pps-entregas`, en su carpeta (`ut5/a54/`, `ut5/a510/`), como se explica en el [repositorio de entregas](../laboratorio.md#repositorio-de-entregas).
-
-### Plan de sesiones
-
-Cada sesión de 110 minutos empieza con una explicación corta y sigue con laboratorio. La columna «Se explica» recoge los apartados de teoría que se desarrollan en clase, con su duración aproximada; la columna «Se practica», el trabajo de laboratorio de esa sesión. Las sesiones de margen no traen teoría nueva: sirven para recuperar lo perdido o para repasar.
-
-| Sesión | Fecha | Tipo | Se explica | Se practica |
-|---:|-------|------|------------|-------------|
-| [37](#sesion-37-devops-y-puesta-segura-en-produccion) | 8 mar | Teoría y práctica | Principios y objetivos de DevOps; el ciclo de entrega y dónde entra la seguridad; escalado, virtualización y contenedores (25 min). | Dibujar el pipeline de entrega de una aplicación de ejemplo e identificar en cada fase el control de seguridad que corresponde. |
-| [38](#sesion-38-control-de-versiones-con-roles) | 11 mar | Teoría y práctica | Flujos de trabajo con Git en equipo, ramas protegidas y revisión de cambios; roles y permisos en GitHub (25 min). | Crear una organización de prueba con tres roles, proteger la rama principal y trabajar con pull requests con revisión obligatoria. |
-| [39](#sesion-39-automatizacion-de-la-construccion-con-maven) | 15 mar | Teoría y práctica | Qué automatiza un sistema de construcción; Maven: ciclo de vida, dependencias y pruebas; comparación con Gradle (25 min). | Construir y probar con Maven una aplicación Java de ejemplo y generar el informe de pruebas. |
-| [40](#sesion-40-jenkins-instalacion-y-primer-trabajo) | 18 mar | Teoría y práctica | Integración continua; arquitectura de Jenkins: controlador, agentes, trabajos y plugins (20 min). | Instalar Jenkins en Docker, conectarlo a GitHub y crear el trabajo que construye la aplicación. |
-| [41](#sesion-41-pipeline-como-codigo-jenkinsfile) | 22 mar | Teoría y práctica | Pipeline declarativo: etapas, pasos y variables; el Jenkinsfile en el repositorio (15 min). | Convertir el trabajo en un pipeline con Jenkinsfile con las etapas de construcción, pruebas y publicación del informe. |
-| [42](#sesion-42-docker-en-el-pipeline) | 5 abr | Teoría y práctica | Imágenes y contenedores; Dockerfile y compose; cómo ejecuta Jenkins sus etapas dentro de un contenedor (25 min). | Escribir jenkinsfile.docker: construir la imagen, ejecutarla, pasar los tests dentro del contenedor y levantar un docker-compose. |
-| [43](#sesion-43-pipeline-seguro-componentes-y-secretos) | 8 abr | Teoría y práctica | Análisis de dependencias con OWASP Dependency-Check; secretos en el pipeline y firma de artefactos (20 min). | Añadir al pipeline el análisis de dependencias, guardar credenciales en Jenkins y hacer que el pipeline falle si hay una vulnerabilidad crítica. |
-| [44](#sesion-44-infraestructura-como-codigo-terraform) | 12 abr | Teoría y práctica | Qué es la infraestructura como código; Terraform: proveedores, recursos, estado y el ciclo init, plan y apply (25 min). | Provisionar con Terraform una máquina virtual Ubuntu 24.04 en VirtualBox. |
-| [45](#sesion-45-terraform-variables-estado-y-secretos) | 15 abr | Teoría y práctica | Variables, salidas y módulos; dónde vive el estado y por qué no debe llevar secretos (15 min). | Parametrizar el proyecto con variables, protegerlo con .gitignore y dejar como salida la IP de la máquina. Plazo de ACT_UT5_1 (23:59). |
-| [46](#sesion-46-ansible-inventario-y-playbooks) | 19 abr | Teoría y práctica | Gestión de la configuración; Ansible: inventario, módulos, playbooks e idempotencia (25 min). | Configurar la máquina con Ansible: actualizar el sistema e instalar Apache. |
-| [47](#sesion-47-margen-y-repaso-de-la-primera-parte-de-la-unidad-5) | 22 abr | Margen | Sin teoría. | Repaso de Jenkins, Terraform y Ansible y ampliación con Nginx o Gradle si no se ha perdido ninguna clase; si se ha perdido alguna, aquí se recupera lo pendiente. |
-| [48](#sesion-48-ansible-despliegue-de-una-aplicacion) | 26 abr | Teoría y práctica | Roles, variables y handlers; cómo validar el resultado de un despliegue (15 min). | Desplegar un index.html con Ansible, reiniciar el servicio y comprobar con curl el mensaje esperado. |
-| [49](#sesion-49-k3s-en-un-nodo) | 29 abr | Teoría y práctica | Escalado horizontal y vertical; orquestación: pods, despliegues y servicios; K3s frente a Kubernetes (25 min). | Instalar K3s en modo de un nodo y desplegar nginx con dos réplicas, comprobándolo con kubectl. |
-| [50](#sesion-50-k3s-en-alta-disponibilidad) | 3 may | Teoría y práctica | Alta disponibilidad en K3s: etcd embebido y base de datos externa; quórum (15 min). | Montar K3s en alta disponibilidad con tres servidores y repetir el despliegue de nginx. Plazo de ACT_UT5_2 (23:59). |
-| [51](#sesion-51-aplicaciones-en-k3s-y-k9s) | 6 may | Teoría y práctica | Despliegues, servicios y balanceo de carga; K9s como panel de terminal (10 min). | Desplegar en K3s el compose de balanceo de carga y verificarlo con K9s. |
-| [52](#sesion-52-monitorizacion-con-prometheus) | 10 may | Teoría y práctica | Métricas, exporters y consultas; arquitectura de Prometheus (25 min). | Levantar el stack de ejemplo de Prometheus y Grafana y validar cada componente. |
-| [53](#sesion-53-monitorizacion-remota-con-grafana) | 13 may | Teoría y práctica | Paneles, fuentes de datos y alertas en Grafana (10 min). | Instalar node_exporter en un servidor y monitorizarlo desde Grafana en otro equipo con el panel de node_exporter. Plazo de ACT_UT5_4 (23:59). |
-| [54](#sesion-54-simulacion-de-fallos) | 17 may | Teoría y práctica | Ingeniería del caos: qué se rompe a propósito y cómo se mide la reacción del sistema (25 min). | Provocar la caída de un contenedor y de un nodo del clúster y comprobar la recuperación automática y las alertas. Plazo de ACT_UT5_3 (23:59). |
-| [55](#sesion-55-recuperacion-ante-desastres-y-retroalimentacion) | 20 may | Teoría y práctica | Plan de recuperación: copias, RTO y RPO; bucles de retroalimentación y retrospectivas (25 min). | Documentar el procedimiento de recuperación del servicio, hacer una restauración de prueba y redactar la retrospectiva. |
-| [56](#sesion-56-proyecto-integrador-construccion-y-pipeline) | 24 may | Teoría y práctica | Presentación del proyecto y de sus criterios de evaluación (10 min). | Montar el pipeline de Jenkins que construye, prueba y analiza una aplicación y publica su imagen en Docker Hub. Plazo de ACT_UT5_5 (23:59). |
-| [57](#sesion-57-proyecto-integrador-despliegue-y-monitorizacion) | 27 may | Teoría y práctica | Resolución de dudas comunes del proyecto (10 min). | Desplegar la imagen en K3s con el playbook, monitorizarla y preparar el informe con el plan de recuperación. |
-| [58](#sesion-58-margen-y-repaso-de-la-unidad-5) | 31 may | Margen | Sin teoría. | Repaso para el examen si no se ha perdido ninguna clase; si se ha perdido alguna, aquí se recupera lo pendiente. Plazo del proyecto integrador y de Atenea RA3, RA4 y RA5 (23:59). |
-
 ## Sesión 37 · DevOps y puesta segura en producción
 
 <p class="ut-meta" markdown>8 de marzo · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Principios y objetivos de DevOps · 10 min&#10;El ciclo de entrega y dónde entra la seguridad · 10 min&#10;Escalado, virtualización y contenedores · 5 min&#10;A5.1 El pipeline de entrega · 85 min" data-dur="Principios y objetivos de DevOps · 10 min&#10;El ciclo de entrega y dónde entra la seguridad · 10 min&#10;Escalado, virtualización y contenedores · 5 min&#10;A5.1 El pipeline de entrega · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
 Al terminar la sesión hay un mapa del recorrido que hace una aplicación desde que alguien escribe una línea hasta que atiende peticiones en producción, con el control de seguridad que corresponde a cada fase, y el repositorio `pps-app` creado y listo para las hojas siguientes. La teoría fija primero qué persigue DevOps y con qué prácticas, después dibuja el ciclo de entrega y coloca en él cada control, y cierra con la infraestructura sobre la que corre el resultado (escalado, máquinas virtuales y contenedores).
 
-!!! consulta "Material de partida"
-    **Aula** (carpeta `RA5-Despliegue-seguro/`): `01 Material/01-Infraestructura.pdf` (escalado vertical y horizontal, balanceo, failover, virtualización y contenedores), `01 Material/05-DevOps.pdf` (gestión automatizada de la configuración y aprovisionamiento de máquinas virtuales, que se retoma en las sesiones de Terraform y Ansible) y `02 ACT_RA5_1 - Jenkins/RA5.1.pdf` (el enunciado de la entrega ACT_UT5_1, cuyo primer apartado define integración, entrega y despliegue continuos). `01 Material/docker_deep_dive.pdf` es un libro comercial y sirve solo de referencia de fondo. **Web** que ya usaba el material: <https://www.jenkins.io/doc/book/>. **Apuntes de terceros**: *Apuntes de Puesta en Producción Segura*, unidad 5 (licencia CC BY-NC-SA 4.0), <https://github.com/EloyAlbiach/PPS/tree/main/desplegado_seguro>, y *Ciberseguridad-PePS*, tema 5, «Sistemas de automatización de construcción» (<https://psegarrac.github.io/Ciberseguridad-PePS/tema5/cd/ci/2022/01/11/Sistemas-de-automatizaci%C3%B3n-de-construcci%C3%B3n.html>). Atribución completa en [Material y autoría](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Manual de Jenkins](https://www.jenkins.io/doc/book/): la herramienta de integración continua sobre la que gira la unidad.
 
 ### Principios y objetivos de DevOps
 
@@ -182,46 +112,23 @@ El segundo eje es el empaquetado. Una máquina virtual lleva un sistema operativ
 
 <span class="et et-pas">Pasos</span>
 
-1. En `pps01`, comprueba que están las herramientas que usarán las hojas de la unidad. Si `java` o `mvn` no aparecen, instálalos con `sudo apt install -y openjdk-17-jdk maven`:
+1. Comprueba que `pps01` tiene Git, el JDK 17, Maven y Docker, y que Docker arranca el contenedor `hello-world`.
 
-    ```bash
-    git --version && java -version && mvn -v && docker --version
-    docker run --rm hello-world
-    ```
+    *Pista:* si faltan `java` o `mvn`, los paquetes son `openjdk-17-jdk` y `maven`.
 
-2. Crea en <https://github.com> el repositorio `pps-app` de tu cuenta: privado, con README y sin más ficheros. Clónalo en `pps01` (con la URL HTTPS o SSH que ya usaste en `pps-entregas`):
+2. Crea en GitHub el repositorio privado `pps-app` de tu cuenta, solo con el README, y clónalo en `~/pps-app` de `pps01`. Es el repositorio de la aplicación de toda la unidad.
 
-    ```bash
-    cd ~ && git clone https://github.com/pps<NIA>/pps-app.git
-    ```
+3. Dibuja en `ut5/a51/pipeline.md` de `pps-entregas` el pipeline de `pps-app` en Mermaid: un nodo por cada una de las siete fases del [ciclo de entrega](#el-ciclo-de-entrega-y-donde-entra-la-seguridad), con el control de seguridad de esa fase en una frase corta, y la flecha de retroalimentación.
 
-3. En `pps-entregas`, crea la carpeta de la hoja y el fichero del dibujo:
+    *Pista:* GitHub dibuja el bloque `mermaid` al abrir el fichero, y ahí se ve si la sintaxis es correcta. El diagrama del apartado sirve de modelo.
 
-    ```bash
-    cd ~/pps-entregas && mkdir -p ut5/a51 && touch ut5/a51/README.md ut5/a51/pipeline.md
-    ```
+4. Debajo del dibujo, añade una tabla con cuatro columnas: fase, qué ocurre en `pps-app`, riesgo si falta el control y herramienta que lo aplica, con la hoja donde se monta. Marca aparte los **tres puntos del pipeline por donde un atacante colaría código propio** (una dependencia comprometida, un token de Jenkins filtrado...) y qué control tuyo lo detiene.
 
-4. Copia en `ut5/a51/pipeline.md` este esqueleto y sustituye cada `?` por el control de seguridad de esa fase, de los de la tabla del apartado del ciclo de entrega (una frase corta por nodo). GitHub dibuja el bloque `mermaid` al abrir el fichero; en VS Code se ve con la extensión *Markdown Preview Mermaid Support*:
+5. Contesta en `ut5/a51/README.md`, en cuatro o cinco líneas cada pregunta: qué diferencia hay entre integración, entrega y despliegue continuos, y cuál conviene a `pps-app` si nadie revisa a mano; qué es *shift left*, con un ejemplo del pipeline; y qué es una infraestructura inmutable y qué ventaja da al volver atrás tras un despliegue fallido.
 
-    ````markdown
-    ```mermaid
-    flowchart TB
-        A["Codigo: ?"] --> B["Construccion: ?"] --> C["Pruebas: ?"]
-        C --> D["Analisis: ?"] --> E["Artefacto: ?"] --> F["Despliegue: ?"] --> G["Operacion: ?"]
-        G -. retroalimentacion .-> A
-    ```
-    ````
+6. Decide en el mismo README, con una tabla de tres filas y una frase por fila, cómo escalaría `pps-app` si pasara de 50 a 5.000 usuarios: qué se escala en vertical, qué en horizontal y por qué la aplicación va en contenedor y no en una máquina virtual instalada a mano.
 
-5. Debajo del dibujo, añade una tabla con cuatro columnas: fase, qué ocurre en `pps-app`, riesgo si falta el control y herramienta que lo aplica (la de la tabla del apartado, con la hoja donde se monta). Marca con una línea aparte los **tres puntos del pipeline donde entraría un atacante** que quisiera colar código propio en la aplicación (por ejemplo, una dependencia comprometida o un token de Jenkins filtrado) y di cuál de tus controles lo detiene.
-6. En `ut5/a51/README.md`, contesta en cuatro o cinco líneas cada una: qué diferencia hay entre integración continua, entrega continua y despliegue continuo, y cuál es la adecuada para `pps-app` si nadie revisa a mano; qué significa *shift left* y un ejemplo del pipeline; y qué es una infraestructura inmutable y qué ventaja da al volver atrás tras un despliegue fallido.
-7. En el mismo README, decide con una tabla de tres filas cómo escalaría `pps-app` si pasara de 50 a 5.000 usuarios: qué se escala en vertical, qué en horizontal y por qué la aplicación va en contenedor y no en una máquina virtual instalada a mano. Basta una frase por fila.
-8. Sube todo a `pps-entregas`:
-
-    ```bash
-    git add ut5/a51 && git commit -m "A5.1 pipeline de entrega" && git push
-    ```
-
-<span class="et et-com">Comprobación</span> `git --version`, `java -version`, `mvn -v` y `docker --version` responden sin error, `hello-world` imprime su mensaje de bienvenida, el repositorio `pps-app` existe en tu cuenta y está clonado en `~/pps-app`, y al abrir `pipeline.md` en GitHub se ve el diagrama con siete nodos y ninguno con un `?` sin sustituir.
+<span class="et et-com">Comprobación</span> `git --version`, `java -version`, `mvn -v` y `docker --version` responden sin error, `hello-world` imprime su mensaje de bienvenida, el repositorio `pps-app` existe en tu cuenta y está clonado en `~/pps-app`, y al abrir `pipeline.md` en GitHub se ve el diagrama con los siete nodos, cada uno con su control.
 
 <span class="et et-ent">Entrega</span> La carpeta `ut5/a51/` de `pps-entregas` (`README.md` con las respuestas y `pipeline.md` con el dibujo y las tablas), con las salidas del paso 1 como captura. Forma parte de la entrega ACT_UT5_1 (CE a, b y c), plazo el jueves 15 de abril a las 23:59, que se cierra con las hojas A5.2 a A5.7.
 
@@ -233,8 +140,11 @@ El segundo eje es el empaquetado. Una máquina virtual lleva un sistema operativ
 
 Al terminar la sesión hay una organización de GitHub de prueba con tres personas y tres roles distintos, una rama principal que solo admite cambios a través de un pull request con aprobación, y la comprobación práctica de que cada rol puede hacer lo que le corresponde y nada más. La teoría explica cómo se organiza el trabajo de varias personas con Git, qué reglas protegen la rama principal y qué permisos da cada rol de GitHub, con el equivalente en GitLab.
 
-!!! consulta "Material de partida"
-    **Aula**: `RA5-Despliegue-seguro/01 Material/03-Git.pdf` (qué es un sistema de control de versiones, funcionamiento de Git con directorio de trabajo, escenario y repositorio, y comandos básicos; la parte de ramas y roles la completa esta sesión). **Web** que ya usaba el material: <https://learngitbranching.js.org/> (visualización de ramas, de la entrega ACT_UT1_4). **Apuntes de terceros**: *Ciberseguridad-PePS*, tema 1, «Git» (<https://psegarrac.github.io/Ciberseguridad-PePS/tema1/git/2020/11/01/Git.html>; el apartado sobre publicar en Heroku está obsoleto y no se usa). Documentación oficial de GitHub sobre roles (<https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization>) y sobre reglas de rama (<https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets>). Atribución completa en [Material y autoría](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Roles de repositorio](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization) y [reglas de rama](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) en GitHub.
+    - [Learn Git Branching](https://learngitbranching.js.org/): repaso de ramas y remotos.
 
 ### Flujos de trabajo con Git en equipo
 
@@ -316,36 +226,27 @@ GitLab ofrece lo mismo con otros nombres, y la correspondencia es directa:
 
 <span class="et et-obj">Objetivo</span> Montar en grupos de tres una organización de GitHub con tres roles, proteger la rama principal para que solo admita pull requests aprobados y comprobar en la práctica los límites de cada rol. Trabaja el CE b (control de versiones administrando roles y permisos) de ACT_UT5_1.
 
-<span class="et et-pre">Antes de empezar</span> Tu cuenta `pps<NIA>` de GitHub y la de las otras dos personas del grupo, con Git configurado en `pps01`. Se han explicado los [flujos de trabajo con Git en equipo](#flujos-de-trabajo-con-git-en-equipo), las [ramas protegidas y la revisión de cambios](#ramas-protegidas-y-revision-de-cambios) y los [roles y permisos en GitHub](#roles-y-permisos-en-github). En el grupo, reparte las letras: **A** (administra), **B** (desarrolla) y **C** (da soporte). Si el aula no da grupos de tres, en uno de dos se omiten C, el paso 6 y su fila de la tabla.
+<span class="et et-pre">Antes de empezar</span> Tu cuenta `pps<NIA>` de GitHub y la de las otras dos personas del grupo, con Git configurado en `pps01`. Se han explicado los [flujos de trabajo con Git en equipo](#flujos-de-trabajo-con-git-en-equipo), las [ramas protegidas y la revisión de cambios](#ramas-protegidas-y-revision-de-cambios) y los [roles y permisos en GitHub](#roles-y-permisos-en-github). En el grupo, reparte las letras: **A** (administra), **B** (desarrolla) y **C** (da soporte). Si el aula no da grupos de tres, en uno de dos se omiten C, el paso 4 y su fila de la tabla.
 
 <span class="et et-pas">Pasos</span>
 
-1. **A** crea en <https://github.com/organizations/plan> una organización gratuita llamada `pps<NIA de A>-lab` y, dentro, el repositorio `equipo-demo`. Tiene que ser **público**, con README (recuerda que las reglas de rama no funcionan en privados con el plan gratuito). No pongas nada real en él.
-2. **A** invita a B y a C a la organización con el rol de miembro y, en el repositorio, en *Settings* y *Collaborators and teams*, les da estos permisos: **B con Write y C con Triage**. Ambos aceptan la invitación desde su correo o desde el enlace que muestra GitHub. Apunta en una tabla del README de tu carpeta las tres personas, su rol y por qué es el mínimo que necesitan.
-3. **A** protege `main`: en *Settings*, *Rules*, *Rulesets*, crea un ruleset nuevo para la rama por defecto y activa **exigir pull request con 1 aprobación**, **descartar aprobaciones obsoletas**, **bloquear el push forzado** y **restringir el borrado**. Deja vacía la lista de quien puede saltarse la regla, para que la regla valga también para A. Pon el estado en *Active*. (En una cuenta con reglas de rama clásicas, la opción equivalente es *Branches*, *Add branch protection rule*, con las mismas casillas.)
-4. **B** clona el repositorio y trata de subir directamente a `main`. Guarda el mensaje de rechazo:
+1. **A** crea una organización gratuita `pps<NIA de A>-lab` con el repositorio **público** `equipo-demo`, con README y nada real, e invita a B y a C a la organización. En el repositorio, **B tiene Write y C tiene Triage**. Apunta en una tabla del README de tu carpeta las tres personas, su rol y por qué es el mínimo que necesitan.
 
-    ```bash
-    git clone https://github.com/pps<NIA de A>-lab/equipo-demo.git && cd equipo-demo
-    echo "cambio directo" >> README.md
-    git commit -am "cambio directo" && git push origin main
-    ```
+    *Pista:* con el plan gratuito, las reglas de rama solo funcionan en repositorios públicos. Los permisos se dan en *Settings*, *Collaborators and teams*.
 
-    El servidor tiene que responder con un rechazo (`protected branch hook declined` o similar). Deshaz el commit local con `git reset --hard origin/main`.
-5. **B** hace el cambio por el camino correcto: una rama, un commit y un pull request.
+2. **A** protege `main` con un ruleset activo para la rama por defecto que exija pull request con una aprobación, descarte las aprobaciones obsoletas y bloquee el push forzado y el borrado. La lista de quien puede saltarse la regla queda vacía, para que valga también para A.
 
-    ```bash
-    git switch -c feature/saludo
-    echo "Hola desde el equipo" > saludo.txt
-    git add saludo.txt && git commit -m "Añade saludo.txt"
-    git push -u origin feature/saludo
-    ```
+    *Pista:* está en *Settings*, *Rules*, *Rulesets*. En una cuenta con reglas de rama clásicas, en *Branches*, *Add branch protection rule*, con las mismas casillas.
 
-    En GitHub, abre el pull request de `feature/saludo` a `main` (aparece un aviso amarillo con el botón *Compare & pull request*). El botón de fusionar aparece bloqueado hasta que haya una aprobación.
-6. **C** (Triage) entra en el pull request de B y prueba sus límites: puede comentar y añadir una etiqueta, pero no puede aprobar de forma que cuente ni fusionar. Después clona el repositorio, crea una rama y trata de subirla (`git push origin feature/soporte`): GitHub tiene que responder `Permission ... denied`. Captura ambas cosas.
-7. **A** revisa el pull request: escribe un comentario en una línea concreta del cambio (*Files changed*) y envía la revisión con *Request changes*. **B** corrige con un segundo commit en la misma rama. **A** vuelve a revisar, aprueba con *Approve* y fusiona con *Squash and merge*. Comprueba que el historial de `main` tiene un solo commit nuevo.
-8. Cada persona documenta en su carpeta de `pps-entregas` lo que ha visto desde su rol: el rechazo de B en el paso 4, la limitación de C en el paso 6, el pull request aprobado y fusionado, y la pantalla del ruleset.
-9. Compara en el README, con una tabla de cuatro filas, lo que hiciste con lo que habría que configurar en GitLab: rol de B, rol de C, regla de rama protegida y aprobaciones requeridas.
+3. **B** clona el repositorio, intenta subir un commit directamente a `main` y guarda el rechazo. Después hace el cambio por el camino correcto: `saludo.txt` en la rama `feature/saludo` y un pull request hacia `main`, que queda bloqueado hasta que haya una aprobación.
+
+    *Pista:* tras el rechazo, el commit local sobra y separa tu `main` del remoto: deshazlo con `git reset --hard origin/main`.
+
+4. **C** prueba los límites de Triage: en el pull request de B puede comentar y poner una etiqueta, pero no aprobar de forma que cuente, ni fusionar, ni subir una rama propia. Captura el pull request y el rechazo de su push.
+
+5. **A** revisa el pull request con un comentario en una línea concreta y pide cambios (*Request changes*); **B** corrige con un segundo commit en la misma rama, y **A** aprueba y fusiona con *Squash and merge*. Comprueba que el historial de `main` tiene un solo commit nuevo.
+
+6. Documenta en el README de tu carpeta lo que has visto desde tu rol y compara, con una tabla de cuatro filas, lo configurado con lo que habría que configurar en GitLab: rol de B, rol de C, regla de rama protegida y aprobaciones requeridas.
 
 <span class="et et-com">Comprobación</span> El `git push` directo de B a `main` se rechaza, el de C a cualquier rama también, el botón de fusionar del pull request no se activa hasta la aprobación de A, y tras fusionar `saludo.txt` está en `main` con un único commit añadido. Si el aviso de protección no aparece en la rama, revisa que el ruleset esté en *Active* y que el repositorio sea público.
 
@@ -362,8 +263,10 @@ GitLab ofrece lo mismo con otros nombres, y la correspondencia es directa:
 
 Al terminar la sesión existe el código completo de `pps-app`, la aplicación Java que se usa en el resto de la unidad, con su `pom.xml`, sus pruebas y un informe de pruebas generado, y `mvn verify` la construye desde cero en una sola orden. Esa orden es exactamente lo que Jenkins ejecutará en las sesiones siguientes. La teoría explica qué automatiza una herramienta de construcción, cómo lo hace Maven (ciclo de vida, dependencias y pruebas) y cuándo se prefiere Gradle.
 
-!!! consulta "Material de partida"
-    **Aula**: `RA5-Despliegue-seguro/01 Material/04-Maven_Gradle.pdf` (sistemas de automatización de la construcción, estructura del `pom.xml`, ciclo de vida, dependencias y plugins de Maven, y una introducción a Gradle). **Web** que ya usaba el material: <https://maven.apache.org/> y la guía del ciclo de vida (<https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html>). **Apuntes de terceros**: *Ciberseguridad-PePS*, tema 5, «Sistemas de automatización de construcción» y «Aplicación en Maven» (<https://psegarrac.github.io/Ciberseguridad-PePS/tema5/cd/ci/2022/01/12/Aplicaci%C3%B3n-en-Maven.html>; la guía sigue el ejemplo del saludo con JUnit 4 y Java 8, que aquí se sustituye por una aplicación con servidor HTTP, JUnit 5 y Java 17). Atribución completa en [Material y autoría](../material.md).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Maven](https://maven.apache.org/) y su [ciclo de vida](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html): la automatización de la construcción.
 
 ### Qué automatiza un sistema de construcción
 
@@ -432,199 +335,177 @@ El criterio habitual para este curso es Maven, porque su fichero declarativo se 
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la estructura estándar de Maven:
+1. Escribe `pps-app` en `~/pps-app` con la estructura estándar de Maven y estos tres ficheros, copiados tal cual: `pom.xml` en la raíz, `App.java` en `src/main/java/es/pps/` y `AppTest.java` en `src/test/java/es/pps/`. Son un servidor HTTP del propio JDK que responde en `/` y en `/salud`, en el 8080 o en el puerto que reciba como argumento, y dos pruebas que lo arrancan y le hacen una petición real.
 
-    ```bash
-    cd ~/pps-app && mkdir -p src/main/java/es/pps src/test/java/es/pps
-    ```
+    *Pista:* no quites las versiones de los plugins: el Maven de Ubuntu trae un plugin de compilación antiguo que ignora Java 17 y falla con `Source option 5 is no longer supported`.
 
-2. Escribe `pom.xml` en la raíz. Cópialo tal cual: las coordenadas son las de la unidad (`es.pps`, `pps-app`), `finalName` fija el nombre del jar en `target/pps-app.jar`, el plugin `jar` declara qué clase arranca y las versiones de los tres plugins van fijadas a propósito: el Maven de Ubuntu trae un plugin de compilación antiguo que ignora Java 17 y falla con `Source option 5 is no longer supported`:
+    === "pom.xml"
 
-    ```xml
-    <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-      <modelVersion>4.0.0</modelVersion>
+        ```xml
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project xmlns="http://maven.apache.org/POM/4.0.0"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+          <modelVersion>4.0.0</modelVersion>
 
-      <groupId>es.pps</groupId>
-      <artifactId>pps-app</artifactId>
-      <version>1.0.0</version>
-      <packaging>jar</packaging>
+          <groupId>es.pps</groupId>
+          <artifactId>pps-app</artifactId>
+          <version>1.0.0</version>
+          <packaging>jar</packaging>
 
-      <properties>
-        <maven.compiler.release>17</maven.compiler.release>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      </properties>
+          <properties>
+            <maven.compiler.release>17</maven.compiler.release>
+            <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+          </properties>
 
-      <dependencies>
-        <dependency>
-          <groupId>org.junit.jupiter</groupId>
-          <artifactId>junit-jupiter</artifactId>
-          <version>5.11.4</version>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
+          <dependencies>
+            <dependency>
+              <groupId>org.junit.jupiter</groupId>
+              <artifactId>junit-jupiter</artifactId>
+              <version>5.11.4</version>
+              <scope>test</scope>
+            </dependency>
+          </dependencies>
 
-      <build>
-        <finalName>pps-app</finalName>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.13.0</version>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <version>3.5.2</version>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-            <version>3.4.2</version>
-            <configuration>
-              <archive>
-                <manifest>
-                  <mainClass>es.pps.App</mainClass>
-                </manifest>
-              </archive>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </project>
-    ```
+          <build>
+            <finalName>pps-app</finalName>
+            <plugins>
+              <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+              </plugin>
+              <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+              </plugin>
+              <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                  <archive>
+                    <manifest>
+                      <mainClass>es.pps.App</mainClass>
+                    </manifest>
+                  </archive>
+                </configuration>
+              </plugin>
+            </plugins>
+          </build>
+        </project>
+        ```
 
-3. Escribe `src/main/java/es/pps/App.java`. Usa solo el servidor HTTP que trae el JDK, sin frameworks. Escucha en el 8080 (o en el puerto que se le pase como argumento), responde `Hola PPS` en `/` y `{"estado":"ok"}` en `/salud`:
+    === "App.java"
 
-    ```java
-    package es.pps;
+        ```java
+        package es.pps;
 
-    import com.sun.net.httpserver.HttpExchange;
-    import com.sun.net.httpserver.HttpServer;
-    import java.io.IOException;
-    import java.net.InetSocketAddress;
-    import java.nio.charset.StandardCharsets;
+        import com.sun.net.httpserver.HttpExchange;
+        import com.sun.net.httpserver.HttpServer;
+        import java.io.IOException;
+        import java.net.InetSocketAddress;
+        import java.nio.charset.StandardCharsets;
 
-    public class App {
+        public class App {
 
-        static final String SALUDO = "Hola PPS";
-        static final String SALUD = "{\"estado\":\"ok\"}";
+            static final String SALUDO = "Hola PPS";
+            static final String SALUD = "{\"estado\":\"ok\"}";
 
-        static HttpServer crearServidor(int puerto) throws IOException {
-            HttpServer servidor = HttpServer.create(new InetSocketAddress(puerto), 0);
-            servidor.createContext("/salud", ex -> responder(ex, SALUD, "application/json"));
-            servidor.createContext("/", ex -> responder(ex, SALUDO, "text/plain; charset=utf-8"));
-            return servidor;
-        }
+            static HttpServer crearServidor(int puerto) throws IOException {
+                HttpServer servidor = HttpServer.create(new InetSocketAddress(puerto), 0);
+                servidor.createContext("/salud", ex -> responder(ex, SALUD, "application/json"));
+                servidor.createContext("/", ex -> responder(ex, SALUDO, "text/plain; charset=utf-8"));
+                return servidor;
+            }
 
-        private static void responder(HttpExchange ex, String cuerpo, String tipo) throws IOException {
-            byte[] datos = cuerpo.getBytes(StandardCharsets.UTF_8);
-            ex.getResponseHeaders().set("Content-Type", tipo);
-            ex.sendResponseHeaders(200, datos.length);
-            try (var salida = ex.getResponseBody()) {
-                salida.write(datos);
+            private static void responder(HttpExchange ex, String cuerpo, String tipo) throws IOException {
+                byte[] datos = cuerpo.getBytes(StandardCharsets.UTF_8);
+                ex.getResponseHeaders().set("Content-Type", tipo);
+                ex.sendResponseHeaders(200, datos.length);
+                try (var salida = ex.getResponseBody()) {
+                    salida.write(datos);
+                }
+            }
+
+            public static void main(String[] args) throws IOException {
+                int puerto = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
+                crearServidor(puerto).start();
+                System.out.println("pps-app escuchando en el puerto " + puerto);
             }
         }
+        ```
 
-        public static void main(String[] args) throws IOException {
-            int puerto = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
-            crearServidor(puerto).start();
-            System.out.println("pps-app escuchando en el puerto " + puerto);
+    === "AppTest.java"
+
+        ```java
+        package es.pps;
+
+        import static org.junit.jupiter.api.Assertions.assertEquals;
+
+        import com.sun.net.httpserver.HttpServer;
+        import java.net.URI;
+        import java.net.http.HttpClient;
+        import java.net.http.HttpRequest;
+        import java.net.http.HttpResponse;
+        import org.junit.jupiter.api.AfterEach;
+        import org.junit.jupiter.api.BeforeEach;
+        import org.junit.jupiter.api.Test;
+
+        class AppTest {
+
+            private HttpServer servidor;
+            private String base;
+
+            @BeforeEach
+            void arrancar() throws Exception {
+                servidor = App.crearServidor(0);
+                servidor.start();
+                base = "http://localhost:" + servidor.getAddress().getPort();
+            }
+
+            @AfterEach
+            void parar() {
+                servidor.stop(0);
+            }
+
+            private HttpResponse<String> get(String ruta) throws Exception {
+                HttpRequest peticion = HttpRequest.newBuilder(URI.create(base + ruta)).build();
+                return HttpClient.newHttpClient().send(peticion, HttpResponse.BodyHandlers.ofString());
+            }
+
+            @Test
+            void laRaizSaluda() throws Exception {
+                HttpResponse<String> r = get("/");
+                assertEquals(200, r.statusCode());
+                assertEquals("Hola PPS", r.body());
+            }
+
+            @Test
+            void saludDevuelveJson() throws Exception {
+                HttpResponse<String> r = get("/salud");
+                assertEquals(200, r.statusCode());
+                assertEquals("{\"estado\":\"ok\"}", r.body());
+            }
         }
-    }
-    ```
+        ```
 
-4. Escribe `src/test/java/es/pps/AppTest.java`. Cada prueba arranca el servidor en un puerto libre que elige el sistema (el `0`), hace una petición real y comprueba el código y el cuerpo de la respuesta:
+2. Construye desde cero con `mvn -B clean verify` y genera además el informe de pruebas en HTML. Anota en qué fase se ejecuta cada plugin (`compiler`, `surefire`, `jar`) y cuántas pruebas pasan.
 
-    ```java
-    package es.pps;
+    *Pista:* el informe HTML lo genera el goal `surefire-report:report`, en `target/reports/surefire.html`. La primera construcción descarga los plugins y JUnit y, con el aula entera a la vez, tarda varios minutos.
 
-    import static org.junit.jupiter.api.Assertions.assertEquals;
+3. Rompe una prueba a propósito cambiando el texto que espera, sin tocar la aplicación, y mira qué dice Maven y con qué código de salida termina: es la señal que hace fallar un pipeline. Deshaz el cambio y comprueba que vuelve a pasar.
 
-    import com.sun.net.httpserver.HttpServer;
-    import java.net.URI;
-    import java.net.http.HttpClient;
-    import java.net.http.HttpRequest;
-    import java.net.http.HttpResponse;
-    import org.junit.jupiter.api.AfterEach;
-    import org.junit.jupiter.api.BeforeEach;
-    import org.junit.jupiter.api.Test;
+4. Ejecuta el jar en el puerto 8083, no en el 8080, que puede seguir ocupado por el Apache de la unidad 3, y comprueba desde otra terminal que responde en `/` y en `/salud`.
 
-    class AppTest {
+5. Muestra el árbol de dependencias del proyecto y explica en el README, en dos líneas, por qué JUnit aparece con `scope test` y por qué eso importa para la seguridad de lo que se despliega.
 
-        private HttpServer servidor;
-        private String base;
+6. Publica el proyecto en la rama `main` de `pps-app`, con un `.gitignore` que deje fuera `target/`.
 
-        @BeforeEach
-        void arrancar() throws Exception {
-            servidor = App.crearServidor(0);
-            servidor.start();
-            base = "http://localhost:" + servidor.getAddress().getPort();
-        }
+<span class="et et-com">Comprobación</span> `mvn -B clean verify` termina en `BUILD SUCCESS` con las dos pruebas en verde, con el cambio del paso 3 la construcción falla con código distinto de cero y sin él pasa, `curl` devuelve `Hola PPS` y `{"estado":"ok"}`, y en GitHub `pps-app` tiene `pom.xml`, `src/` y `.gitignore` pero no `target/`.
 
-        @AfterEach
-        void parar() {
-            servidor.stop(0);
-        }
-
-        private HttpResponse<String> get(String ruta) throws Exception {
-            HttpRequest peticion = HttpRequest.newBuilder(URI.create(base + ruta)).build();
-            return HttpClient.newHttpClient().send(peticion, HttpResponse.BodyHandlers.ofString());
-        }
-
-        @Test
-        void laRaizSaluda() throws Exception {
-            HttpResponse<String> r = get("/");
-            assertEquals(200, r.statusCode());
-            assertEquals("Hola PPS", r.body());
-        }
-
-        @Test
-        void saludDevuelveJson() throws Exception {
-            HttpResponse<String> r = get("/salud");
-            assertEquals(200, r.statusCode());
-            assertEquals("{\"estado\":\"ok\"}", r.body());
-        }
-    }
-    ```
-
-5. Construye desde cero. La primera vez Maven descarga los plugins y JUnit, y con todo el aula descargando a la vez tarda varios minutos: aprovecha para leer la salida. Anota en qué fase se ejecuta cada plugin (`compiler`, `surefire`, `jar`) y cuántas pruebas ejecuta:
-
-    ```bash
-    mvn -B clean verify
-    ```
-
-    Debe terminar en `Tests run: 2, Failures: 0, Errors: 0` y `BUILD SUCCESS`, y dejar `target/pps-app.jar`.
-6. Genera el informe de pruebas. Maven ya dejó el informe en texto y XML en `target/surefire-reports/`; el segundo comando añade la versión HTML, que se abre en el navegador de `pps01` (abre `target/reports/surefire.html`). Captura la pantalla:
-
-    ```bash
-    cat target/surefire-reports/es.pps.AppTest.txt
-    mvn -B test surefire-report:report
-    ```
-
-7. Rompe una prueba a propósito. En `AppTest.java` cambia `"Hola PPS"` por `"Hola mundo"`, ejecuta `mvn -B test` y comprueba dos cosas: el mensaje `expected: <Hola mundo> but was: <Hola PPS>` y que el código de salida es distinto de cero (`echo $?`). Ese código es el que hace fallar un pipeline. Deshaz el cambio y vuelve a comprobar que pasa.
-8. Ejecuta el jar y pruébalo desde otra terminal. El puerto se pasa como argumento porque el 8080 puede seguir ocupado por el Apache de la unidad 3:
-
-    ```bash
-    java -jar target/pps-app.jar 8083
-    curl -s http://localhost:8083/ ; echo
-    curl -s http://localhost:8083/salud ; echo
-    ```
-
-    Para el servidor con `Ctrl+C`.
-9. Muestra el árbol de dependencias con `mvn -B dependency:tree` y explica en el README en dos líneas por qué JUnit aparece con `scope test` y por qué eso importa para la seguridad de lo que se despliega.
-10. Añade un `.gitignore` con `target/` y publica en `main` (este repositorio es personal y no tiene reglas de rama):
-
-    ```bash
-    printf 'target/\n' > .gitignore
-    git add . && git commit -m "A5.3 pps-app: servidor, pruebas y pom" && git push
-    ```
-
-<span class="et et-com">Comprobación</span> `mvn -B clean verify` termina en `BUILD SUCCESS` con las dos pruebas en verde, con el cambio del paso 7 la construcción falla con código distinto de cero y sin él pasa, `curl` devuelve `Hola PPS` y `{"estado":"ok"}`, y en GitHub `pps-app` tiene `pom.xml`, `src/` y `.gitignore` pero no `target/`.
-
-<span class="et et-ent">Entrega</span> La URL del repositorio `pps-app` y la carpeta `ut5/a53/` de `pps-entregas` con `README.md` (comandos usados, plugin de cada fase del paso 5, explicación del paso 9) y las capturas `build-success.png`, `informe-pruebas.png`, `prueba-fallida.png` y `curl.png`. Forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59.
+<span class="et et-ent">Entrega</span> La URL del repositorio `pps-app` y la carpeta `ut5/a53/` de `pps-entregas` con `README.md` (comandos usados, plugin de cada fase del paso 2, explicación del paso 5) y las capturas `build-success.png`, `informe-pruebas.png`, `prueba-fallida.png` y `curl.png`. Forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59.
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade una tercera prueba que compruebe que una ruta inexistente (`/nada`) también responde 200, porque `/` captura todo lo que no es `/salud`, y decide si ese comportamiento es el deseable para una aplicación real.
 
@@ -637,11 +518,12 @@ El criterio habitual para este curso es Maven, porque su fichero declarativo se 
 
 Al acabar esta sesión hay un servidor Jenkins funcionando en un contenedor de `pps01`, conectado al repositorio `pps-app` de GitHub con una credencial guardada en Jenkins, y un trabajo que descarga el código, lo compila y ejecuta sus pruebas cada vez que se pulsa "Construir ahora". Primero se ve para qué sirve la integración continua y cómo se reparte el trabajo dentro de Jenkins; después se instala y se configura lo mínimo.
 
-!!! consulta "Material de partida"
-    - **Aula** (`RA5-Despliegue-seguro/02 ACT_RA5_1 - Jenkins`): `RA5.1.pdf`, el enunciado de la entrega ACT_UT5_1. Explica CI/CD, Jenkins y el Jenkinsfile, y pide las tareas 1 y 2 del apunte de Jenkins de *Ciberseguridad-PePS* (más abajo) y un `jenkinsfile.docker` (la parte de Docker es la [A5.6](#a56-jenkins-con-docker-sesion-42)). La entrega se hace en GitHub con un README y capturas de las pipelines funcionando.
-    - **Web, apuntes de terceros** (se enlazan, no se copian): *Ciberseguridad-PePS*, tema 5, «Jenkins» (instalación con Docker, primer pipeline, la fase de confirmación y las tareas del enunciado), <https://psegarrac.github.io/Ciberseguridad-PePS/tema5/cd/ci/2022/01/13/jenkins.html>; y *Apuntes de Puesta en Producción Segura*, unidad 5, <https://github.com/EloyAlbiach/PPS/tree/main/desplegado_seguro> (CC BY-NC-SA 4.0; atribución completa en [Material y autoría](../material.md)).
-    - **Ejemplos del enunciado**: <https://github.com/pkaminasfp/jenkins>.
-    - **Documentación oficial**: <https://www.jenkins.io/doc/book/> (instalación en Docker: <https://www.jenkins.io/doc/book/installing/docker/>).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Instalar Jenkins con Docker](https://www.jenkins.io/doc/book/installing/docker/): la puesta en marcha.
+    - [Ejemplos de Jenkins](https://github.com/pkaminasfp/jenkins): pipelines de referencia.
+    - El enunciado de la entrega ACT_UT5_1 está en el aula.
 
 ### Integración continua
 
@@ -748,46 +630,27 @@ Para que Jenkins descargue un repositorio privado de GitHub, se le da una **cred
 
 <span class="et et-pas">Pasos</span>
 
-1. Prepara la imagen de Jenkins con Maven. La imagen oficial no lo trae y sin él no hay forma de compilar `pps-app`. Crea `~/jenkins-lab/Dockerfile` y constrúyela (la descarga tarda: mientras corre, sigue con el paso 4):
+1. Construye la imagen `pps-jenkins:1`, que es `jenkins/jenkins:lts-jdk17` con Maven añadido, a partir de un `Dockerfile` en `~/jenkins-lab`. La imagen oficial no trae Maven, y sin él Jenkins no puede compilar `pps-app`.
 
-    ```dockerfile
-    FROM jenkins/jenkins:lts-jdk17
-    USER root
-    RUN apt-get update && apt-get install -y --no-install-recommends maven \
-        && rm -rf /var/lib/apt/lists/*
-    USER jenkins
-    ```
+    *Pista:* para instalar con `apt-get` hay que pasar a `USER root` y volver a `USER jenkins` al final. La construcción tarda: mientras, adelanta el token de GitHub del paso 4.
 
-    ```bash
-    mkdir -p ~/jenkins-lab && cd ~/jenkins-lab
-    docker build -t pps-jenkins:1 .
-    ```
+2. Arranca el contenedor `jenkins` con esa imagen, el volumen `jenkins_home` en `/var/jenkins_home`, la interfaz en el 8090 de `pps01`, el 50000 de los agentes y reinicio automático, y comprueba que Maven responde dentro del contenedor.
 
-2. Arranca el contenedor con el volumen `jenkins_home` y comprueba que Maven está dentro:
+    *Pista:* la orden completa está en la [chuleta](../chuleta.md#jenkins).
 
-    ```bash
-    docker run -d --name jenkins --restart unless-stopped \
-      -p 8090:8080 -p 50000:50000 \
-      -v jenkins_home:/var/jenkins_home pps-jenkins:1
-    docker exec jenkins mvn -v
-    docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
-    ```
+3. Desbloquea Jenkins en `http://192.168.56.10:8090` con la contraseña inicial, instala los plugins sugeridos y crea tu usuario administrador con una contraseña que no uses en ningún otro sitio.
 
-    La última orden imprime la contraseña inicial. Si `mvn -v` dice que no encuentra la orden, la imagen no es la tuya: repasa el nombre del paso 1.
+    *Pista:* los plugins tardan de 5 a 15 minutos con el aula entera descargando a la vez.
 
-3. Abre `http://192.168.56.10:8090` desde el navegador del equipo anfitrión (o `http://localhost:8090` en `pps01`), pega la contraseña, elige "Install suggested plugins" y espera (de 5 a 15 minutos con toda el aula descargando a la vez). Crea tu usuario administrador con una contraseña que no reutilices en otro sitio y acepta la URL de Jenkins que propone.
-4. En GitHub, crea el token: *Settings*, *Developer settings*, *Fine-grained personal access tokens*, con acceso solo al repositorio `pps-app`, permiso *Contents: Read-only* y caducidad de 30 días. Cópialo en el momento: GitHub no lo vuelve a mostrar.
-5. En Jenkins, *Manage Jenkins*, *Credentials*, *System*, *Global credentials*, *Add Credentials*: tipo *Username with password*, usuario `pps<NIA>`, contraseña el token, ID `github-token`. El ID tiene que ser exactamente ese porque las hojas siguientes lo nombran.
-6. Crea el trabajo: *New Item*, nombre `pps-app-build`, tipo *Freestyle project*. En *Source Code Management* elige Git, con la URL `https://github.com/pps<NIA>/pps-app.git`, la credencial `github-token` y la rama `*/main` (si tu rama principal se llama distinto, pon la tuya). En *Build Steps* añade *Execute shell* con:
+4. Crea en GitHub un token de grano fino con acceso solo a `pps-app`, permiso *Contents: Read-only* y 30 días de caducidad, y guárdalo en Jenkins como credencial *Username with password*, con el usuario `pps<NIA>` y el ID `github-token`, exactamente ese, porque las hojas siguientes lo nombran.
 
-    ```bash
-    mvn -B clean package
-    ```
+    *Pista:* el token se crea en *Settings*, *Developer settings*, *Fine-grained personal access tokens*, y GitHub solo lo muestra una vez.
 
-    En *Post-build Actions* añade *Publish JUnit test result report* con `target/surefire-reports/*.xml`. Guarda.
+5. Crea el trabajo de estilo libre `pps-app-build`, que descarga la rama `main` de `pps-app` con la credencial `github-token`, ejecuta `mvn -B clean package` y publica los resultados de las pruebas de `target/surefire-reports/*.xml`. Lánzalo: la construcción `#1` tiene que terminar en `SUCCESS`.
 
-7. Pulsa *Build Now* y abre la construcción `#1`, *Console Output*. Al final tiene que aparecer `BUILD SUCCESS` y `Finished: SUCCESS`; en la página del trabajo aparece la gráfica de resultados de las pruebas. Si falla, el error está en el propio registro: casi siempre es la URL, la rama o la credencial ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
-8. Comprueba que la integración continua sirve para algo: en tu copia local de `pps-app`, cambia el valor que espera uno de los tests de la A5.3 (por ejemplo, el texto "Hola PPS" por otro) sin tocar el código de la aplicación, haz `git commit` y `git push`, y pulsa *Build Now*. La construcción `#2` tiene que salir roja y decir qué test ha fallado. Deshaz el cambio (`git revert HEAD`), súbelo y comprueba que la `#3` vuelve a verde. Captura las tres.
+    *Pista:* los resultados se publican en *Post-build Actions*, *Publish JUnit test result report*.
+
+6. Comprueba que la integración continua sirve para algo: sube un cambio que rompa un test de la A5.3 sin tocar el código de la aplicación y lanza la construcción `#2`, que tiene que salir roja. Deshaz el cambio y comprueba que la `#3` vuelve a verde. Captura las tres.
 
 <span class="et et-com">Comprobación</span> `docker ps` muestra `jenkins` con los puertos `8090` y `50000`; en el panel del trabajo hay tres construcciones (verde, roja, verde); la roja muestra el test que falla en la pestaña *Test Result*; y tu token no aparece en ninguna captura ni en `git log`.
 
@@ -801,10 +664,10 @@ Para que Jenkins descargue un repositorio privado de GitHub, se le da una **cred
 
 Al acabar esta sesión la definición del trabajo ya no vive en un formulario de Jenkins sino en un fichero `Jenkinsfile` de la raíz de `pps-app`, con las etapas de construcción, pruebas y publicación del informe, y Jenkins lo lanza solo cuando detecta un commit nuevo. Se ve primero la estructura de un pipeline declarativo y después por qué conviene que el fichero viaje con el código.
 
-!!! consulta "Material de partida"
-    - **Aula** (`RA5-Despliegue-seguro/02 ACT_RA5_1 - Jenkins/RA5.1.pdf`): el apartado 1.2.1 describe el Jenkinsfile (declarativo o *scripted*, en la raíz del repositorio) y remite a colecciones de ejemplos: <https://github.com/jenkinsci/pipeline-examples>, <https://github.com/hoto/jenkinsfile-examples> y un *gist* de ejemplos. El punto 3.1 del enunciado pide las tareas 1 y 2 del apunte de Jenkins y "realizar la pipeline con el fichero Jenkinsfile".
-    - **Web, apuntes de terceros** (se enlazan, no se copian): *Ciberseguridad-PePS*, tema 5, «Jenkins», apartados «Introducción a las pipelines», «Jenkinsfile» y «Tareas», <https://psegarrac.github.io/Ciberseguridad-PePS/tema5/cd/ci/2022/01/13/jenkins.html>. Sus ejemplos usan Gradle y una calculadora de Spring Boot; aquí la misma estructura se aplica a `pps-app` con Maven, y la calculadora de Python de la tarea 1 se hace en la [A5.6](#a56-jenkins-con-docker-sesion-42), cuando ya hay agentes Docker.
-    - **Documentación oficial**: <https://www.jenkins.io/doc/book/pipeline/> y <https://www.jenkins.io/doc/book/pipeline/jenkinsfile/>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Pipelines de Jenkins](https://www.jenkins.io/doc/book/pipeline/) y el [`Jenkinsfile`](https://www.jenkins.io/doc/book/pipeline/jenkinsfile/): el pipeline como código.
 
 ### Pipeline declarativo
 
@@ -863,59 +726,27 @@ Jenkins hace primero la descarga del repositorio y después lee el fichero, de m
 
 <span class="et et-pas">Pasos</span>
 
-1. En tu copia local de `pps-app`, crea el `Jenkinsfile` de la raíz con este contenido (cópialo y cambia solo lo que se indica en el paso 5):
+1. Escribe en la raíz de `pps-app` un `Jenkinsfile` con las etapas `Construir` y `Pruebas` del [pipeline declarativo](#pipeline-declarativo) y una tercera, `Informe`, que archive el jar y los informes de texto de las pruebas. Añádele un tiempo máximo de 10 minutos, el sondeo del repositorio cada dos minutos y un `post` que escriba un mensaje distinto si la construcción sale bien o mal. Súbelo.
 
-    ```groovy
-    pipeline {
-        agent any
-        options {
-            timeout(time: 10, unit: 'MINUTES')
-            buildDiscarder(logRotator(numToKeepStr: '10'))
-        }
-        triggers { pollSCM('H/2 * * * *') }
-        environment { APP = 'pps-app' }
-        stages {
-            stage('Construir') {
-                steps { sh 'mvn -B -DskipTests clean package' }
-            }
-            stage('Pruebas') {
-                steps { sh 'mvn -B test' }
-                post { always { junit 'target/surefire-reports/*.xml' } }
-            }
-            stage('Informe') {
-                steps {
-                    archiveArtifacts artifacts: 'target/pps-app.jar, target/surefire-reports/*.txt', fingerprint: true
-                }
-            }
-        }
-        post {
-            success { echo "${env.APP} #${env.BUILD_NUMBER}: construcción correcta" }
-            failure { echo "${env.APP} #${env.BUILD_NUMBER}: construcción fallida, revisa la etapa en rojo" }
-        }
-    }
-    ```
+    *Pista:* todas las piezas están en la tabla del apartado. El archivado es una línea: `archiveArtifacts artifacts: 'target/pps-app.jar, target/surefire-reports/*.txt', fingerprint: true`.
 
-2. Súbelo al repositorio:
+2. Crea el trabajo `pps-app-pipeline`, de tipo *Pipeline*, que lea el `Jenkinsfile` de la rama `main` de `pps-app` con la credencial `github-token` (*Pipeline script from SCM*), y lánzalo. Las tres etapas tienen que salir en verde, y en la página de la construcción tienen que aparecer el jar y los resultados de las pruebas.
 
-    ```bash
-    git add Jenkinsfile && git commit -m "A5.5 Jenkinsfile" && git push
-    ```
+    *Pista:* esta primera construcción hay que lanzarla a mano: es la que lee el `Jenkinsfile` y registra el sondeo.
 
-3. En Jenkins crea un trabajo nuevo, `pps-app-pipeline`, de tipo *Pipeline*. En la sección *Pipeline* elige *Pipeline script from SCM*, SCM `Git`, la misma URL de `pps-app` y la credencial `github-token`, la rama `*/main` y *Script Path* `Jenkinsfile`. Guarda.
-4. Pulsa *Build Now*. La primera construcción lee el `Jenkinsfile`, registra el disparador y ejecuta las tres etapas. Comprueba en la vista de etapas que las tres son verdes y que en la página de la construcción aparecen el `jar` y los resultados de las pruebas.
-5. Comprueba el disparador automático. Cambia en el `Jenkinsfile` el mensaje del `echo` de `success`, haz commit y push, y no pulses nada: en menos de tres minutos tiene que aparecer una construcción nueva, con la etiqueta *Started by an SCM change*. Si no aparece, mira *Git Polling Log* en el menú del trabajo.
-6. Rompe cada etapa a propósito, de una en una, con un commit por prueba (pulsa *Build Now* en vez de esperar al sondeo), y apunta qué ves en la vista de etapas:
-    - Construir: quita un punto y coma de una clase Java (no compila).
-    - Pruebas: cambia el valor que espera un test.
-    - Informe: cambia en `archiveArtifacts` el valor de `artifacts` por un fichero que no exista, como `'target/no-existe.jar'` (si solo se cambia el nombre del `jar`, el patrón sigue encontrando los `.txt` de pruebas y la etapa no falla).
+3. Comprueba el disparador automático: sube un cambio (por ejemplo, en el mensaje de éxito del `post`) sin pulsar nada en Jenkins y mide cuánto tarda en aparecer una construcción con la etiqueta *Started by an SCM change*.
 
-    Tras cada prueba, `git revert HEAD` y `git push` dejan el pipeline en verde otra vez.
+    *Pista:* si en tres minutos no aparece nada, el registro del sondeo está en *Git Polling Log*, en el menú del trabajo.
 
-7. Anota en el README qué etapas quedan grises en cada caso y por qué (una etapa que falla detiene las siguientes) y cuánto ha tardado el disparador en actuar.
+4. Rompe cada etapa a propósito, de una en una y con un commit por prueba, lanzando la construcción a mano: `Construir` con un error de compilación, `Pruebas` con un test que falle e `Informe` con un fichero que no exista. Captura la vista de etapas de cada una y deshaz el cambio antes de la siguiente.
 
-<span class="et et-com">Comprobación</span> El trabajo tiene construcciones verdes, una lanzada por el commit del paso 5 y tres rojas (una por etapa rota). En cada roja, solo esa etapa y las posteriores cambian de color, y el `Jenkinsfile` de la última construcción es el que está en `main`.
+    *Pista:* en `Informe`, si solo cambias el nombre del jar, el patrón sigue encontrando los `.txt` de las pruebas y la etapa no falla: deja en `artifacts` un único fichero que no exista.
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a55/` de `pps-entregas` con el `README.md` del paso 7, la vista de etapas del pipeline correcto y la de cada etapa rota (`etapas-verde.png`, `etapas-construir.png`, `etapas-pruebas.png`, `etapas-informe.png`), y el `Jenkinsfile` final. El repositorio `pps-app` con el `Jenkinsfile` en la raíz forma parte de la entrega ACT_UT5_1, con plazo el jueves 15 de abril a las 23:59.
+5. Explica en el README qué etapas quedan en gris en cada caso y por qué, y cuánto tardó el disparador en actuar.
+
+<span class="et et-com">Comprobación</span> El trabajo tiene construcciones verdes, una lanzada por el commit del paso 3 y tres rojas (una por etapa rota). En cada roja, solo esa etapa y las posteriores cambian de color, y el `Jenkinsfile` de la última construcción es el que está en `main`.
+
+<span class="et et-ent">Entrega</span> Carpeta `ut5/a55/` de `pps-entregas` con el `README.md` del paso 5, la vista de etapas del pipeline correcto y la de cada etapa rota (`etapas-verde.png`, `etapas-construir.png`, `etapas-pruebas.png`, `etapas-informe.png`), y el `Jenkinsfile` final. El repositorio `pps-app` con el `Jenkinsfile` en la raíz forma parte de la entrega ACT_UT5_1, con plazo el jueves 15 de abril a las 23:59.
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade una etapa `Analisis` entre `Pruebas` e `Informe` que ejecute `mvn -B verify` y comprueba en la vista de etapas cuánto tiempo añade. O prueba `parallel` para lanzar dos comprobaciones a la vez dentro de una etapa.
 
@@ -925,10 +756,10 @@ Jenkins hace primero la descarga del repositorio y después lee el fichero, de m
 
 Al acabar esta sesión `pps-app` tiene un `Dockerfile` y un `compose.yml`, y un segundo pipeline, `jenkinsfile.docker`, compila dentro de un contenedor, construye la imagen `pps<NIA>/pps-app:<número de construcción>`, la ejecuta, le pasa las pruebas y levanta el `compose`. Se repasa lo justo de imágenes y contenedores, se escribe el `Dockerfile` y el `compose` de la aplicación y se ve cómo un Jenkins que corre en un contenedor puede manejar Docker, con el riesgo que eso supone.
 
-!!! consulta "Material de partida"
-    - **Aula**: el enunciado `RA5.1.pdf` (`RA5-Despliegue-seguro/02 ACT_RA5_1 - Jenkins`) fija el contenido del `jenkinsfile.docker` en su punto 3.2: una etapa que ejecuta el pipeline en un entorno Docker, otra que crea una imagen, otra que la ejecuta, otra que ejecuta los tests dentro del contenedor, un `docker-compose` en el repositorio y una etapa que lo ejecuta. La bibliografía cita *Using Docker with Pipeline* (<https://www.jenkins.io/doc/book/pipeline/docker/>) y los ejemplos `pkaminasfp/jenkins` (<https://github.com/pkaminasfp/jenkins>). En `01 Material` está `02-Docker.pdf` (Docker: imágenes, contenedores, volúmenes) y `docker_deep_dive.pdf` (libro comercial, solo referencia de fondo).
-    - **Web, apuntes de terceros** (se enlazan, no se copian): *Ciberseguridad-PePS*, tema de Docker (<https://psegarrac.github.io/Ciberseguridad-PePS/>, entradas «Docker» de 2021-01-08 y «Docker compose» de 2021-01-13) y el taller de Docker de Aula Software Libre (<https://aulasoftwarelibre.github.io/taller-de-docker/dockerfile/>).
-    - **Documentación oficial**: <https://www.jenkins.io/doc/book/pipeline/docker/>, <https://docs.docker.com/reference/dockerfile/> y <https://docs.docker.com/compose/>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Docker en el pipeline](https://www.jenkins.io/doc/book/pipeline/docker/), [referencia del Dockerfile](https://docs.docker.com/reference/dockerfile/) y [Docker Compose](https://docs.docker.com/compose/).
 
 ### Imágenes y contenedores
 
@@ -1022,19 +853,11 @@ Un detalle práctico del agente Docker: la carpeta de trabajo de la construcció
 
 <span class="et et-pas">Pasos</span>
 
-1. En tu copia local de `pps-app`, crea el `Dockerfile` y el `compose.yml` de la raíz copiando los de la teoría tal cual. Comprueba a mano que la imagen funciona antes de meter Jenkins por medio:
+1. Añade a la raíz de `pps-app` el `Dockerfile` y el `compose.yml` de [Dockerfile y compose de pps-app](#dockerfile-y-compose-de-pps-app), tal cual, y comprueba a mano, antes de meter a Jenkins por medio, que la imagen responde en `/` y en `/salud` publicada en el 8092. Sube los dos ficheros.
 
-    ```bash
-    mvn -B package
-    docker build -t pps<NIA>/pps-app:local .
-    docker run -d --name prueba -p 8092:8080 pps<NIA>/pps-app:local
-    curl -s http://localhost:8092/ ; curl -s http://localhost:8092/salud
-    docker rm -f prueba
-    ```
+    *Pista:* el `Dockerfile` copia `target/pps-app.jar`, así que antes hay que empaquetar con Maven.
 
-    Tienen que salir `Hola PPS` y `{"estado":"ok"}`. Sube ambos ficheros con `git add`, `git commit` y `git push`.
-
-2. Dale a Jenkins la CLI de Docker. En `~/jenkins-lab/Dockerfile` (el de la A5.4), deja el contenido siguiente y reconstruye con una etiqueta nueva; instala Maven, el cliente de Docker y el plugin de compose desde el repositorio oficial de Docker:
+2. Amplía la imagen de Jenkins con el cliente de Docker y el plugin de compose, desde el repositorio oficial de Docker, y constrúyela como `pps-jenkins:2` con este `~/jenkins-lab/Dockerfile`:
 
     ```dockerfile
     FROM jenkins/jenkins:lts-jdk17
@@ -1049,89 +872,29 @@ Un detalle práctico del agente Docker: la carpeta de trabajo de la construcció
     USER jenkins
     ```
 
-    ```bash
-    cd ~/jenkins-lab && docker build -t pps-jenkins:2 .
-    ```
+3. Recrea el contenedor `jenkins` con la imagen nueva, el mismo volumen `jenkins_home` y el socket de Docker de `pps01` montado, y comprueba que desde dentro ve el demonio: `docker version` tiene que mostrar el cliente y el servidor. Después instala en Jenkins el plugin *Docker Pipeline*.
 
-3. Recrea el contenedor de Jenkins con el socket montado y el grupo de Docker, y comprueba que desde dentro ve el demonio. El volumen `jenkins_home` es el mismo, así que conservas trabajos, usuario y credenciales:
+    *Pista:* el usuario `jenkins` del contenedor solo puede usar el socket si tiene el grupo propietario: `--group-add $(stat -c %g /var/run/docker.sock)`.
 
-    ```bash
-    docker rm -f jenkins
-    docker run -d --name jenkins --restart unless-stopped \
-      -p 8090:8080 -p 50000:50000 \
-      -v jenkins_home:/var/jenkins_home \
-      -v /var/run/docker.sock:/var/run/docker.sock \
-      --group-add $(stat -c %g /var/run/docker.sock) pps-jenkins:2
-    docker exec jenkins docker version
-    ```
+4. Escribe `jenkinsfile.docker` en la raíz de `pps-app`, con `agent none`, las variables `IMAGEN = 'pps<NIA>/pps-app'` y `PRUEBA = 'pps-app-prueba'` y estas cinco etapas, cada una con su agente:
 
-    La orden tiene que mostrar el cliente y el servidor. Si dice `permission denied`, el grupo del `--group-add` no es el del socket: repite la orden sin cambiar nada más.
+    - `Construir en Docker`, en un agente `docker` con la imagen `maven:3.9-eclipse-temurin-17`: empaqueta con Maven, publica los resultados de JUnit y guarda el jar con `stash` para las demás.
+    - `Crear imagen`: recupera el jar y construye `$IMAGEN:$BUILD_NUMBER`.
+    - `Ejecutar contenedor`: arranca esa imagen con el nombre `$PRUEBA` y le da unos segundos para que arranque.
+    - `Pruebas en el contenedor`: comprueba que responde `Hola PPS` en `/` y que `/salud` contesta, y borra el contenedor de prueba pase lo que pase.
+    - `Docker Compose`: levanta el `compose.yml` con la etiqueta de esta construcción y comprueba `/salud` del servicio `app`.
 
-4. En Jenkins (`http://192.168.56.10:8090`), instala el plugin *Docker Pipeline*: *Manage Jenkins*, *Plugins*, *Available plugins*, busca `Docker Pipeline`, instala y marca reiniciar si lo pide.
-5. Crea `jenkinsfile.docker` en la raíz de `pps-app`. Solo cambia `pps<NIA>` en `IMAGEN`:
+    *Pista:* dentro de Jenkins, `localhost` es Jenkins: las pruebas se lanzan desde un contenedor `curlimages/curl` en la red del de prueba (`--network container:$PRUEBA`) o, para el compose, en la red `pps-app_default`, donde la aplicación se llama `app`. La caché de Maven va en el workspace, con `-Dmaven.repo.local=$WORKSPACE/.m2`.
 
-    ```groovy
-    pipeline {
-        agent none
-        options { timeout(time: 20, unit: 'MINUTES') }
-        environment {
-            IMAGEN = 'pps<NIA>/pps-app'
-            PRUEBA = 'pps-app-prueba'
-        }
-        stages {
-            stage('Construir en Docker') {
-                agent { docker { image 'maven:3.9-eclipse-temurin-17' } }
-                steps {
-                    sh 'mvn -B -Dmaven.repo.local=$WORKSPACE/.m2 clean package'
-                    stash name: 'app', includes: 'target/pps-app.jar'
-                }
-                post { always { junit 'target/surefire-reports/*.xml' } }
-            }
-            stage('Crear imagen') {
-                agent any
-                steps {
-                    unstash 'app'
-                    sh 'docker build -t $IMAGEN:$BUILD_NUMBER .'
-                }
-            }
-            stage('Ejecutar contenedor') {
-                agent any
-                steps {
-                    sh 'docker rm -f $PRUEBA || true'
-                    sh 'docker run -d --name $PRUEBA $IMAGEN:$BUILD_NUMBER'
-                    sh 'sleep 5'
-                }
-            }
-            stage('Pruebas en el contenedor') {
-                agent any
-                steps {
-                    sh 'docker run --rm --network container:$PRUEBA curlimages/curl:latest -fsS http://localhost:8080/ | grep "Hola PPS"'
-                    sh 'docker run --rm --network container:$PRUEBA curlimages/curl:latest -fsS http://localhost:8080/salud | grep estado'
-                }
-                post { always { sh 'docker logs $PRUEBA || true; docker rm -f $PRUEBA || true' } }
-            }
-            stage('Docker Compose') {
-                agent any
-                steps {
-                    sh 'TAG=$BUILD_NUMBER docker compose up -d'
-                    sh 'sleep 5'
-                    sh 'docker run --rm --network pps-app_default curlimages/curl:latest -fsS http://app:8080/salud'
-                }
-            }
-        }
-    }
-    ```
+5. Crea el trabajo `pps-app-docker`, de tipo *Pipeline*, que lea `jenkinsfile.docker` del repositorio (en *Script Path*), y lánzalo hasta que las cinco etapas salgan en verde. Comprueba en `pps01` las imágenes `pps<NIA>/pps-app` que deja y que el compose responde en el 8092.
 
-    Las pruebas entran al contenedor por su propia red (`--network container:...`) y no por un puerto publicado, porque `localhost` dentro de Jenkins es Jenkins y no `pps01`. Sube el fichero.
+    *Pista:* la primera vez descarga las imágenes de `maven` y de `curl`, de 3 a 10 minutos con el aula entera; las construcciones siguientes tardan una fracción.
 
-6. Crea el trabajo `pps-app-docker` de tipo *Pipeline*, *Pipeline script from SCM* con el repositorio y la credencial de siempre y *Script Path* `jenkinsfile.docker`. Pulsa *Build Now*. La primera vez descarga las imágenes de `maven` y `curl` (de 3 a 10 minutos con el aula entera descargando); las siguientes construcciones tardan una fracción.
-7. Comprueba desde `pps01` lo que ha dejado el pipeline: `docker images pps<NIA>/pps-app` (una imagen por construcción, con el número de la construcción como etiqueta), `docker ps` (el contenedor del compose) y `curl -s http://localhost:8092/salud`.
-8. Rompe la etapa de pruebas y observa la reacción: cambia en el `jenkinsfile.docker` el texto que busca el `grep` (por ejemplo, `Adios PPS`), sube el cambio y lanza el trabajo. La etapa `Pruebas en el contenedor` tiene que salir en rojo y `Docker Compose` en gris. Después restaura el texto.
-9. Escribe el README de la carpeta de entrega y haz las capturas.
+6. Rompe la etapa de pruebas, haciendo que busque un texto que la aplicación no devuelve, lanza el trabajo y captura la vista de etapas. Después deja el pipeline en verde.
 
 <span class="et et-com">Comprobación</span> La vista de etapas de una construcción correcta muestra las cinco etapas en verde; `docker images` lista `pps<NIA>/pps-app` con el número de construcción como etiqueta y `curl` al `8092` devuelve `{"estado":"ok"}`. En la construcción rota, la etapa de pruebas está en rojo y la de compose en gris: no se ha desplegado nada nuevo.
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a56/` de `pps-entregas` con el `README.md` (qué hace cada etapa en una línea, los comandos de los pasos 2, 3 y 7, y qué implica montar `docker.sock` en tres frases tuyas), el `jenkinsfile.docker`, el `Dockerfile`, el `compose.yml` y las capturas `etapas-docker-verde.png`, `etapas-docker-roja.png` y `curl-salud.png`. El repositorio `pps-app` con los cuatro ficheros forma parte de la entrega ACT_UT5_1 (enunciado RA5.1, punto 3.2), con plazo el jueves 15 de abril a las 23:59, y su README tiene que incluir una captura de las pipelines funcionando con una breve explicación.
+<span class="et et-ent">Entrega</span> Carpeta `ut5/a56/` de `pps-entregas` con el `README.md` (qué hace cada etapa en una línea, los comandos de los pasos 2, 3 y 5, y qué implica montar `docker.sock` en tres frases tuyas), el `jenkinsfile.docker`, el `Dockerfile`, el `compose.yml` y las capturas `etapas-docker-verde.png`, `etapas-docker-roja.png` y `curl-salud.png`. El repositorio `pps-app` con los cuatro ficheros forma parte de la entrega ACT_UT5_1 (enunciado RA5.1, punto 3.2), con plazo el jueves 15 de abril a las 23:59, y su README tiene que incluir una captura de las pipelines funcionando con una breve explicación.
 
 <span class="et et-ext">Si te sobra tiempo</span> Cierra la tarea 1 y 2 del apunte de Jenkins del enunciado, que pide la calculadora en Python: crea un repositorio `calculadora` con `calculadora.py` (multiplica dos números de la línea de comandos), `test_calculadora.py` con `unittest` y un `Jenkinsfile` con `agent { docker { image 'python:3.12-slim' } }`, un `sh 'python -m unittest'` y `pollSCM`. Rompe una etapa y comprueba la reacción, igual que en la A5.5.
 
@@ -1149,8 +912,11 @@ Un detalle práctico del agente Docker: la carpeta de trabajo de la construcció
 
 Al terminar la sesión el pipeline de `pps-app` tiene una etapa que analiza sus dependencias y se rompe si encuentra una vulnerabilidad crítica, las credenciales viven en Jenkins y no en el repositorio, y el jar publicado lleva una suma de verificación que se comprueba antes de usarlo. La aplicación no se toca: lo que se añade son controles de seguridad al pipeline de las sesiones 40 a 42.
 
-!!! consulta "Material de partida"
-    En el aula, `RA5-Despliegue-seguro/02 ACT_RA5_1 - Jenkins/RA5.1.pdf` es el enunciado de la entrega ACT_UT5_1 (Jenkins, `Jenkinsfile` y `jenkinsfile.docker`); no pide análisis de dependencias, que es la ampliación de esta sesión y la que responde al banco de preguntas de EX_RA5 (secretos en CI/CD, firma de artefactos, integridad, privilegios y agentes de Jenkins). Fuera del aula hay dos apuntes públicos. El primero es "Análisis de componentes", del repositorio de apuntes de Ciberseguridad (<https://github.com/victorponz/Ciberseguridad-PePS>, entrada de febrero de 2022, sin licencia declarada): inventario de componentes, vulnerabilidades conocidas, listas de materiales (SBOM) y Dependency-Track. El segundo es el índice `desplegado_seguro` de los apuntes de PPS (<https://github.com/EloyAlbiach/PPS>, CC BY-NC-SA 4.0). Aquí se usa otra herramienta de la misma familia que Dependency-Track, OWASP Dependency-Check: documentación en <https://owasp.org/www-project-dependency-check/> e imagen en <https://hub.docker.com/r/owasp/dependency-check>. Para las credenciales, la referencia es <https://www.jenkins.io/doc/book/using/using-credentials/>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [OWASP Dependency-Check](https://owasp.org/www-project-dependency-check/) ([imagen](https://hub.docker.com/r/owasp/dependency-check)): análisis de dependencias.
+    - [Credenciales en Jenkins](https://www.jenkins.io/doc/book/using/using-credentials/): los secretos del pipeline.
 
 ### Análisis de dependencias con OWASP Dependency-Check
 
@@ -1193,7 +959,7 @@ flowchart TB
 <p class="pie" markdown>El análisis va después de construir y antes de publicar: un artefacto con una crítica conocida no debe llegar al registro.</p>
 
 !!! empresa "Cómo se hace en producción"
-    El análisis puntual se complementa con un inventario permanente (una SBOM en formato CycloneDX) subido a una plataforma como Dependency-Track, que avisa cuando aparece una vulnerabilidad nueva en un componente ya desplegado. El pipeline solo ve el momento de la construcción; el inventario vigila lo que ya está en producción. Esa plataforma es la que describe el apunte del material de partida.
+    El análisis puntual se complementa con un inventario permanente (una SBOM en formato CycloneDX) subido a una plataforma como Dependency-Track, que avisa cuando aparece una vulnerabilidad nueva en un componente ya desplegado. El pipeline solo ve el momento de la construcción; el inventario vigila lo que ya está en producción.
 
 ### Secretos en el pipeline y firma de artefactos
 
@@ -1234,14 +1000,15 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
 
 <span class="et et-obj">Objetivo</span> El `Jenkinsfile` de `pps-app` tiene dos etapas nuevas: una analiza las dependencias con OWASP Dependency-Check y rompe el pipeline si hay una vulnerabilidad de CVSS 9 o más, y otra calcula y verifica la suma SHA-256 del jar. Las credenciales están en Jenkins, no en el repositorio, y lo demuestras con el informe, con el registro de la construcción y con `git grep`.
 
-<span class="et et-pre">Antes de empezar</span> El controlador `jenkins` en marcha en `pps01` (`http://localhost:8090`) con el pipeline de la sesión 42: `Jenkinsfile` en la raíz de `pps-app`, la credencial `github-token` de la A5.4 y acceso al demonio de Docker desde el contenedor (`docker ps` funciona dentro de `jenkins`). Una clave de la API de la NVD, que se pide en <https://nvd.nist.gov/developers/request-an-api-key> con el correo corporativo y llega por correo; conviene pedirla antes de la clase. Se han explicado [el análisis de dependencias](#analisis-de-dependencias-con-owasp-dependency-check) y [los secretos y la firma de artefactos](#secretos-en-el-pipeline-y-firma-de-artefactos).
+<span class="et et-pre">Antes de empezar</span> El controlador `jenkins` en marcha en `pps01` (`http://localhost:8090`) con el `Jenkinsfile` de la sesión 41 en la raíz de `pps-app`, la credencial `github-token` de la A5.4 y acceso al demonio de Docker desde el contenedor, de la sesión 42 (`docker ps` funciona dentro de `jenkins`). Una clave de la API de la NVD, que se pide en <https://nvd.nist.gov/developers/request-an-api-key> con el correo corporativo y llega por correo; conviene pedirla antes de la clase. Se han explicado [el análisis de dependencias](#analisis-de-dependencias-con-owasp-dependency-check) y [los secretos y la firma de artefactos](#secretos-en-el-pipeline-y-firma-de-artefactos).
 
 <span class="et et-pas">Pasos</span>
 
-1. En Jenkins, `Administrar Jenkins`, `Credentials`, `Global`, `Add Credentials`: tipo `Secret text`, `Secret` con tu clave de la NVD, `ID` igual a `nvd-api-key`. Comprueba de paso que `github-token` aparece en la lista con ese identificador exacto.
+1. Guarda en Jenkins dos credenciales nuevas: `nvd-api-key`, de tipo *Secret text*, con tu clave de la NVD, y `dockerhub`, de tipo *Username with password*, con `pps<NIA>` y un token de acceso de Docker Hub de lectura y escritura, nunca la contraseña de la cuenta. `dockerhub` la usa la A5.19 para publicar la imagen y se deja lista hoy. Comprueba que `github-token` sigue en la lista con ese ID exacto.
 
-    Crea en el mismo sitio la credencial del registro, que el pipeline usará en la A5.19 para publicar la imagen; se deja lista ahora. Antes, en Docker Hub, **Account settings > Personal access tokens > Generate new token** con permisos de lectura y escritura, y copia el token (solo se muestra una vez). En Jenkins, `Add Credentials`: tipo `Username with password`, usuario `pps<NIA>`, contraseña el token (nunca la contraseña de la cuenta) e `ID` igual a `dockerhub`.
-2. Lanza ya la primera descarga de la base de la NVD, que es lo más lento de la hoja, y déjala en una terminal de `pps01` mientras sigues. La clave se lee sin eco y solo vive en esa terminal:
+    *Pista:* el token de Docker Hub se crea en *Account settings*, *Personal access tokens*, y solo se muestra una vez.
+
+2. Lanza ya la primera descarga de la base de la NVD al volumen `dc-data`, que es lo más lento de la hoja, y sigue con los pasos siguientes mientras termina. La clave se lee sin eco y solo vive en esa terminal:
 
     ```bash
     read -rs NVD_KEY; export NVD_KEY
@@ -1249,40 +1016,11 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
       owasp/dependency-check --updateonly --nvdApiKey "$NVD_KEY"
     ```
 
-    El volumen `dc-data` guarda la base: las ejecuciones del pipeline solo descargan las novedades. La primera descarga puede tardar bastantes minutos; si termina con un error (`Invalid API Key`, 403 o 429), revisa la clave y repite.
-3. Busca secretos escritos en el repositorio. Si sale una línea con un valor real, es un fallo que corregir antes de seguir: el valor se mueve a una credencial de Jenkins y, si ya se subió, se considera comprometido y se revoca:
+3. Comprueba que `pps-app` no tiene ningún secreto escrito, ni en los ficheros del pipeline (`Jenkinsfile`, `jenkinsfile.docker`, `compose.yml` y `Dockerfile`) ni en el historial. Un valor real que aparezca se pasa a una credencial de Jenkins y, si ya se subió, se revoca.
 
-    ```bash
-    cd ~/pps-app
-    git grep -n -i -E "password|passwd|token|secret|apikey" -- Jenkinsfile jenkinsfile.docker compose.yml Dockerfile
-    git log -p --all | grep -i -E "ghp_|dckr_pat_" | head
-    ```
+    *Pista:* `git grep` busca en los ficheros y `git log -p --all`, en el historial. Los tokens de GitHub empiezan por `github_pat_` (o `ghp_`, los clásicos) y los de Docker Hub, por `dckr_pat_`.
 
-    Ninguna línea puede contener un valor: solo nombres de variable o de credencial como `dockerhub`. Cuando en la A5.19 se añada el `docker login`, tendrá que usar `withCredentials` con `--password-stdin`, en esta forma:
-
-    ```groovy
-    withCredentials([usernamePassword(credentialsId: 'dockerhub',
-                                      usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-        sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
-    }
-    ```
-
-4. Añade a propósito una dependencia vulnerable a `pom.xml`, dentro de `<dependencies>`. Es una librería de registro con una vulnerabilidad crítica muy conocida; la aplicación no la usa, solo viaja en el jar (es una prueba de laboratorio, no se ejecuta):
-
-    ```xml
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>2.14.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>2.14.1</version>
-    </dependency>
-    ```
-
-5. En el `Jenkinsfile`, añade la etapa siguiente después de la de pruebas. Si tu etapa de construcción usa un contenedor de Maven como agente, pon a esta el mismo `agent`. La ruta `$WORKSPACE` la resuelve el shell, no Groovy, y `--volumes-from jenkins` hace que el contenedor del análisis vea el mismo espacio de trabajo que Jenkins (un `-v $WORKSPACE:...` no serviría: esa ruta existe dentro de `jenkins`, no en el anfitrión):
+4. Añade a `pom.xml` una dependencia con una vulnerabilidad crítica muy conocida, que la aplicación no usa: `log4j-core` y `log4j-api` de `org.apache.logging.log4j`, versión `2.14.1`. Añade después al `Jenkinsfile`, tras la etapa de pruebas, esta etapa de [análisis de dependencias](#analisis-de-dependencias-con-owasp-dependency-check):
 
     ```groovy
     stage('Análisis de dependencias') {
@@ -1306,26 +1044,13 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
     }
     ```
 
-6. Haz commit y push (`A5.7 análisis de dependencias con una librería vulnerable`) y lanza la construcción. Tiene que terminar en rojo en la etapa `Análisis de dependencias`. Abre el informe archivado (`dc-report/dependency-check-report.html`) y anota el identificador CVE, el CVSS y la librería de la vulnerabilidad más grave. Abre también el registro de la construcción y comprueba que la clave de la NVD aparece como `****` y no en claro.
-7. Corrige la causa, no el umbral: en `pom.xml` sube las dos dependencias a la versión `2.17.1` (o elimínalas, porque la aplicación no las usa). Haz commit, push y una nueva construcción: la etapa tiene que pasar. Si sigue en rojo por otra librería, el informe dice cuál.
-8. Añade la etapa de integridad después de la de análisis. La suma se calcula justo tras construir y se verifica de nuevo antes de publicar; el jar y su suma se archivan con huella (`fingerprint`), que permite a Jenkins seguir qué construcción produjo ese fichero:
+5. Lanza la construcción, que tiene que terminar en rojo en `Análisis de dependencias`, y apunta del informe archivado (`dc-report/dependency-check-report.html`) el CVE, el CVSS y la librería del hallazgo más grave. Comprueba también que el registro no muestra la clave de la NVD en claro. Después corrige la causa, no el umbral: sube las dos dependencias a `2.17.1` (o quítalas) y comprueba que la etapa pasa.
 
-    ```groovy
-    stage('Integridad del artefacto') {
-        steps {
-            sh 'sha256sum target/pps-app.jar > target/pps-app.jar.sha256'
-            sh 'sha256sum -c target/pps-app.jar.sha256'
-            archiveArtifacts artifacts: 'target/pps-app.jar,target/pps-app.jar.sha256', fingerprint: true
-        }
-    }
-    ```
+6. Añade después del análisis la etapa `Integridad del artefacto`, que calcula la suma SHA-256 del jar en `target/pps-app.jar.sha256`, la verifica y archiva el jar y su suma con huella (`fingerprint`). Lanza una última construcción, que tiene que quedar entera en verde.
 
-    En la A5.19, cuando exista la etapa que publica la imagen, su primera línea será `sh 'sha256sum -c target/pps-app.jar.sha256'`: si el jar cambia entre la construcción y la publicación, el pipeline se detiene ahí.
-9. Haz commit y push del `Jenkinsfile` final, lanza una última construcción (todo en verde) y guarda las evidencias en `pps-entregas/ut5/a57/`: un `README.md` con qué se ha hecho, los comandos y el CVE que encontró el análisis (identificador, CVSS y librería), y capturas del pipeline en rojo, del informe, del registro con `****`, del listado de credenciales (sin mostrar valores) y del pipeline en verde.
+<span class="et et-com">Comprobación</span> Con la dependencia `2.14.1` el pipeline falla en `Análisis de dependencias` y el informe muestra una vulnerabilidad crítica; con la `2.17.1` termina en verde, con la suma calculada y verificada. `git grep` no encuentra ningún valor secreto, el registro enmascara la clave, y la lista de credenciales muestra `github-token`, `nvd-api-key` y `dockerhub` con esos ID exactos. Si la etapa falla por un motivo distinto al esperado (`docker: not found`, error de permisos, un 403 de la NVD), mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-com">Comprobación</span> Con la dependencia `2.14.1` el pipeline falla en `Análisis de dependencias` y el informe muestra una vulnerabilidad crítica; con la `2.17.1` termina en verde, con la suma verificada dos veces. `git grep` no encuentra ningún valor secreto, el registro enmascara la clave, y la lista de credenciales muestra `github-token`, `nvd-api-key` y `dockerhub` con esos ID exactos. Si la etapa falla por un motivo distinto al esperado (`docker: not found`, error de permisos, un 403 de la NVD), mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
-
-<span class="et et-ent">Entrega</span> `Jenkinsfile`, `pom.xml` y `ut5/a57/README.md` con sus capturas, subidos a `pps-app` y a `pps-entregas`. La hoja forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59, junto con A5.1 a A5.6; la clave de la NVD y cualquier token no aparecen en ningún fichero ni captura.
+<span class="et et-ent">Entrega</span> `Jenkinsfile` y `pom.xml`, subidos a `pps-app`, y en `ut5/a57/` de `pps-entregas` un `README.md` con qué se ha hecho, los comandos y el CVE que encontró el análisis (identificador, CVSS y librería), con las capturas del pipeline en rojo, del informe, del registro con `****`, de la lista de credenciales sin valores y del pipeline en verde. La hoja forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59, junto con A5.1 a A5.6; la clave de la NVD y cualquier token no aparecen en ningún fichero ni captura.
 
 <span class="et et-ext">Si te sobra tiempo</span> Comprueba que la suma detecta un cambio: entra en el contenedor con `docker exec -it jenkins bash`, ve a `/var/jenkins_home/workspace/<nombre del trabajo>`, copia el jar a `/tmp`, añádele un byte con `echo x >> /tmp/pps-app.jar` y compara `sha256sum` de la copia con `target/pps-app.jar.sha256`: tienen que ser distintas. Firma el jar con GPG: genera una clave de prueba en `pps01` (`gpg --quick-generate-key ops-pps default default never`), firma con `gpg --detach-sign --armor target/pps-app.jar` y verifica con `gpg --verify target/pps-app.jar.asc target/pps-app.jar`. En un pipeline real la clave privada sería una credencial de tipo `Secret file`. Otra prueba: crea un fichero de supresiones con una entrada que silencie un hallazgo, con su motivo y una fecha, y pásalo con `--suppression`.
 
@@ -1338,8 +1063,16 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
 
 Al terminar la sesión existe una máquina virtual Ubuntu 24.04 en VirtualBox que nadie ha creado con el ratón: la ha creado Terraform a partir de un fichero de texto, y un segundo `plan` confirma que no hay nada que cambiar. Antes de escribir el fichero se ve qué gana un equipo al describir su infraestructura como código y qué piezas tiene Terraform; la máquina resultante, `destino01`, es la que configura Ansible en la sesión 46.
 
-!!! consulta "Material de partida"
-    En el aula, `RA5-Despliegue-seguro/03 ACT_RA5_2 - Terraform & Ansible/RA5.2.pdf` es el enunciado de la entrega ACT_UT5_2 (punto 3.1: provisionar con Terraform una máquina virtual Ubuntu 24.04 en VirtualBox; la entrega es un repositorio de GitHub con la estructura correcta y un README con capturas). `04 Terraform & Ansible/Terraform_Ansible.pdf` es solo el índice de diapositivas, y en `05 Material Terraform/` hay tres PDF: "Introduction to Terraform", "Terraform como Infrastructure as Code" y "Complete Terraform Tutorial", este último un tutorial largo de fondo que no se sigue por orden. La documentación oficial es <https://developer.hashicorp.com/terraform/docs>. El proveedor de VirtualBox es comunitario: <https://registry.terraform.io/providers/terra-farm/virtualbox/latest> y su código en <https://github.com/terra-farm/terraform-provider-virtualbox>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Documentación de Terraform](https://developer.hashicorp.com/terraform/docs): el lenguaje y los comandos.
+    - [Proveedor de VirtualBox para Terraform](https://registry.terraform.io/providers/terra-farm/virtualbox/latest): el que provisiona la máquina; es comunitario.
+    - El enunciado de la entrega ACT_UT5_2 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - El aula tiene material complementario de Terraform (tutoriales de infraestructura como código).
 
 ### Infraestructura como código
 
@@ -1428,7 +1161,7 @@ resource "virtualbox_vm" "destino01" {
     El proveedor no habla con una API: ejecuta `VBoxManage` en el equipo donde se lanza `terraform`. Ese equipo tiene que ser el que tiene VirtualBox, el anfitrión del aula, y no `pps01`, que es una máquina virtual (crear máquinas dentro de otra exigiría virtualización anidada y más memoria de la que hay). Por eso en esta sesión `terraform` se ejecuta en el anfitrión, y `pps01` se reserva para Jenkins y para Ansible, que llegan a `destino01` por la red solo anfitrión.
 
 !!! consulta "Terraform, OpenTofu y la licencia"
-    Terraform se publicó durante años con licencia de código abierto (MPL). En agosto de 2023 HashiCorp cambió a la Business Source License (BSL), que permite uso propio pero restringe ofrecer productos que compitan con los de la empresa. Como respuesta, la comunidad bifurcó la última versión abierta y creó OpenTofu, hoy alojado en la Linux Foundation. Los ficheros `.tf`, el lenguaje y los proveedores son compatibles: donde este material escribe `terraform plan`, en OpenTofu se escribe `tofu plan`. Para el alumnado no cambia nada práctico (la actividad del aula pide Terraform y aquí se usa Terraform), pero en una empresa conviene saber cuál de las dos está en uso y qué licencia acepta. Información y comparativa en <https://opentofu.org/> y <https://opentofu.org/faq/>; el proveedor de VirtualBox también se descarga con OpenTofu desde `registry.opentofu.org`.
+    Terraform se publicó durante años con licencia de código abierto (MPL). En agosto de 2023 HashiCorp cambió a la Business Source License (BSL), que permite uso propio pero restringe ofrecer productos que compitan con los de la empresa. Como respuesta, la comunidad bifurcó la última versión abierta y creó OpenTofu, hoy alojado en la Linux Foundation. Los ficheros `.tf`, el lenguaje y los proveedores son compatibles: donde este material escribe `terraform plan`, en OpenTofu se escribe `tofu plan`. Para el alumnado no cambia nada práctico (la actividad pide Terraform y aquí se usa Terraform), pero en una empresa conviene saber cuál de las dos está en uso y qué licencia acepta. Información y comparativa en <https://opentofu.org/> y <https://opentofu.org/faq/>; el proveedor de VirtualBox también se descarga con OpenTofu desde `registry.opentofu.org`.
 
 ### A5.8 Terraform: primera máquina (sesión 44)
 
@@ -1438,73 +1171,25 @@ resource "virtualbox_vm" "destino01" {
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala Terraform en el anfitrión siguiendo <https://developer.hashicorp.com/terraform/install> (en macOS, `brew tap hashicorp/tap && brew install hashicorp/tap/terraform`; en Windows, `winget install Hashicorp.Terraform`; en Ubuntu, el repositorio APT de HashiCorp que indica esa página). Comprueba las dos herramientas:
+1. Instala Terraform en el anfitrión siguiendo <https://developer.hashicorp.com/terraform/install> y comprueba que responden `terraform` y `VBoxManage`, este con una versión 7.x.
 
-    ```bash
-    terraform version
-    VBoxManage --version
-    ```
+    *Pista:* si `VBoxManage` no se encuentra, falta la carpeta de instalación de VirtualBox en el `PATH`.
 
-    `VBoxManage` tiene que responder con una versión 7.x. Si el comando no se encuentra, añade la carpeta de instalación de VirtualBox al `PATH`.
-2. Prepara la red solo anfitrión. Terraform va a conectar la máquina a `vboxnet0`, la red `192.168.56.0/24` de las convenciones del laboratorio, y el servidor DHCP de esa red se limita a una sola dirección para que la primera máquina que pida IP reciba siempre la `192.168.56.20`, la de `destino01`. `pps01` no se ve afectada porque tiene la IP fija `192.168.56.10`:
+2. Deja el servidor DHCP de `vboxnet0` (la red `192.168.56.0/24`, con el anfitrión en la `.1`) repartiendo una sola dirección, la `192.168.56.20`, para que `destino01` la reciba siempre. `pps01` no se ve afectada porque tiene la IP fija.
 
-    ```bash
-    VBoxManage list hostonlyifs
-    VBoxManage list dhcpservers
-    ```
+    *Pista:* `VBoxManage list dhcpservers` dice si ya hay servidor: si no lo hay, se crea con `VBoxManage dhcpserver add`, y si lo hay, se cambia con `modify`, en los dos casos con `--lower-ip` y `--upper-ip` iguales.
 
-    La primera orden tiene que mostrar `vboxnet0` con la IP `192.168.56.1`. Si la segunda no muestra ningún servidor, créalo, y si ya existe, modifícalo (cada orden con su verbo):
+3. Crea el repositorio Git `~/pps-iac`, con `terraform/main.tf` copiado tal cual del [proyecto mínimo](#terraform-proveedores-recursos-estado-y-ciclo-de-trabajo) y un `.gitignore` en la raíz que deje fuera `.terraform/`, `*.tfstate`, `*.tfstate.*`, `plan.bin` y `crash.log` desde antes del primer commit, porque el estado puede contener secretos.
 
-    ```bash
-    VBoxManage dhcpserver add --interface=vboxnet0 --server-ip=192.168.56.2 \
-      --netmask=255.255.255.0 --lower-ip=192.168.56.20 --upper-ip=192.168.56.20 --enable
-    VBoxManage dhcpserver modify --interface=vboxnet0 \
-      --lower-ip=192.168.56.20 --upper-ip=192.168.56.20 --enable
-    ```
+4. Inicializa el proyecto, valídalo y guarda el plan en `plan.bin`. Léelo entero y aplica exactamente ese plan.
 
-3. Crea el repositorio del proyecto. El `.gitignore` va desde el primer día, antes del primer commit, porque el estado que Terraform genera puede contener secretos:
+    *Pista:* el `apply` descarga la imagen la primera vez y tarda: aprovecha para empezar el `README.md` de la hoja.
 
-    ```bash
-    mkdir -p ~/pps-iac/terraform && cd ~/pps-iac && git init -b main
-    printf '.terraform/\n*.tfstate\n*.tfstate.*\nplan.bin\ncrash.log\n' > .gitignore
-    ```
+5. Comprueba que `destino01` está en marcha con la IP `192.168.56.20`, entra por SSH y verifica que es Ubuntu 24.04 y que sale a Internet. Después, sin cambiar nada, un segundo `plan` tiene que decir que no hay cambios.
 
-4. En `~/pps-iac/terraform/main.tf` copia el [proyecto mínimo](#terraform-proveedores-recursos-estado-y-ciclo-de-trabajo) tal cual, con el proveedor en `0.2.2-alpha.1` y la imagen de la caja de Vagrant. Lo único que puedes tocar es el nombre; déjalo en `destino01`.
-5. Inicializa, comprueba y planifica. Lee el plan entero antes de seguir: todo lo que aparece con `+` es lo que Terraform va a crear, y hay bastantes más atributos que las cinco líneas que escribiste, porque el proveedor rellena el resto:
+    *Pista:* la IP está en el estado (`terraform show`). Se entra como `vagrant` con contraseña `vagrant`, las credenciales publicadas de la imagen, que solo valen en una red solo anfitrión como esta.
 
-    ```bash
-    cd ~/pps-iac/terraform
-    terraform init
-    terraform fmt && terraform validate
-    terraform plan -out=plan.bin
-    ```
-
-6. Aplica el plan. La primera vez descarga la imagen y tarda; mientras espera, abre otra terminal y empieza el `README.md` de la hoja (qué has hecho y los comandos de los pasos anteriores):
-
-    ```bash
-    terraform apply plan.bin
-    ```
-
-7. Comprueba desde fuera y desde dentro. La IP la muestra `terraform show`; la máquina tiene que ser `192.168.56.20`. Entra por SSH con el usuario `vagrant` y la contraseña `vagrant`, que son las credenciales publicadas de esa imagen y solo valen aquí, en una red solo anfitrión sin acceso desde fuera:
-
-    ```bash
-    VBoxManage list runningvms
-    terraform show | grep ipv4_address
-    ssh vagrant@192.168.56.20
-    lsb_release -d && ping -c 2 1.1.1.1
-    ```
-
-    Dentro tienen que aparecer `Ubuntu 24.04` y respuestas al `ping` (sale por el adaptador NAT). Sal con `exit`.
-8. Ejecuta `terraform plan` otra vez, sin cambiar nada. Tiene que terminar diciendo que no hay cambios: es la idempotencia que se explicó al empezar la sesión. Haz una captura.
-9. Haz commit y `git push`. Crea antes el repositorio vacío `pps-iac` en tu cuenta de GitHub (`pps<NIA>`), y comprueba con `git status` que ni `.terraform/` ni `terraform.tfstate` aparecen:
-
-    ```bash
-    git add . && git commit -m "A5.8 primera maquina con Terraform"
-    git remote add origin https://github.com/pps<NIA>/pps-iac.git
-    git push -u origin main
-    ```
-
-    Comprueba también que `terraform/.terraform.lock.hcl` sí se ha subido: fija las versiones y las huellas de los proveedores que se descargaron.
+6. Publica `pps-iac` en un repositorio vacío de tu cuenta de GitHub y comprueba que no han subido ni `.terraform/` ni el estado y que `terraform/.terraform.lock.hcl` sí, porque fija las versiones y las huellas de los proveedores.
 
 <span class="et et-com">Comprobación</span> `VBoxManage list runningvms` muestra `destino01`, el SSH entra en `192.168.56.20` con un Ubuntu 24.04, el segundo `plan` termina con `No changes. Your infrastructure matches the configuration.` y el repositorio no contiene `terraform.tfstate`. Si `terraform init` no encuentra el proveedor, revisa que la versión sea exactamente `0.2.2-alpha.1`. Si `terraform show` no da `ipv4_address` o el SSH no conecta, la máquina arrancó pero la segunda interfaz no tiene IP: abre `destino01` desde VirtualBox, entra por la consola y pide dirección a mano con `sudo dhclient enp0s8` (el nombre de la interfaz sale de `ip -br a`).
 
@@ -1518,8 +1203,10 @@ resource "virtualbox_vm" "destino01" {
 
 Al terminar la sesión el proyecto de la sesión 44 no lleva valores escritos a mano en el código, deja como salida la IP de `destino01` para que Ansible la use, y el repositorio está protegido para que ni el estado ni los ficheros de valores lleguen a Git. Hoy vence además la entrega ACT_UT5_1 (A5.1 a A5.7) a las 23:59; esta hoja forma parte de la siguiente, ACT_UT5_2.
 
-!!! consulta "Material de partida"
-    En el aula, `RA5-Despliegue-seguro/05 Material Terraform/` ("Introduction to Terraform", "Terraform como Infrastructure as Code" y "Complete Terraform Tutorial") cubre variables, salidas, módulos y estado; el enunciado sigue siendo `03 ACT_RA5_2 - Terraform & Ansible/RA5.2.pdf`. Los temas de estado, secretos y backends remotos son los que pregunta el banco de EX_RA5. La documentación oficial está en <https://developer.hashicorp.com/terraform/language/values/variables> (variables), <https://developer.hashicorp.com/terraform/language/values/outputs> (salidas), <https://developer.hashicorp.com/terraform/language/modules> (módulos), <https://developer.hashicorp.com/terraform/language/state/sensitive-data> (datos sensibles en el estado) y <https://developer.hashicorp.com/terraform/language/backend> (dónde se guarda el estado).
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - Documentación de Terraform: [variables](https://developer.hashicorp.com/terraform/language/values/variables), [salidas](https://developer.hashicorp.com/terraform/language/values/outputs), [módulos](https://developer.hashicorp.com/terraform/language/modules), [datos sensibles en el estado](https://developer.hashicorp.com/terraform/language/state/sensitive-data) y [dónde se guarda el estado](https://developer.hashicorp.com/terraform/language/backend).
 
 ### Variables, salidas y módulos
 
@@ -1527,8 +1214,8 @@ El objetivo es que el mismo código sirva para más de un entorno cambiando solo
 
 | Pieza | Qué hace | Ejemplo |
 |---|---|---|
-| Variable de entrada (`variable`) | Un valor que se pasa desde fuera, con tipo, descripción y valor por defecto opcional | `var.vm_memory` |
-| Valor de la variable | Se da en `terraform.tfvars`, con `-var`, o con una variable de entorno `TF_VAR_nombre` | `vm_memory = 1536` |
+| Variable de entrada (`variable`) | Un valor que se pasa desde fuera, con tipo, descripción y valor por defecto opcional | `var.vm_memory_mib` |
+| Valor de la variable | Se da en `terraform.tfvars`, con `-var`, o con una variable de entorno `TF_VAR_nombre` | `vm_memory_mib = 1536` |
 | Salida (`output`) | Un valor que Terraform muestra al terminar y que otro programa puede leer | La IP de `destino01` |
 | Módulo | Una carpeta de `.tf` reutilizable, llamada con `module` y sus propios parámetros | Un módulo `vm` que crea cualquier máquina |
 
@@ -1567,108 +1254,31 @@ Un principio de fondo acompaña a todo lo anterior: mínimo privilegio. Quien pu
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea `variables.tf` con las variables que hoy están escritas en `main.tf`. Cada una lleva `type` y `description`; la de memoria, además, una validación:
+1. Saca a `variables.tf` todos los valores escritos en `main.tf`: `vm_name`, `vm_cpus`, `vm_memory_mib`, `box_url` y `host_interface`, cada una con `type` y `description`. Las que tenían valor en la A5.8 lo conservan como valor por defecto; `box_url`, la única sin él, va en `terraform.tfvars`, con una copia en `terraform.tfvars.example`. `vm_memory_mib` lleva además una validación que rechaza menos de 1024 MiB con un mensaje tuyo.
 
-    ```hcl
-    variable "vm_name" {
-      type        = string
-      description = "Nombre de la maquina virtual en VirtualBox"
-      default     = "destino01"
-    }
+    *Pista:* la validación es un bloque `validation` con `condition` y `error_message`. En `main.tf`, la memoria queda como `"${var.vm_memory_mib} mib"`.
 
-    variable "vm_cpus" {
-      type        = number
-      description = "Numero de CPU"
-      default     = 1
-    }
+2. Comprueba que el cambio no toca la infraestructura: `validate` sin errores y un `plan` que dice `No changes`. Comprueba también que un `plan` con `-var vm_memory_mib=512` falla con tu mensaje sin tocar nada.
 
-    variable "vm_memory_mib" {
-      type        = number
-      description = "Memoria en MiB (minimo 1024)"
-      default     = 1536
-      validation {
-        condition     = var.vm_memory_mib >= 1024
-        error_message = "La memoria minima es 1024 MiB."
-      }
-    }
+    *Pista:* si el plan quiere destruir y crear la máquina, algún valor no es idéntico al de la A5.8 (el nombre, la memoria o la imagen): corrígelo antes de aplicar nada.
 
-    variable "box_url" {
-      type        = string
-      description = "Imagen de Vagrant con Ubuntu 24.04"
-    }
+3. Declara en `outputs.tf` la salida `ip_destino01`, con la IP de la máquina en la red solo anfitrión, aplica y comprueba que `terraform output -raw ip_destino01` da `192.168.56.20`.
 
-    variable "host_interface" {
-      type        = string
-      description = "Red solo anfitrion de VirtualBox"
-      default     = "vboxnet0"
-    }
-    ```
+    *Pista:* es el `ipv4_address` del segundo `network_adapter`, el de índice 1.
 
-2. Sustituye en `main.tf` cada valor por su variable (`var.vm_name`, `var.vm_cpus`, `var.box_url`, `var.host_interface`; la memoria como `"${var.vm_memory_mib} mib"`). Crea `terraform.tfvars` con la URL de la imagen, la única variable sin valor por defecto, y copia ese fichero a `terraform.tfvars.example`:
+4. Genera con el proveedor `hashicorp/random` (versión `~> 3.0`) una contraseña de prueba que la máquina no usa, `random_password.acceso`, de 16 caracteres sin especiales, y sácala en la salida `clave_acceso` marcada como `sensitive`. Comprueba que `terraform output` la oculta y búscala después en `terraform.tfstate`. Anota en el README qué ocurriría si ese estado se subiera a un repositorio.
 
-    ```hcl
-    box_url = "https://vagrantcloud.com/bento/boxes/ubuntu-24.04/versions/202510.26.0/providers/virtualbox/amd64/vagrant.box"
-    ```
+    *Pista:* un proveedor nuevo obliga a repetir `terraform init`. En el estado, el valor está en el atributo `"result"`.
 
-3. Ejecuta `terraform validate` y `terraform plan`. Tiene que terminar en `No changes`: cambiar la forma de escribir el código no cambia la infraestructura, y el plan es la prueba. Si propone destruir y crear la máquina, algún valor no es idéntico al de A5.8 (el nombre, la memoria o la imagen); corrígelo antes de aplicar.
-4. Comprueba la validación: `terraform plan -var vm_memory_mib=512` tiene que fallar con tu mensaje de error, sin tocar nada.
-5. Crea `outputs.tf` con la IP de la segunda interfaz de la máquina (la de la red solo anfitrión, que es la segunda declarada), aplica y léela:
+5. Protege el repositorio: amplía el `.gitignore` de `~/pps-iac` para que deje fuera los `*.tfvars` salvo el `.example`, comprueba que Git ignora `terraform.tfstate`, `terraform.tfvars` y `plan.bin` pero no `.terraform.lock.hcl`, y que la contraseña generada no aparece en nada de lo que vas a subir. Súbelo.
 
-    ```hcl
-    output "ip_destino01" {
-      description = "IP de destino01 en la red solo anfitrion"
-      value       = virtualbox_vm.destino01.network_adapter[1].ipv4_address
-    }
-    ```
+    *Pista:* la excepción se escribe `!*.tfvars.example`. `git check-ignore -v` dice qué regla ignora cada ruta, y `git grep --cached` busca en lo preparado para el commit.
 
-    ```bash
-    terraform apply
-    terraform output ip_destino01
-    terraform output -raw ip_destino01
-    ```
+6. Escribe en el README de `ut5/a59/`, en cinco líneas, dónde guardarías el estado en un equipo de cinco personas (qué backend, quién lo lee, cómo se cifra y cómo se bloquea) y por qué, sin instalarlo, a partir de la tabla de [El estado y los secretos](#el-estado-y-los-secretos).
 
-    La variante `-raw` no lleva comillas ni salto de línea: es la que usa un script o, en la sesión 46, el inventario de Ansible. Tiene que dar `192.168.56.20`.
-6. Genera un secreto para ver cómo lo trata el estado. Añade el proveedor `random` al bloque `required_providers` (`random = { source = "hashicorp/random", version = "~> 3.0" }`) y estos dos bloques, en `main.tf` y `outputs.tf` respectivamente. La contraseña no se usa en la máquina: solo sirve para la comprobación:
+<span class="et et-com">Comprobación</span> `main.tf` no contiene valores literales de nombre, CPU, memoria, imagen ni red; el `plan` tras el refactor dijo `No changes`; `terraform output -raw ip_destino01` da `192.168.56.20`; el `plan` con 512 MiB falla con tu mensaje; el valor de `clave_acceso` aparece en `terraform.tfstate` pero no en el repositorio; y `git status` no muestra ningún `tfstate` ni `terraform.tfvars`. Si el `plan` del paso 2 quiere recrear la máquina, compara `terraform show` con `variables.tf` valor a valor.
 
-    ```hcl
-    resource "random_password" "acceso" {
-      length  = 16
-      special = false
-    }
-    ```
-
-    ```hcl
-    output "clave_acceso" {
-      description = "Contrasena de prueba (solo para la practica)"
-      value       = random_password.acceso.result
-      sensitive   = true
-    }
-    ```
-
-    Ejecuta `terraform init` (descarga el proveedor nuevo) y `terraform apply`. Después `terraform output`: la salida sensible aparece como `<sensitive>`.
-7. Mira ahora el fichero de estado, que es donde está el problema. El valor que Terraform oculta en la terminal está en claro en el disco:
-
-    ```bash
-    terraform output -raw clave_acceso; echo
-    grep -n '"result":' terraform.tfstate
-    ```
-
-    Los dos valores coinciden. Anota en el README qué ocurriría si ese `terraform.tfstate` se subiera a un repositorio.
-8. Protege el repositorio. Amplía el `.gitignore` de la raíz (`~/pps-iac`) con los ficheros de valores y deja el de ejemplo, y comprueba que Git ignora de verdad lo que debe y que no ignora el fichero de bloqueo:
-
-    ```bash
-    cd ~/pps-iac
-    printf '*.tfvars\n!*.tfvars.example\n' >> .gitignore
-    git check-ignore -v terraform/terraform.tfstate terraform/terraform.tfvars terraform/plan.bin
-    git status --short
-    ```
-
-    Las tres rutas tienen que salir como ignoradas, y `git status` solo debe mostrar `.tf`, `terraform.tfvars.example`, `.terraform.lock.hcl` y `.gitignore`. Comprueba además que la contraseña generada no está en nada de lo que se va a subir: `git add -A` y después `git grep --cached -n "$(cd terraform && terraform output -raw clave_acceso)"` no debe devolver nada.
-9. Haz commit y `git push` (`A5.9 variables, salidas y .gitignore`). Después, en el README de `ut5/a59/` de `pps-entregas`, escribe en cinco líneas dónde guardarías el estado en un equipo de cinco personas (qué backend, quién lo lee, cómo se cifra y cómo se bloquea) y por qué; sin instalarlo, usa la tabla del apartado del estado.
-
-<span class="et et-com">Comprobación</span> `main.tf` no contiene valores literales de nombre, CPU, memoria, imagen ni red; el `plan` tras el refactor dijo `No changes`; `terraform output -raw ip_destino01` da `192.168.56.20`; el `plan` con 512 MiB falla con tu mensaje; el valor de `clave_acceso` aparece en `terraform.tfstate` pero no en el repositorio; y `git status` no muestra ningún `tfstate` ni `terraform.tfvars`. Si el `plan` del paso 3 quiere recrear la máquina, compara `terraform show` con `variables.tf` valor a valor.
-
-<span class="et et-ent">Entrega</span> Repositorio `pps-iac` con `variables.tf`, `outputs.tf`, `main.tf`, `terraform.tfvars.example`, `.terraform.lock.hcl` y `.gitignore`; en `ut5/a59/` de `pps-entregas`, el `README.md` con las capturas del `plan` sin cambios, del fallo de validación, de la salida `<sensitive>` y del `grep` sobre el estado (tapa el valor de la contraseña en la captura antes de subirla) y las cinco líneas del paso 9. La hoja forma parte de la entrega ACT_UT5_2, plazo el lunes 3 de mayo a las 23:59.
+<span class="et et-ent">Entrega</span> Repositorio `pps-iac` con `variables.tf`, `outputs.tf`, `main.tf`, `terraform.tfvars.example`, `.terraform.lock.hcl` y `.gitignore`; en `ut5/a59/` de `pps-entregas`, el `README.md` con las capturas del `plan` sin cambios, del fallo de validación, de la salida `<sensitive>` y del `grep` sobre el estado (tapa el valor de la contraseña en la captura antes de subirla) y las cinco líneas del paso 6. La hoja forma parte de la entrega ACT_UT5_2, plazo el lunes 3 de mayo a las 23:59.
 
 <span class="et et-ext">Si te sobra tiempo</span> Mueve la máquina a un módulo: crea `terraform/modules/vm/` con `main.tf`, `variables.tf` y `outputs.tf`, llámalo desde el `main.tf` de la raíz con `module "destino01" { source = "./modules/vm" ... }` y ejecuta `terraform init` y `terraform plan`. Como el recurso cambia de dirección, el plan querrá destruir y crear la máquina: `terraform state mv virtualbox_vm.destino01 module.destino01.virtualbox_vm.destino01` mueve el recurso en el estado y deja el plan sin cambios. Otra opción: exporta `TF_VAR_vm_memory_mib=2048` y comprueba con `terraform plan` que una variable de entorno gana sobre el valor por defecto.
 
@@ -1678,8 +1288,10 @@ Un principio de fondo acompaña a todo lo anterior: mínimo privilegio. Quien pu
 
 Terraform ya crea la máquina `destino01`, pero la deja vacía. Al acabar esta sesión esa máquina tiene el sistema actualizado y Apache instalado y en marcha, y todo ello se ha conseguido desde `pps01` con un playbook de Ansible que se puede ejecutar dos veces sin que la segunda cambie nada. Primero se ve qué problema resuelve la gestión de la configuración, después las cuatro piezas de Ansible (inventario, módulos, playbook e idempotencia) y por último la hoja A5.10.
 
-!!! consulta "Material de partida"
-    En el aula, carpeta `RA5-Despliegue-seguro/01 Material`: `05-DevOps.pdf` (gestión de configuración) y `06-Ansible.pdf` (conceptos y ejemplos). En `03 ACT_RA5_2 - Terraform & Ansible`: `RA5.2.pdf`, cuyo apartado 3.2 es el enunciado de esta hoja (actualizar el sistema e instalar Apache), y en `06 Material Ansible` el artículo "Easy Ansible setup using VirtualBox" y el material de DVWA con Ansible. En la web: los apuntes del curso anterior sobre gestión de la configuración (inventario, comandos ad hoc, playbooks, idempotencia, handlers y variables) y la documentación oficial de Ansible (<https://docs.ansible.com/>). Las diapositivas y los artículos de terceros se consultan, no se copian: aquí se explica lo mismo con palabras propias.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Documentación de Ansible](https://docs.ansible.com/): inventario, módulos, playbooks e idempotencia.
 
 ### Gestión de la configuración
 
@@ -1753,78 +1365,21 @@ Dos opciones ahorran tiempo en clase: `--check` simula el playbook sin cambiar n
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala Ansible en `pps01` y comprueba la versión:
+1. Instala Ansible en `pps01` y deja que `pps01` entre en `destino01` como `vagrant` con su clave, sin contraseña.
 
-    ```bash
-    sudo apt update && sudo apt install -y ansible
-    ansible --version
-    ```
+    *Pista:* si aún no tienes par de claves, créalo con `ssh-keygen -t ed25519`. `ssh-copy-id` copia la pública, y la contraseña que pide esa vez es `vagrant`.
 
-2. Comprueba que entras en `destino01` por SSH con clave. Si pide contraseña, copia tu clave pública (`ssh-keygen -t ed25519` si aún no tienes una; la contraseña es `vagrant`) y vuelve a probar:
+2. Clona `pps-iac` en `pps01` y crea en `~/pps-iac/ansible/` el inventario `inventario.ini` del [apartado de Ansible](#ansible-inventario-modulos-y-playbooks), con `destino01` en el grupo `web`, y un `ansible.cfg` que lo use por defecto. Comprueba con el módulo `ping` que el grupo `web` responde `pong`.
 
-    ```bash
-    ssh-copy-id vagrant@192.168.56.20
-    ssh vagrant@192.168.56.20 'hostname && lsb_release -ds'
-    ```
+    *Pista:* `ansible.cfg` lleva una sección `[defaults]` con `inventory = inventario.ini` y, solo en el laboratorio, `host_key_checking = False`, para que una máquina recreada o clonada con otra clave de host no pare la conexión.
 
-3. Clona `pps-iac` en `pps01`, crea la carpeta del proyecto y el inventario con el grupo `web` y un `ansible.cfg` que lo use por defecto:
+3. Escribe `site.yml` para el grupo `web`, con `become`, que actualice la caché y el sistema, instale Apache y lo deje arrancado y activado en el arranque, con los módulos de la tabla del apartado. Comprueba la sintaxis y ejecútalo.
 
-    ```bash
-    git clone https://github.com/pps<NIA>/pps-iac.git ~/pps-iac
-    mkdir -p ~/pps-iac/ansible && cd ~/pps-iac/ansible
-    printf '[web]\ndestino01 ansible_host=192.168.56.20 ansible_user=vagrant\n' > inventario.ini
-    printf '[defaults]\ninventory = inventario.ini\nhost_key_checking = False\n' > ansible.cfg
-    ```
+    *Pista:* la actualización completa es `upgrade: dist` del módulo `apt`, y `cache_valid_time: 3600` evita que la segunda pasada vuelva a actualizar la caché. La primera ejecución descarga paquetes y tarda varios minutos con el aula entera.
 
-4. Prueba la conexión con el módulo `ping` (no es un ping de red: comprueba SSH y Python en el destino). Debe responder `pong` en verde:
+4. Comprueba desde `pps01` que Apache responde en `http://192.168.56.20` y ejecuta el playbook por segunda vez para demostrar que es idempotente. Guarda el `PLAY RECAP` de las dos ejecuciones y sube `ansible/` a `pps-iac`.
 
-    ```bash
-    ansible web -m ansible.builtin.ping
-    ```
-
-5. Escribe `site.yml` con dos tareas: actualizar el sistema e instalar Apache y arrancarlo. Cópialo tal cual:
-
-    ```yaml
-    ---
-    - name: Configurar el servidor web
-      hosts: web
-      become: true
-      tasks:
-        - name: Actualizar la caché e instalar las actualizaciones
-          ansible.builtin.apt:
-            update_cache: true
-            upgrade: dist
-            cache_valid_time: 3600
-
-        - name: Instalar Apache
-          ansible.builtin.apt:
-            name: apache2
-            state: present
-
-        - name: Arrancar Apache y activarlo en el arranque
-          ansible.builtin.service:
-            name: apache2
-            state: started
-            enabled: true
-    ```
-
-6. Comprueba la sintaxis y ejecuta. `vagrant` usa `sudo` sin contraseña en esa imagen. La actualización descarga paquetes: tarda varios minutos y con toda la clase a la vez, más.
-
-    ```bash
-    ansible-playbook site.yml --syntax-check
-    ansible-playbook site.yml
-    ```
-
-7. Comprueba desde `pps01` que Apache responde y ejecuta el playbook por segunda vez. Anota el resumen final (`PLAY RECAP`) de las dos ejecuciones:
-
-    ```bash
-    curl -sI http://192.168.56.20 | head -1
-    ansible-playbook site.yml
-    ```
-
-8. Documenta y publica: sube `ansible/` a `pps-iac` (`git add`, `git commit`, `git push`) y crea `ut5/a510/` en `pps-entregas` con `README.md`, las capturas y una copia de `inventario.ini`, `ansible.cfg` y `site.yml`.
-
-<span class="et et-com">Comprobación</span> El paso 4 responde `pong`, `curl` devuelve `HTTP/1.1 200 OK` y el `PLAY RECAP` de la primera ejecución muestra `changed` distinto de 0 mientras el de la segunda muestra `changed=0` y `failed=0`. Si la segunda pasada sigue marcando `changed` en la primera tarea porque han salido paquetes nuevos entre las dos, repítela: debe estabilizarse. Si algo no conecta, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
+<span class="et et-com">Comprobación</span> El paso 2 responde `pong`, `curl` devuelve `HTTP/1.1 200 OK` y el `PLAY RECAP` de la primera ejecución muestra `changed` distinto de 0 mientras el de la segunda muestra `changed=0` y `failed=0`. Si la segunda pasada sigue marcando `changed` en la primera tarea porque han salido paquetes nuevos entre las dos, repítela: debe estabilizarse. Si algo no conecta, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
 <span class="et et-ent">Entrega</span> Carpeta `ut5/a510/` de `pps-entregas` con el `README.md` (qué se ha hecho, comandos, validación), las capturas de la primera y la segunda ejecución con su `PLAY RECAP` y los tres ficheros del proyecto. Forma parte de la entrega ACT_UT5_2, plazo el lunes 3 de mayo a las 23:59; la completa la hoja A5.11.
 
@@ -1837,8 +1392,8 @@ Dos opciones ahorran tiempo en clase: `--check` simula el playbook sin cambiar n
 
 Esta sesión no trae contenido nuevo ni hoja propia. Cierra la primera mitad de la unidad, la que va de DevOps a Ansible, y sirve para recuperar lo que se haya perdido o para afianzar lo que ya funciona antes de entrar en K3s y en la monitorización. Conviene llegar con `pps01` y `destino01` disponibles, porque la mayor parte de lo que se repasa se ejecuta en ellas.
 
-!!! consulta "Material de partida"
-    No hay material nuevo: la sesión reutiliza el de las anteriores. Para repasar, los enunciados del aula son `RA5-Despliegue-seguro/02 ACT_RA5_1 - Jenkins/RA5.1.pdf` (Jenkins y `jenkinsfile.docker`) y `03 ACT_RA5_2 - Terraform & Ansible/RA5.2.pdf` (Terraform y Ansible). Para la ampliación con Gradle, en `01 Material` está `04-Maven_Gradle.pdf`, y en la web la documentación oficial de Nginx (<https://nginx.org/en/docs/>) y de Gradle (<https://docs.gradle.org/>). Los documentos de terceros se consultan, no se copian.
+!!! consulta "Recursos de la sesión"
+    No hay material nuevo: se repasan Jenkins, Terraform y Ansible; para ampliar, la documentación de [Nginx](https://nginx.org/en/docs/) y de [Gradle](https://docs.gradle.org/).
 
 ### Si se ha perdido alguna clase
 
@@ -1868,8 +1423,10 @@ La reserva tiene dos partes: primero el repaso, que sostiene las entregas, y des
 
 El playbook de la sesión 46 deja `destino01` con Apache funcionando, pero el servidor todavía no sirve nada propio. Al acabar esta sesión el playbook está reorganizado en un rol, publica un `index.html` con el mensaje `Ansible rocks`, reinicia Apache solo cuando ese fichero cambia y comprueba por sí mismo, con `curl`, que el servidor responde lo esperado. Se explica primero cómo se organiza un rol y para qué sirven las variables y los handlers, después cómo se valida un despliegue, y la hoja A5.11 lo aplica.
 
-!!! consulta "Material de partida"
-    En el aula, `RA5-Despliegue-seguro/03 ACT_RA5_2 - Terraform & Ansible/RA5.2.pdf`, cuyo apartado 3.3 es el enunciado de esta hoja (crear un `index.html` con "Ansible rocks", reiniciar el servicio y comprobar el mensaje con `curl`), y `01 Material/06-Ansible.pdf` (roles y ejemplos). En la web, los apuntes del curso anterior sobre Ansible (handlers, variables y Ansible Galaxy) y la documentación oficial sobre roles, handlers y el módulo `uri`: <https://docs.ansible.com/>. Los apuntes y PDF de terceros se consultan, no se copian.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Documentación de Ansible](https://docs.ansible.com/): roles, handlers y el módulo `uri`.
 
 ### Roles, variables y handlers
 
@@ -1934,112 +1491,23 @@ El último nivel es el que cuenta para el resultado. Se hace desde `pps01`, que 
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la estructura del rol y su plantilla. El mensaje va en una variable con valor por defecto, no dentro del HTML:
+1. Convierte el playbook de la A5.10 en un rol `web` con la estructura de [Roles, variables y handlers](#roles-variables-y-handlers): instala Apache, publica `/var/www/html/index.html` desde la plantilla `index.html.j2` y deja el servicio arrancado y habilitado. El mensaje `Ansible rocks` va en la variable `mensaje` de `defaults`, y el reinicio, en un handler `Reiniciar Apache` al que solo avisa la tarea de la plantilla.
 
-    ```bash
-    cd ~/pps-iac/ansible
-    mkdir -p roles/web/{defaults,tasks,handlers,templates}
-    printf -- '---\nmensaje: Ansible rocks\n' > roles/web/defaults/main.yml
-    cat > roles/web/templates/index.html.j2 <<'HTML'
-    <!DOCTYPE html>
-    <html lang="es">
-      <head><meta charset="utf-8"><title>PPS</title></head>
-      <body><h1>{{ mensaje }}</h1></body>
-    </html>
-    HTML
-    ```
+    *Pista:* el nombre del `notify` tiene que ser idéntico al del handler, letra por letra.
 
-2. Escribe las tareas del rol en `roles/web/tasks/main.yml`. La tarea de la plantilla lleva `notify`: es la que avisa al handler. Cópialo tal cual:
+2. Deja `site.yml` en tres partes: la actualización del sistema de la A5.10 en `pre_tasks`, el rol `web` y, en `post_tasks`, la comprobación de [Validar un despliegue](#validar-un-despliegue): `uri` contra `http://localhost` y un `assert` sobre el mensaje.
 
-    ```yaml
-    ---
-    - name: Instalar Apache
-      ansible.builtin.apt:
-        name: apache2
-        state: present
+    *Pista:* con `--check` no se publica nada, así que las dos tareas de comprobación llevan `when: not ansible_check_mode` o la simulación del paso 3 falla.
 
-    - name: Publicar el index.html
-      ansible.builtin.template:
-        src: index.html.j2
-        dest: /var/www/html/index.html
-        owner: root
-        group: root
-        mode: "0644"
-      notify: Reiniciar Apache
+3. Valida con `--syntax-check` y `--check --diff`, aplica y localiza en la salida el `RUNNING HANDLER [web : Reiniciar Apache]` y el `PLAY RECAP`.
 
-    - name: Arrancar Apache y activarlo en el arranque
-      ansible.builtin.service:
-        name: apache2
-        state: started
-        enabled: true
-    ```
+4. Comprueba desde `pps01` que `destino01` sirve `Ansible rocks`, como lo vería un usuario, y demuestra la idempotencia con una segunda ejecución.
 
-3. Escribe el handler en `roles/web/handlers/main.yml`. El nombre tiene que ser idéntico al del `notify`, letra por letra:
+5. Pasa otro mensaje con `-e` para comprobar que el handler solo salta cuando el fichero cambia, y vuelve a ejecutar sin `-e` para dejar `Ansible rocks`.
 
-    ```yaml
-    ---
-    - name: Reiniciar Apache
-      ansible.builtin.service:
-        name: apache2
-        state: restarted
-    ```
+    *Pista:* en JSON, `-e '{"mensaje": "Ansible sigue rocks"}'`, los espacios del texto no dan problemas.
 
-4. Sustituye `site.yml` por una versión que actualiza el sistema, aplica el rol y comprueba el resultado. Los handlers se lanzan al terminar el rol, antes de `post_tasks`, por eso la comprobación ve ya el servidor reiniciado. Las dos tareas de `post_tasks` llevan `when: not ansible_check_mode` porque con `--check` no se publica nada y la página que hay todavía no contiene el mensaje: sin esa condición, la simulación del paso 5 terminaría en fallo:
-
-    ```yaml
-    ---
-    - name: Desplegar la web
-      hosts: web
-      become: true
-      pre_tasks:
-        - name: Actualizar la caché e instalar las actualizaciones
-          ansible.builtin.apt:
-            update_cache: true
-            upgrade: dist
-            cache_valid_time: 3600
-      roles:
-        - web
-      post_tasks:
-        - name: Pedir la página al propio servidor
-          ansible.builtin.uri:
-            url: http://localhost
-            return_content: true
-          register: respuesta
-          when: not ansible_check_mode
-
-        - name: Comprobar que aparece el mensaje
-          ansible.builtin.assert:
-            that: mensaje in respuesta.content
-            success_msg: "La web responde: {{ mensaje }}"
-            fail_msg: "La web no devuelve el mensaje esperado"
-          when: not ansible_check_mode
-    ```
-
-5. Valida antes de aplicar y aplica después. Anota en la salida la línea `RUNNING HANDLER [web : Reiniciar Apache]` y el `PLAY RECAP`:
-
-    ```bash
-    ansible-playbook site.yml --syntax-check
-    ansible-playbook site.yml --check --diff
-    ansible-playbook site.yml
-    ```
-
-6. Comprueba desde `pps01`, como lo vería un usuario, y repite el playbook para demostrar la idempotencia. La segunda pasada no debe mostrar ningún `RUNNING HANDLER`:
-
-    ```bash
-    curl -s http://192.168.56.20 | grep 'Ansible rocks'
-    ansible-playbook site.yml
-    ```
-
-7. Comprueba que el handler solo se lanza cuando hace falta. Cambia el mensaje con `-e`, observa que ahora sí hay `changed` y reinicio, y vuelve al valor por defecto para dejar la evidencia final con `Ansible rocks`:
-
-    ```bash
-    ansible-playbook site.yml -e '{"mensaje": "Ansible sigue rocks"}'
-    curl -s http://192.168.56.20 | grep h1
-    ansible-playbook site.yml
-    curl -s http://192.168.56.20 | grep 'Ansible rocks'
-    ```
-
-8. Documenta y publica: sube `ansible/` a `pps-iac` y, en `ut5/a511/` de `pps-entregas`, crea el `README.md` (qué se ha hecho, comandos, validación) con las capturas de las tres ejecuciones y del `curl`, y copia la carpeta `ansible/` sin secretos. Sube con `git add`, `git commit` y `git push`.
+6. Sube `ansible/` a `pps-iac` y deja en `ut5/a511/` de `pps-entregas` el `README.md` (qué se ha hecho, comandos, validación) con las capturas de las tres ejecuciones y del `curl`, y una copia de `ansible/` sin secretos.
 
 <span class="et et-com">Comprobación</span> La primera ejecución muestra `changed` en la plantilla y el handler `Reiniciar Apache`; la segunda termina con `changed=0` y sin handler; con `-e` hay un `changed` y un reinicio; el `assert` da `ok` y `curl` devuelve `Ansible rocks`. Si el handler no aparece nunca, el nombre del `notify` no coincide con el del handler. Si algo no conecta, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
@@ -2053,8 +1521,11 @@ El último nivel es el que cuenta para el resultado. Se hace desde `pps01`, que 
 
 Hasta ahora cada aplicación corría en un contenedor que alguien arrancaba a mano. Al acabar esta sesión hay un clúster K3s de un solo nodo en la VM `k3s-1`, con nginx desplegado en dos réplicas, accesible por el puerto 30080, y con K9s instalado para verlo. Primero se explica por qué hace falta un orquestador y qué objetos de Kubernetes intervienen (pod, despliegue, servicio), después qué es K3s y en qué se distingue de Kubernetes, y por último la hoja A5.12.
 
-!!! consulta "Material de partida"
-    En el aula, carpeta `RA5-Despliegue-seguro/08 ACT_RA5_4 - K3s & K9s`: `RA5.4.pdf` (Kubernetes, K3s en un nodo y en alta disponibilidad, componentes, `kubectl` y K9s; sus apartados 5.1 y 5.2 son los enunciados de las hojas A5.12 y A5.13, y el 5.3 el de la A5.14). En `01 Material`: `01-Infraestructura.pdf` (escalado vertical y horizontal, virtualización y contenedores). En la web: <https://k3s.io/> y su documentación (<https://docs.k3s.io/quick-start>), <https://kubernetes.io/es/> y <https://k9scli.io/>. Los *Apuntes de Puesta en Producción Segura* y *Ciberseguridad-PePS* sobre el desplegado seguro no tratan Kubernetes: esta parte se apoya solo en el PDF y en la documentación oficial. Las diapositivas se consultan, no se copian.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [K3s](https://docs.k3s.io/quick-start), [Kubernetes](https://kubernetes.io/es/) y [K9s](https://k9scli.io/): el clúster ligero y su panel.
+    - El enunciado de la entrega ACT_UT5_4 está en el aula.
 
 ### Escalado y orquestación: pods, despliegues y servicios
 
@@ -2120,100 +1591,32 @@ En un nodo K3s ejecuta a la vez el plano de control (API, planificador y control
 
 <span class="et et-pas">Pasos</span>
 
-1. Con la VM `destino01` apagada, clónala como `k3s-1` (clon completo, con MAC nueva). Ajusta en VirtualBox 1 vCPU y 1,5 GB (2 GB si el equipo lo permite) y añade un adaptador NAT como primero si no lo tiene. Arranca y entra con el usuario `vagrant` (contraseña `vagrant`), que el clon hereda de `destino01`.
-2. Un clon repite el identificador de máquina y el nombre. Corrígelos, y comprueba cómo se llama la interfaz de solo anfitrión (la que tiene 192.168.56.x). El clon arrastra también el Apache que `destino01` instaló en la A5.10, cuyo puerto 80 chocaría con Traefik de K3s, así que se desactiva:
+1. Clona `destino01`, apagada, como `k3s-1` (clon completo con MAC nueva, 1 vCPU, 1,5 GB o 2 GB si el equipo lo permite, y el adaptador NAT como primero) y dale identidad propia: nombre `k3s-1`, `machine-id` nuevo e IP fija 192.168.56.31 en la interfaz de solo anfitrión, en `/etc/netplan/60-lab.yaml`. Desactiva el Apache que trae de la A5.10, que ocupa el puerto 80 del Traefik de K3s, y comprueba que llega a `pps01` y a Internet.
 
-    ```bash
-    sudo hostnamectl set-hostname k3s-1
-    sudo rm /etc/machine-id && sudo systemd-machine-id-setup
-    sudo systemctl disable --now apache2
-    ip -br a
-    ```
+    *Pista:* el `machine-id` se regenera borrando `/etc/machine-id` y ejecutando `systemd-machine-id-setup`. Si queda en `/etc/netplan/` otro fichero con la IP de `destino01`, la VM tendrá las dos direcciones.
 
-3. Fija la IP de la interfaz de solo anfitrión. Sustituye `enp0s8` por el nombre que mostró `ip -br a` y guarda esto en `/etc/netplan/60-lab.yaml`. Si el clon trae otro fichero en `/etc/netplan/` con la IP de `destino01` (`grep -l 192.168.56.20 /etc/netplan/*`), bórralo para que no queden dos direcciones. Aplica con `sudo netplan apply` y comprueba con `ping -c1 192.168.56.10` y `ping -c1 deb.debian.org`:
-
-    ```yaml
-    network:
-      version: 2
-      ethernets:
-        enp0s8:
-          dhcp4: false
-          addresses: [192.168.56.31/24]
-    ```
-
-4. Instala K3s. La variable hace legible el fichero de configuración de `kubectl` sin `sudo`, y las dos opciones fuerzan que el nodo use la red de solo anfitrión y no la NAT, cuya IP es idéntica en todas las VM de VirtualBox. La instalación tarda de 3 a 8 minutos según la descarga:
+2. Instala K3s con el script de [K3s frente a Kubernetes](#k3s-frente-a-kubernetes) hasta ver `k3s-1` en `Ready` con el rol `control-plane`. La orden fija la red de solo anfitrión, porque la NAT tiene la misma IP en todas las VM de VirtualBox, y deja usar `kubectl` sin `sudo`:
 
     ```bash
     curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" sh -s - \
       --node-ip 192.168.56.31 --flannel-iface enp0s8
     ```
 
-5. Espera a que el nodo esté listo y mira qué ha arrancado por su cuenta. Verás el nodo `Ready` con rol `control-plane` y pods de `kube-system` (CoreDNS, Traefik...). Si aparece `NotReady`, espera un minuto y repite: en una VM de 1 vCPU es normal:
+    *Pista:* `enp0s8` es la interfaz de solo anfitrión si `ip -br a` no dice otra, y `kubectl` lee `/etc/rancher/k3s/k3s.yaml` desde la variable `KUBECONFIG`. En una VM de 1 vCPU el nodo tarda unos minutos en estar `Ready`.
 
-    ```bash
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-    kubectl get nodes -o wide
-    kubectl get pods -A
-    ```
+3. Despliega con un `nginx.yaml` un Deployment `nginx` de dos réplicas de `nginx:stable` y un Service `nginx` de tipo `NodePort` en el 30080, unidos por la etiqueta `app: nginx`, y comprueba que responde en `http://192.168.56.31:30080` desde la VM y desde fuera.
 
-6. Crea `nginx.yaml` con el despliegue y el servicio. Fíjate en las tres piezas: `replicas: 2`, la etiqueta `app: nginx` que une el servicio con los pods, y `nodePort: 30080`:
+    *Pista:* `kubectl create deployment` y `kubectl create service nodeport` con `--dry-run=client -o yaml` generan las dos piezas; se juntan en un fichero separadas por `---`.
 
-    ```yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: nginx
-    spec:
-      replicas: 2
-      selector:
-        matchLabels: {app: nginx}
-      template:
-        metadata:
-          labels: {app: nginx}
-        spec:
-          containers:
-            - name: nginx
-              image: nginx:stable
-              ports: [{containerPort: 80}]
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: nginx
-    spec:
-      type: NodePort
-      selector: {app: nginx}
-      ports:
-        - port: 80
-          targetPort: 80
-          nodePort: 30080
-    ```
+4. Borra uno de los dos pods y observa cómo el Deployment crea otro: es el estado deseado.
 
-7. Aplica el fichero, espera a que los dos pods estén `Running` (descargar la imagen tarda de 1 a 3 minutos) y comprueba el servicio desde la propia VM y desde `pps01` o el anfitrión:
+    *Pista:* `kubectl get pods -w` sigue los cambios en directo.
 
-    ```bash
-    kubectl apply -f nginx.yaml
-    kubectl get deploy,pods,svc -o wide
-    curl -s http://192.168.56.31:30080 | head -4
-    ```
+5. Instala K9s (el binario `k9s_Linux_amd64.tar.gz` de sus *releases* de GitHub) y revisa con él los pods, el servicio, el despliegue, el nodo y los logs de un pod de nginx.
 
-8. Comprueba el estado deseado: borra un pod y mira cómo el despliegue crea otro. Escalar (`kubectl scale deploy nginx --replicas=3`) queda para la hoja siguiente:
+    *Pista:* `:pods`, `:svc`, `:deploy` y `:nodes` cambian de vista; `l` abre los logs y `d` describe. Si los colores salen mal, `export TERM=xterm-256color`.
 
-    ```bash
-    kubectl get pods
-    kubectl delete pod <nombre de un pod nginx>
-    kubectl get pods -w        # Ctrl+C cuando haya dos Running
-    ```
-
-9. Instala K9s (binario para Linux; en una VM de 64 bits de Intel o AMD) y ábrelo. Dentro, `:pods` lista los pods, `:svc` los servicios, `:deploy` los despliegues y `:nodes` los nodos; `l` muestra los logs del pod seleccionado, `d` lo describe y `q` sale. Sitúate sobre un pod de nginx y verás sus logs:
-
-    ```bash
-    curl -sL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz | sudo tar xz -C /usr/local/bin k9s
-    export TERM=xterm-256color
-    k9s
-    ```
-
-10. Crea `~/pps-entregas/ut5/a512/README.md` con el resultado de `kubectl get nodes -o wide`, `kubectl get deploy,pods,svc -o wide` y el `curl`, junto con una captura de K9s con los dos pods de nginx. Haz `git add`, `git commit` y `git push`.
+6. Documenta en `~/pps-entregas/ut5/a512/README.md` las salidas de `kubectl get nodes -o wide` y `kubectl get deploy,pods,svc -o wide`, el `curl` y una captura de K9s con los dos pods de nginx.
 
 <span class="et et-com">Comprobación</span> `kubectl get nodes` muestra `k3s-1` en `Ready`, el despliegue `nginx` dice `2/2`, `curl http://192.168.56.31:30080` devuelve la página `Welcome to nginx!` y K9s lista los dos pods en `Running`. Si `curl` da `Connection refused` o el nodo no arranca, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
@@ -2227,8 +1630,10 @@ En un nodo K3s ejecuta a la vez el plano de control (API, planificador y control
 
 Un clúster de un nodo cae entero si cae su máquina. Al acabar esta sesión hay tres servidores K3s (`k3s-1`, `k3s-2` y `k3s-3`) formando un solo clúster, nginx repetido con dos réplicas y la prueba de que el clúster sigue funcionando cuando uno de los servidores se apaga. Primero se explica cómo K3s guarda su estado y por qué el número de servidores tiene que ser impar; después la hoja A5.13.
 
-!!! consulta "Material de partida"
-    En el aula, `RA5-Despliegue-seguro/08 ACT_RA5_4 - K3s & K9s/RA5.4.pdf`: el apartado 2.2 (arquitectura HA, con base de datos interna y externa) y la actividad 5.2, que es el enunciado de esta hoja. En la web: <https://docs.k3s.io/datastore/ha-embedded> (etcd embebido, con las órdenes de instalación), <https://docs.k3s.io/installation/requirements> (requisitos y puertos) y <https://docs.k3s.io/architecture>. Ningún apunte de terceros del curso anterior cubre esta sesión.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - Documentación de K3s: [etcd embebido para alta disponibilidad](https://docs.k3s.io/datastore/ha-embedded), [requisitos y puertos](https://docs.k3s.io/installation/requirements) y [arquitectura](https://docs.k3s.io/architecture).
 
 ### Alta disponibilidad: etcd embebido, base de datos externa y quórum
 
@@ -2293,50 +1698,25 @@ Los servidores nuevos necesitan tres cosas para unirse: la dirección del primer
 
 <span class="et et-pas">Pasos</span>
 
-1. En `k3s-1`, desinstala el clúster de un nodo para partir de cero (borra K3s y sus datos, no el `nginx.yaml`). Después apaga la VM y clónala dos veces como `k3s-2` y `k3s-3` (clon completo, MAC nueva). Cada clon de una VM ya limpia tarda de 3 a 5 minutos:
+1. Parte de cero: desinstala K3s de `k3s-1` sin perder `nginx.yaml`, apágala y clónala como `k3s-2` y `k3s-3`, cada una con su identidad como en la A5.12 (192.168.56.32 y 192.168.56.33). Arranca las tres y comprueba que se ven entre sí.
 
-    ```bash
-    /usr/local/bin/k3s-uninstall.sh
-    sudo poweroff
-    ```
+    *Pista:* el instalador dejó `/usr/local/bin/k3s-uninstall.sh`. Clonar la VM ya limpia evita copiar a los clones el clúster de un nodo.
 
-2. En cada clon, repite la configuración de la A5.12 con su nombre y su IP: `k3s-2` con 192.168.56.32 y `k3s-3` con 192.168.56.33. Cambia el hostname, regenera `machine-id` y edita la dirección de `/etc/netplan/60-lab.yaml` (el resto del fichero no cambia; `sudo netplan apply`). Arranca también `k3s-1`. Comprueba que las tres se ven entre sí: `ping -c1 192.168.56.31`, `.32` y `.33`.
-3. En `k3s-1`, instala el primer servidor. `--cluster-init` activa etcd embebido, y el token es el secreto compartido (en el laboratorio se pone en la orden; nunca en un fichero del repositorio). Tarda de 3 a 8 minutos:
+2. Monta el clúster con el etcd embebido de [la teoría](#alta-disponibilidad-etcd-embebido-base-de-datos-externa-y-quorum): `k3s-1` con `--cluster-init` y después `k3s-2` y `k3s-3` uniéndose a ella con `--server`, todos con el mismo token, que va en la orden y nunca en un fichero del repositorio. Termina con los tres nodos en `Ready` y con el rol `control-plane,etcd`.
 
-    ```bash
-    curl -sfL https://get.k3s.io | K3S_TOKEN=secreto-del-laboratorio K3S_KUBECONFIG_MODE="644" sh -s - server \
-      --cluster-init --node-ip 192.168.56.31 --flannel-iface enp0s8 --tls-san 192.168.56.31
-    kubectl get nodes    # con KUBECONFIG=/etc/rancher/k3s/k3s.yaml; espera al estado Ready
-    ```
+    *Pista:* es la orden de la A5.12 con `server` tras `sh -s -` y `K3S_TOKEN` junto a la otra variable; las dos formas están en la [chuleta](../chuleta.md#kubernetes-y-k3s-kubectl-k9s). Une los servidores de uno en uno: si se unen a la vez, el quórum se forma mal.
 
-4. En `k3s-2`, une el segundo servidor apuntando al primero. Espera a que termine (de 3 a 8 minutos, más lento que el primero porque replica etcd) antes de pasar al tercero; si se unen a la vez el quórum se forma mal:
+3. Repite el despliegue de nginx con el `nginx.yaml` de la A5.12, mira en qué nodos caen los pods y comprueba que el NodePort 30080 responde en las tres IP, también en la de un nodo sin pods.
 
-    ```bash
-    curl -sfL https://get.k3s.io | K3S_TOKEN=secreto-del-laboratorio K3S_KUBECONFIG_MODE="644" sh -s - server \
-      --server https://192.168.56.31:6443 --node-ip 192.168.56.32 --flannel-iface enp0s8
-    ```
+    *Pista:* `curl -s -o /dev/null -w '%{http_code}\n'` imprime solo el código; con un bucle sobre las tres IP, la evidencia cabe en una sola salida.
 
-5. En `k3s-3`, la misma orden con `--node-ip 192.168.56.33`. Desde `k3s-1` comprueba que hay tres nodos con rol `control-plane,etcd` y todos en `Ready`:
+4. Captura en K9s los tres servidores en `Ready` y el nodo en el que corre cada pod de nginx.
 
-    ```bash
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-    kubectl get nodes -o wide
-    ```
+5. Apaga `k3s-3` y anota cuánto tarda en salir como `NotReady`. Mientras está apagada, comprueba que el servicio sigue respondiendo en `.31` y `.32` y que el clúster acepta cambios: escala `nginx` a tres réplicas. Enciéndela, comprueba que vuelve a `Ready` sola y deja el despliegue en dos réplicas.
 
-6. Repite el despliegue de nginx con el mismo fichero de la A5.12. Comprueba en qué nodos han caído los dos pods y que el NodePort responde en las IP de los tres, incluso en el que no tiene ningún pod:
+6. Documenta en `~/pps-entregas/ut5/a513/README.md`, sin el token, las salidas de `kubectl get nodes -o wide` y del bucle de `curl`, las capturas de K9s y unas líneas sobre qué pasó con el clúster mientras `k3s-3` estaba apagada.
 
-    ```bash
-    kubectl apply -f nginx.yaml
-    kubectl get pods -o wide
-    for ip in 31 32 33; do curl -s -o /dev/null -w "$ip %{http_code}\n" http://192.168.56.$ip:30080; done
-    ```
-
-7. Abre K9s en `k3s-1`, ejecuta `:nodes` y comprueba que los tres servidores están `Ready`. Después `:pods` y sitúate sobre un pod de nginx con `d` para ver en qué nodo corre. Haz una captura de cada vista.
-8. Prueba la tolerancia a fallos: apaga `k3s-3` (`sudo poweroff` en ella). En `k3s-1`, `kubectl get nodes` la marca `NotReady` a los 40 segundos aproximadamente. Repite el bucle `curl` del paso 6 solo con `.31` y `.32`: el servicio sigue respondiendo y `kubectl` sigue aceptando cambios (`kubectl scale deploy nginx --replicas=3`), porque quedan dos de tres servidores, que es el quórum.
-9. Enciende `k3s-3` y comprueba que vuelve a `Ready` sin hacer nada. Vuelve a dejar el despliegue en dos réplicas.
-10. Crea `~/pps-entregas/ut5/a513/README.md` con las salidas de `kubectl get nodes -o wide`, del bucle `curl`, la captura de K9s y unas líneas que expliquen qué pasó con el clúster mientras `k3s-3` estaba apagada. No incluyas el token. Haz `git add`, `git commit` y `git push`.
-
-<span class="et et-com">Comprobación</span> Tres nodos en `Ready`, `nginx` con `2/2`, un `200` desde las tres IP en el paso 6 y, con `k3s-3` apagada, un `200` desde `.31` y `.32` y un `scale` que se aplica. Si un nodo nuevo no aparece o se queda en `NotReady`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
+<span class="et et-com">Comprobación</span> Tres nodos en `Ready`, `nginx` con `2/2`, un `200` desde las tres IP en el paso 3 y, con `k3s-3` apagada, un `200` desde `.31` y `.32` y un `scale` que se aplica. Si un nodo nuevo no aparece o se queda en `NotReady`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
 <span class="et et-ent">Entrega</span> La carpeta `ut5/a513/` de `pps-entregas` con el README y las capturas. Forma parte de la entrega ACT_UT5_4, plazo el jueves 13 de mayo (23:59), junto con las hojas A5.12 y A5.14.
 
@@ -2348,8 +1728,11 @@ Los servidores nuevos necesitan tres cosas para unirse: la dirección del primer
 
 Un despliegue de laboratorio con nginx no es todavía una aplicación propia. Al acabar esta sesión la aplicación `pps-app` corre en el clúster de tres servidores con réplicas repartidas entre los nodos, delante hay una entrada HTTP que balancea la carga entre ellas, y K9s sirve para comprobar el reparto, escalar y matar pods. Se explica cómo se traduce un `docker-compose` de balanceo a objetos de Kubernetes y qué aporta K9s; después la hoja A5.14.
 
-!!! consulta "Material de partida"
-    En el aula, `RA5-Despliegue-seguro/08 ACT_RA5_4 - K3s & K9s/RA5.4.pdf`: el apartado 3 (K9s) y la actividad 5.3, que es el enunciado de esta hoja: desplegar en K3s y validar con K9s el `docker-compose` de balanceo de carga del taller <https://aulasoftwarelibre.github.io/taller-de-docker/dockerfile/#balanceo-de-carga>. En la web: <https://k9scli.io/> (K9s) y <https://docs.k3s.io/networking/networking-services> (servicios y Traefik en K3s). El compose del taller usa la versión 2.3 de Traefik y el socket de Docker, que no existen en K3s: por eso la hoja lo traduce en lugar de ejecutarlo tal cual.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [K9s](https://k9scli.io/) y [servicios y red en K3s](https://docs.k3s.io/networking/networking-services).
+    - [Taller de Docker (balanceo de carga)](https://aulasoftwarelibre.github.io/taller-de-docker/dockerfile/#balanceo-de-carga): el compose que aquí se traduce a K3s.
 
 ### Servicios, entrada HTTP y balanceo de carga; K9s
 
@@ -2402,166 +1785,31 @@ flowchart TB
 
 <span class="et et-obj">Objetivo</span> Desplegar `pps-app` en el clúster de la A5.13 con el fichero `k8s/pps-app.yaml` (aplicación, Redis y regla de entrada), comprobar el reparto de carga entre réplicas y validarlo con K9s. Es el punto 5.3 del enunciado de la entrega ACT_UT5_4: la traducción a K3s del `docker-compose` de balanceo.
 
-<span class="et et-pre">Antes de empezar</span> Se han explicado [los servicios, la entrada HTTP, el balanceo y K9s](#servicios-entrada-http-y-balanceo-de-carga-k9s). Se da por hecho el clúster de tres servidores de la A5.13 (se encienden `k3s-1`, `k3s-2` y `k3s-3`), y la imagen `pps<NIA>/pps-app` construida por el pipeline en la A5.6 (existe en el Docker local de `pps01`). La publicación integrada en el pipeline llega en la A5.19; hasta entonces, esta hoja la sube a mano en el paso 1. Ten a mano el token de Docker Hub creado en la A5.7. El repositorio `pps-app` de GitHub tiene la aplicación desde la A5.3.
+<span class="et et-pre">Antes de empezar</span> Se han explicado [los servicios, la entrada HTTP, el balanceo y K9s](#servicios-entrada-http-y-balanceo-de-carga-k9s). Se da por hecho el clúster de tres servidores de la A5.13 (se encienden `k3s-1`, `k3s-2` y `k3s-3`) y la imagen `pps<NIA>/pps-app` que construyó el pipeline en la A5.6, que solo existe en el Docker local de `pps01`: la publicación desde el pipeline llega en la A5.19, así que hoy se sube a mano en el paso 1, con el token de Docker Hub de la A5.7.
 
 <span class="et et-pas">Pasos</span>
 
-1. Publica la imagen en Docker Hub para que los nodos puedan descargarla. En `pps01`, entra con el token de Docker Hub de la A5.7 y sube la imagen que construyó el pipeline en la A5.6 a un repositorio público, con la misma etiqueta que usará el manifiesto:
+1. En `pps01`, publica la imagen `pps<NIA>/pps-app` de la A5.6 en un repositorio público de Docker Hub, con la etiqueta que vaya a usar el manifiesto, para que los nodos puedan descargarla.
 
-    ```bash
-    docker login -u pps<NIA> --password-stdin <<< "$TOKEN_DOCKERHUB"
-    docker push pps<NIA>/pps-app:<etiqueta>
-    ```
+    *Pista:* el token entra en `docker login` por `--password-stdin`; como argumento, quedaría en el historial de la shell.
 
-    Desde la A5.19 esto lo hace el propio pipeline y este paso sobra.
-2. Arranca las tres VM y espera a que `kubectl get nodes` (en `k3s-1`, con `KUBECONFIG=/etc/rancher/k3s/k3s.yaml`) muestre los tres en `Ready`, algo más de dos minutos. Comprueba que Traefik ya existe y escucha en el puerto 80 de los nodos:
+2. Escribe `k8s/pps-app.yaml` en una copia de `pps-app` en `k3s-1`, con las piezas de [la tabla de equivalencias](#servicios-entrada-http-y-balanceo-de-carga-k9s): el Deployment `pps-app` (dos réplicas de tu imagen en el 8080, una `readinessProbe` a `/salud` y un límite de memoria de 192 Mi) con su Service en el 80, un Deployment y un Service `redis` (`redis:7`, puerto 6379) y un Ingress que lleve el host `pps.lab` al Service `pps-app`.
 
-    ```bash
-    kubectl -n kube-system get svc traefik
-    ```
+    *Pista:* el Deployment y el Service siguen la forma del `nginx.yaml` de la A5.12, sin `NodePort`. El Ingress lo genera `kubectl create ingress pps-app --rule="pps.lab/*=pps-app:80" --dry-run=client -o yaml`.
 
-3. En `k3s-1`, clona el repositorio de la aplicación y crea la carpeta de manifiestos (`git clone` sin credenciales funciona si el repositorio es público; si es privado, clona desde `pps01` y copia el fichero):
+3. Aplícalo y comprueba que, con los pods en `READY 1/1`, la aplicación responde en `/` y en `/salud` por el puerto 80 de los tres nodos.
 
-    ```bash
-    git clone https://github.com/pps<NIA>/pps-app.git && cd pps-app && mkdir -p k8s
-    ```
+    *Pista:* el laboratorio no tiene DNS, así que el nombre va en la cabecera: `curl -H "Host: pps.lab"`.
 
-4. Crea `k8s/pps-app.yaml` con la aplicación web, su servicio, Redis y la regla de entrada. Sustituye `pps<NIA>` y `<etiqueta>` por tu usuario y el último build. La sonda de disponibilidad usa la ruta `/salud` de la aplicación para que el servicio no reparta peticiones a un pod que aún no ha arrancado:
+4. Como `pps-app` responde siempre lo mismo, el reparto se ve con `k8s/reparto.yaml`: tres réplicas de `traefik/whoami` (una imagen que devuelve el nombre de su pod), su Service `reparto` y un Ingress para `reparto.pps.lab`. Aplícalo y cuenta qué pod contesta cada una de veinte peticiones.
 
-    ```yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: pps-app
-    spec:
-      replicas: 2
-      selector:
-        matchLabels: {app: pps-app}
-      template:
-        metadata:
-          labels: {app: pps-app}
-        spec:
-          containers:
-            - name: pps-app
-              image: pps<NIA>/pps-app:<etiqueta>
-              ports: [{containerPort: 8080}]
-              resources:
-                requests: {memory: 64Mi}
-                limits: {memory: 192Mi}
-              readinessProbe:
-                httpGet: {path: /salud, port: 8080}
-                initialDelaySeconds: 5
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: pps-app
-    spec:
-      selector: {app: pps-app}
-      ports: [{port: 80, targetPort: 8080}]
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: redis
-    spec:
-      replicas: 1
-      selector:
-        matchLabels: {app: redis}
-      template:
-        metadata:
-          labels: {app: redis}
-        spec:
-          containers:
-            - name: redis
-              image: redis:7
-              args: ["redis-server", "--appendonly", "yes"]
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: redis
-    spec:
-      selector: {app: redis}
-      ports: [{port: 6379}]
-    ---
-    apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: pps-app
-    spec:
-      rules:
-        - host: pps.lab
-          http:
-            paths:
-              - path: /
-                pathType: Prefix
-                backend:
-                  service: {name: pps-app, port: {number: 80}}
-    ```
+    *Pista:* es el esquema de `pps-app` con otros nombres, el puerto 80 y sin sonda; `grep Hostname | sort | uniq -c` hace el recuento.
 
-5. Aplica el fichero, espera a que los pods estén `Running` y `READY 1/1` (la imagen se descarga en cada nodo que recibe un pod, de 1 a 3 minutos) y prueba la entrada por la IP de cada nodo. La cabecera `Host` sustituye a un DNS que el laboratorio no tiene:
+5. Valida con K9s lo que pide el enunciado: escala `pps-app` a cinco réplicas (el `--scale web=5` del compose), mira en qué nodos quedan y los logs y eventos de una, y captura la vista de pods. Con un bucle de peticiones a `reparto.pps.lab` en marcha, borra desde K9s un pod de `reparto` y comprueba que el reparto sigue y aparece otro. Al terminar, deja `pps-app` en dos réplicas.
 
-    ```bash
-    kubectl apply -f k8s/pps-app.yaml
-    kubectl get pods -o wide
-    for ip in 31 32 33; do curl -s -H "Host: pps.lab" http://192.168.56.$ip/; echo; done
-    curl -s -H "Host: pps.lab" http://192.168.56.31/salud
-    ```
+    *Pista:* en `:deploy`, `s` escala; en `:pods`, `Ctrl+d` borra.
 
-    Tiene que responder `Hola PPS` desde los tres nodos y `{"estado":"ok"}` en `/salud`.
-6. Una aplicación que responde siempre lo mismo no enseña qué réplica contesta. Para ver el reparto, crea `k8s/reparto.yaml` con `traefik/whoami`, una imagen mínima que devuelve el nombre de su pod, en tres réplicas y con otra regla de entrada:
-
-    ```yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: reparto
-    spec:
-      replicas: 3
-      selector:
-        matchLabels: {app: reparto}
-      template:
-        metadata:
-          labels: {app: reparto}
-        spec:
-          containers:
-            - name: whoami
-              image: traefik/whoami
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: reparto
-    spec:
-      selector: {app: reparto}
-      ports: [{port: 80}]
-    ---
-    apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: reparto
-    spec:
-      rules:
-        - host: reparto.pps.lab
-          http:
-            paths:
-              - path: /
-                pathType: Prefix
-                backend:
-                  service: {name: reparto, port: {number: 80}}
-    ```
-
-7. Aplícalo y lanza veinte peticiones contando qué pod contesta cada una. Tienen que aparecer los tres nombres, con un reparto parecido:
-
-    ```bash
-    kubectl apply -f k8s/reparto.yaml
-    for i in $(seq 20); do curl -s -H "Host: reparto.pps.lab" http://192.168.56.31/ | grep Hostname; done | sort | uniq -c
-    ```
-
-8. Abre K9s y haz la validación que pide el enunciado. En `:deploy`, sitúate sobre `pps-app` y pulsa `s` para escalar a 5 réplicas (el equivalente de `--scale web=5` del compose). En `:pods` comprueba que hay cinco y en qué nodos, con `l` mira los logs de uno y con `d` sus eventos. Haz una captura de la vista de pods.
-9. Comprueba la autorrecuperación con carga: en una terminal deja el bucle del paso 7 con `while true`, y en K9s borra un pod de `reparto` con `Ctrl+d`. Verás cómo el reparto sigue funcionando y aparece un pod nuevo. Detén el bucle con `Ctrl+C`. Después vuelve `pps-app` a 2 réplicas.
-10. Sube los manifiestos al repositorio `pps-app` (carpeta `k8s/`) y documenta la hoja en `~/pps-entregas/ut5/a514/README.md`: la salida del `curl` de los tres nodos, el recuento del paso 7, la captura de K9s y una tabla breve con la equivalencia entre el compose del taller y tus manifiestos. Haz `git add`, `git commit` y `git push` en los dos repositorios.
+6. Sube los dos manifiestos a `k8s/` de `pps-app` y documenta en `~/pps-entregas/ut5/a514/README.md` el `curl` de los tres nodos, el recuento del paso 4, la captura de K9s y una tabla breve de equivalencias entre el compose del taller y tus manifiestos.
 
 <span class="et et-com">Comprobación</span> `curl` con `Host: pps.lab` devuelve `Hola PPS` desde las tres IP, el recuento muestra tres nombres de pod distintos, K9s muestra cinco pods de `pps-app` al escalar y el pod borrado se recrea. Si los pods se quedan en `ImagePullBackOff` o el `curl` devuelve `404 page not found`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
@@ -2575,8 +1823,16 @@ flowchart TB
 
 Un servicio desplegado que nadie mide falla en silencio: la unidad ha construido, empaquetado y desplegado, y falta saber si lo desplegado funciona y con qué carga. Al terminar la sesión hay en `pps01` un stack de ejemplo con Prometheus recogiendo métricas de la máquina, de los contenedores y de un proxy, Grafana leyéndolas, y una captura de cada componente validado. Primero se ve qué es una métrica y quién la expone (exporter), después cómo la recoge y consulta Prometheus, y la hoja A5.15 levanta el conjunto completo con un `docker compose`.
 
-!!! consulta "Material de partida"
-    En el aula (`RA5-Despliegue-seguro/07 ACT_RA5_3 - Prometheus & Grafana`) está `RA5.3.pdf`: introducción a los sistemas de monitorización (componentes, tipos y beneficios) y las dos actividades de la entrega ACT_UT5_3. La primera, que cubre esta sesión, pide levantar el stack del repositorio <https://github.com/dinesh24murali/example_repo/tree/main/prometheus_grafana_example> validando la instalación y la configuración, con captura de todos los elementos del stack; el artículo que lo acompaña es "Introduction to monitoring with Prometheus & Grafana", en <https://medium.com/@dineshmurali/introduction-to-monitoring-with-prometheus-grafana-ea338d93b2d9>. La segunda actividad (`node_exporter` en un servidor y Grafana en otro equipo) es la sesión 53. Documentación pública: <https://prometheus.io/docs/introduction/overview/> y <https://grafana.com/docs/grafana/latest/>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Ejemplo de Prometheus y Grafana](https://github.com/dinesh24murali/example_repo/tree/main/prometheus_grafana_example): el stack que se levanta.
+    - [Prometheus](https://prometheus.io/docs/introduction/overview/) y [Grafana](https://grafana.com/docs/grafana/latest/): la documentación oficial.
+    - El enunciado de la entrega ACT_UT5_3 está en el aula.
+
+    **Para ampliar** (opcional)
+
+    - [Introducción a la monitorización con Prometheus y Grafana](https://medium.com/@dineshmurali/introduction-to-monitoring-with-prometheus-grafana-ea338d93b2d9).
 
 ### Métricas, exporters y consultas
 
@@ -2664,59 +1920,25 @@ Cada destino recibe automáticamente dos etiquetas, `job` (el nombre del trabajo
 
 <span class="et et-obj">Objetivo</span> En `pps01` corre el stack de ejemplo (Traefik con una aplicación de prueba, Prometheus, cAdvisor, node_exporter y Grafana), los cuatro destinos de Prometheus salen en `UP`, has lanzado consultas PromQL sobre ellos y Grafana muestra el panel de node_exporter con datos reales. Es la primera actividad de ACT_UT5_3 del aula: levantar el stack y validar cada componente con captura.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` encendida (con Docker sin `sudo`, de la sesión 42) y con salida a Internet por su adaptador NAT: se descargan cinco imágenes. Conviene parar lo que no se use, porque el stack añade seis contenedores a los 6 GB de la máquina: `docker stop jenkins` (vuelve a arrancar con `docker start jenkins`). Se han explicado [métricas, exporters y consultas](#metricas-exporters-y-consultas) y la [arquitectura de Prometheus](#arquitectura-de-prometheus). Necesitas el repositorio `pps-entregas` clonado en `pps01`.
+<span class="et et-pre">Antes de empezar</span> `pps01` encendida, con Docker sin `sudo` (sesión 42) y salida a Internet por su adaptador NAT para descargar cinco imágenes. El stack añade seis contenedores a los 6 GB de la máquina, así que conviene parar Jenkins (`docker stop jenkins`). Se han explicado [métricas, exporters y consultas](#metricas-exporters-y-consultas) y la [arquitectura de Prometheus](#arquitectura-de-prometheus).
 
 <span class="et et-pas">Pasos</span>
 
-1. Comprueba que los puertos que usa el stack están libres. El Apache nativo de la A3.11 escucha en el 80 y choca con Traefik, así que se apaga y se impide que arranque con el sistema (si no está instalado, la orden avisa y se sigue). Después, la búsqueda tiene que quedar sin salida; si aparece algún puerto más, el servicio que lo ocupa (Log4Shell usa 8080 y 8082) se para antes de seguir:
+1. Deja libres en `pps01` los puertos del stack (80, 3000, 8080, 8082 y 9090). El 80 lo ocupa el Apache nativo de la A3.11: páralo y que no vuelva a arrancar con el sistema.
 
-    ```bash
-    sudo systemctl disable --now apache2
-    ss -ltn | grep -E ':(80|3000|8080|8082|9090)\s'
-    ```
+    *Pista:* `ss -ltn` dice qué escucha; el 8080 y el 8082 suelen ser del laboratorio de Log4Shell.
 
-2. Descarga el ejemplo y entra en su carpeta. El `prometheus.yml` del ejemplo declara la API v1 de Alertmanager, que las versiones actuales de Prometheus rechazan (el contenedor se reinicia en bucle con `expected Alertmanager api version to be one of [v2]`), así que se borra esa línea; Alertmanager no se usa en el laboratorio:
+2. Clona el [ejemplo](https://github.com/dinesh24murali/example_repo) en `~/monitor` y levanta el stack de `prometheus_grafana_example`, la ruta que usan las hojas siguientes, hasta ver en `running` sus seis servicios: `traefik`, `nodeapp`, `prometheus`, `cadvisor`, `node-exporter` y `grafana`.
 
-    ```bash
-    git clone --depth 1 https://github.com/dinesh24murali/example_repo.git ~/monitor
-    cd ~/monitor/prometheus_grafana_example
-    sed -i '/api_version: v1/d' prometheus/prometheus.yml
-    ls
-    ```
+    *Pista:* antes del primer arranque, borra la línea `api_version: v1` de su `prometheus.yml`: Prometheus ya no admite esa versión de Alertmanager y se reinicia en bucle. Con el aula descargando a la vez, cuenta con diez minutos.
 
-3. Construye la imagen de la aplicación de prueba y arranca el stack en segundo plano. La primera vez tarda porque descarga las imágenes; con treinta alumnos a la vez cuenta con diez minutos, y el aviso de que `version` está obsoleto en el `docker-compose.yml` se puede ignorar:
+3. Valida Prometheus: con tráfico a través de Traefik (peticiones correctas a `/` y errores 500 a `/error_or_not/error`), los cuatro trabajos (`prometheus`, `node`, `cadvisor`, `traefik`) en `UP` en **Status > Targets**, y en **Graph** `up`, las peticiones por código HTTP de [la tabla de consultas](#metricas-exporters-y-consultas) y la memoria de `nodeapp` según cAdvisor (`container_memory_usage_bytes`). La gráfica de peticiones tiene que moverse al repetir el tráfico.
 
-    ```bash
-    docker compose build
-    docker compose up -d
-    docker compose ps
-    ```
+    *Pista:* Compose añade un prefijo al nombre del contenedor, así que el filtro va con expresión regular: `name=~".*nodeapp.*"`.
 
-    En `ps` tienen que salir seis servicios en estado `running`: `traefik`, `nodeapp`, `prometheus`, `cadvisor`, `node-exporter` y `grafana`. Si alguno sale `exited`, `docker compose logs <servicio>` dice por qué.
+4. Valida cAdvisor y Grafana: en el 8080, el contenedor `nodeapp` con su CPU y su memoria; en el 3000 (usuario `admin` y contraseña `grafana`, las del ejemplo), la fuente Prometheus del ejemplo con **Save & test** y el dashboard `1860` ("Node Exporter Full") importado y con datos. Captura los dos.
 
-4. Genera tráfico para que haya datos que mirar: peticiones correctas y errores 500 a través de Traefik, que es quien las cuenta.
-
-    ```bash
-    for i in $(seq 1 40); do
-      curl -s -o /dev/null http://localhost/
-      curl -s -o /dev/null http://localhost/error_or_not/error
-    done
-    ```
-
-5. Abre la interfaz de Prometheus, `http://localhost:9090`, y entra en **Status > Targets**. Los cuatro trabajos (`prometheus`, `node`, `cadvisor`, `traefik`) tienen que estar en `UP`. Haz la captura: es la validación de Prometheus.
-6. En **Graph**, ejecuta estas tres consultas y anota qué devuelve cada una. Con la segunda, cambia a la pestaña **Graph** y comprueba que la línea se mueve al repetir el bucle del paso 4:
-
-    ```text
-    up
-    sum by (code) (rate(traefik_service_requests_total[1m]))
-    container_memory_usage_bytes{name=~".*nodeapp.*"}
-    ```
-
-    La tercera es del cAdvisor: Docker Compose añade un prefijo al nombre del contenedor, por eso se filtra con una expresión regular. Si no devuelve nada, ejecuta `container_memory_usage_bytes` a secas y busca en las etiquetas cuál es el de `nodeapp`.
-
-7. Abre cAdvisor, `http://localhost:8080`, y localiza el contenedor `nodeapp` con su CPU y su memoria. Captura.
-8. Abre Grafana, `http://localhost:3000` (usuario `admin`, contraseña `grafana`, la del ejemplo). Comprueba en **Connections > Data sources** que Prometheus ya viene como fuente por defecto y pulsa **Save & test**. Después, en **Dashboards > New > Import**, escribe el identificador `1860` (el panel "Node Exporter Full" de grafana.com), elige Prometheus como fuente y guarda. Captura el panel con datos.
-9. Crea `ut5/a515/` en `pps-entregas` con las capturas de los pasos 3 (`docker compose ps`), 5, 7 y 8, y con un `README.md` que diga, para cada componente del stack, qué hace en una línea, cómo lo has validado y qué valor devolvió la consulta `up`. Sube con `git add`, `git commit` y `git push`. Deja el stack levantado: la hoja siguiente lo usa como referencia.
+5. Crea `ut5/a515/` en `pps-entregas` con las capturas de `docker compose ps`, de Targets, de cAdvisor y de Grafana, y un `README.md` que diga, por componente, qué hace en una línea, cómo lo has validado y qué devolvió `up`. Deja el stack levantado: la A5.16 lo usa.
 
 <span class="et et-com">Comprobación</span> Los cuatro destinos aparecen en `UP` en Prometheus, la consulta de peticiones por código HTTP muestra dos series (`200` y `500`) y el panel de Grafana dibuja CPU y memoria de `pps01` sin el aviso "No data". Si una gráfica sale vacía, el primer sitio donde mirar es **Status > Targets**, y si Grafana no consulta a Prometheus, la dirección de la fuente de datos tiene que ser `http://prometheus:9090` (el nombre del servicio dentro de la red del compose, no `localhost`).
 
@@ -2730,8 +1952,11 @@ Cada destino recibe automáticamente dos etiquetas, `job` (el nombre del trabajo
 
 El caso real de la monitorización no es medir la máquina donde corre todo, sino vigilar un servidor desde otro equipo. Al terminar la sesión `destino01` publica sus métricas con node_exporter, el Prometheus y el Grafana de `pps01` (los de la A5.15) las recogen y las muestran en el panel de node_exporter, y hay escrita una primera regla de alerta que avisa cuando `destino01` deja de responder. La teoría cabe en dos ideas (qué se instala en cada máquina y qué es una fuente de datos, un panel y una alerta) y el tiempo va a la hoja A5.16.
 
-!!! consulta "Material de partida"
-    En el aula (`RA5-Despliegue-seguro/07 ACT_RA5_3 - Prometheus & Grafana`), la segunda actividad de `RA5.3.pdf` plantea exactamente esta arquitectura: un Ubuntu Server con `node_exporter` que expone las métricas y un Ubuntu cliente con Grafana y el panel de node_exporter que las consume. La bibliografía del PDF apunta a <https://prometheus.io/>, <https://grafana.com/> y <https://github.com/prometheus/node_exporter>. Además, la guía oficial <https://prometheus.io/docs/guides/node-exporter/> recorre la instalación de node_exporter y la consulta de sus métricas.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Guía de `node_exporter`](https://prometheus.io/docs/guides/node-exporter/): exponer y consultar las métricas de una máquina.
+    - [Prometheus](https://prometheus.io/) y [Grafana](https://grafana.com/).
 
 ### Monitorizar otra máquina: node_exporter
 
@@ -2787,68 +2012,27 @@ La alerta pasa por tres estados: **Inactive** (la condición no se cumple), **Pe
 
 <span class="et et-obj">Objetivo</span> `destino01` expone sus métricas con node_exporter, el Prometheus del stack de la A5.15 (en `pps01`) las recoge y el panel de node_exporter muestra en el Grafana de `pps01` la CPU, la memoria y el disco de `destino01`. Son dos máquinas distintas, una que vigila y otra vigilada, como pide la segunda actividad de ACT_UT5_3 del aula. De paso queda escrita la regla de alerta `ServidorCaido`, que la hoja A5.17 pondrá a prueba.
 
-<span class="et et-pre">Antes de empezar</span> Necesitas encendidas `destino01` (192.168.56.20, la de la A5.8, con su adaptador NAT activo para instalar el paquete) y `pps01` (192.168.56.10) con el stack de la A5.15 levantado en `~/monitor/prometheus_grafana_example` (`docker compose ps` con los seis servicios; si no lo está, `docker compose up -d`). Las dos VM en la red solo anfitrión. Se han explicado [monitorizar otra máquina con node_exporter](#monitorizar-otra-maquina-node_exporter) y los [paneles, las fuentes de datos y las alertas](#paneles-fuentes-de-datos-y-alertas-en-grafana). Vas a saltar entre dos máquinas: cada paso dice en cuál va.
+<span class="et et-pre">Antes de empezar</span> Necesitas encendidas `destino01` (192.168.56.20, la de la A5.8, con su adaptador NAT activo para instalar el paquete) y `pps01` (192.168.56.10) con los seis servicios del stack de la A5.15 levantados en `~/monitor/prometheus_grafana_example`. Las dos VM en la red solo anfitrión. Se han explicado [monitorizar otra máquina con node_exporter](#monitorizar-otra-maquina-node_exporter) y los [paneles, las fuentes de datos y las alertas](#paneles-fuentes-de-datos-y-alertas-en-grafana).
 
 <span class="et et-pas">Pasos</span>
 
-1. En `destino01` (usuario `vagrant`), instala node_exporter desde el repositorio de Ubuntu y comprueba que el servicio arranca y publica métricas:
+1. Instala en `destino01` el node_exporter de [Monitorizar otra máquina](#monitorizar-otra-maquina-node_exporter) y comprueba desde `pps01` que sus métricas se leen por la red en `192.168.56.20:9100`.
 
-    ```bash
-    sudo apt update && sudo apt install -y prometheus-node-exporter
-    systemctl is-active prometheus-node-exporter
-    curl -s http://localhost:9100/metrics | grep -m3 node_cpu_seconds_total
-    ```
+2. Añade al Prometheus de la A5.15 el trabajo `destino01`, con el target `192.168.56.20:9100`, y la regla `ServidorCaido` de [Paneles, fuentes de datos y alertas](#paneles-fuentes-de-datos-y-alertas-en-grafana) en un `alertas.yml` cargado con `rule_files`. Reinicia Prometheus hasta ver `destino01` en `UP` en **Status > Targets**, junto a los otros cuatro.
 
-2. Desde `pps01`, comprueba que las métricas se ven por la red, que es lo que Prometheus necesitará. Si no responde, revisa que las dos VM están en la misma red solo anfitrión y que no hay `ufw` activo en `destino01` (`sudo ufw status`):
+    *Pista:* la carpeta `prometheus/` del stack está montada en `/etc/prometheus`: `alertas.yml` va ahí y `rule_files` lo nombra con la ruta de dentro del contenedor. El trabajo se llama exactamente `destino01` porque la regla lo busca por ese nombre.
 
-    ```bash
-    curl -s http://192.168.56.20:9100/metrics | head -5
-    ```
+3. En el dashboard "Node Exporter Full" de la A5.15, elige en `Host` la máquina `destino01`, cambia un momento a `pps01` para ver que son dos series distintas y captura el panel de `destino01`.
 
-3. En `pps01`, entra en la carpeta del stack de la A5.15. El contenedor de Prometheus monta la carpeta `prometheus/` entera en `/etc/prometheus`, así que cualquier fichero que pongas ahí lo ve:
+4. Ocupa la CPU de `destino01` un minuto y medio y captura la subida en el panel.
 
-    ```bash
-    cd ~/monitor/prometheus_grafana_example/prometheus
-    ls
-    ```
+    *Pista:* `timeout 90 sh -c 'yes > /dev/null'` ocupa un núcleo y se para solo; con la recogida cada 15 s, la gráfica tarda un poco en reflejarlo.
 
-4. En `prometheus.yml` añade, al principio, el bloque `rule_files` (al nivel de `global`) y, al final de `scrape_configs`, el trabajo `destino01` con la máquina vigilada. La dirección es la IP de `destino01`, no un nombre de servicio, porque `destino01` no es un contenedor del compose:
+5. Comprueba en `http://localhost:9090/alerts` que `ServidorCaido` está cargada en `Inactive` y crea `ut5/a516/` en `pps-entregas` con las capturas de los pasos 2 a 4 y de la alerta, copias de `prometheus.yml` y `alertas.yml` y un `README.md` con los comandos y el resultado de cada comprobación.
 
-    ```yaml
-    rule_files:
-      - /etc/prometheus/alertas.yml
-    ```
+<span class="et et-com">Comprobación</span> El Prometheus de `pps01` tiene a `destino01` (`192.168.56.20:9100`) en `UP`, Grafana dibuja las métricas de `destino01` (no las de `pps01`: el desplegable `Host` lo confirma), la CPU sube durante el paso 4 y la regla de alerta está cargada sin errores. Si Prometheus no arranca tras el reinicio, es un error de sangría en `prometheus.yml` (lo dice `docker compose logs prometheus`); si el panel sale sin datos con el aviso de fuente de datos, la dirección es `http://prometheus:9090` y no `localhost`.
 
-    ```yaml
-      - job_name: "destino01"
-        static_configs:
-          - targets: ["192.168.56.20:9100"]
-    ```
-
-    Crea también `alertas.yml` en esa misma carpeta copiando la regla `ServidorCaido` de la teoría (el bloque completo, empezando por `groups:`).
-
-5. Reinicia Prometheus para que lea el fichero nuevo y comprueba que el reinicio no lo ha roto. Si `Up` no aparece o el contenedor se reinicia en bucle, `docker compose logs prometheus` señala la línea del YAML con el error (casi siempre una sangría):
-
-    ```bash
-    cd ~/monitor/prometheus_grafana_example
-    docker compose restart prometheus
-    docker compose ps prometheus
-    ```
-
-6. Desde el navegador de `pps01`, abre `http://localhost:9090/targets`: ahora son cinco trabajos y el nuevo, `destino01`, tiene que estar en `UP`, como los otros cuatro. Si sale `DOWN`, el mensaje de error de esa pantalla dice si es de red o de puerto. Captura.
-7. Abre Grafana, `http://localhost:3000` (usuario `admin`, contraseña `grafana`), y entra en el panel de node_exporter que importaste en la A5.15 (**Dashboards**, "Node Exporter Full"; si lo borraste, impórtalo otra vez con el identificador `1860` y la fuente Prometheus, que ya viene creada, con la dirección `http://prometheus:9090`).
-8. Elige en el desplegable `Host` la máquina `192.168.56.20:9100` (`destino01`) y captura el panel con sus datos. Cambia a `Host` de `pps01` un momento para ver que son dos series distintas y vuelve a `destino01`.
-9. Provoca carga en `destino01` para comprobar que lo que se ve es real: mantén un minuto y medio la CPU ocupada y observa cómo sube el gráfico de CPU en Grafana (con la actualización de 15 s, tarda un poco en reflejarse). Captura la subida.
-
-    ```bash
-    timeout 90 sh -c 'yes > /dev/null'
-    ```
-
-10. En `http://localhost:9090/alerts` comprueba que la regla `ServidorCaido` aparece en estado `Inactive` (en verde) y captura. Crea `ut5/a516/` en `pps-entregas` con las capturas de los pasos 6, 8, 9 y 10 y copias de `prometheus.yml` y `alertas.yml` y un `README.md` con los comandos usados y el resultado de cada comprobación. Sube con `git add`, `git commit` y `git push`.
-
-<span class="et et-com">Comprobación</span> El Prometheus de `pps01` tiene a `destino01` (`192.168.56.20:9100`) en `UP`, Grafana dibuja las métricas de `destino01` (no las de `pps01`: el desplegable `Host` lo confirma), la CPU sube durante el paso 9 y la regla de alerta está cargada sin errores. Si Prometheus no arranca tras el reinicio, es un error de sangría en `prometheus.yml` (lo dice `docker compose logs prometheus`); si el panel sale sin datos con el aviso de fuente de datos, la dirección es `http://prometheus:9090` y no `localhost`.
-
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a516/` de `pps-entregas` con capturas, ficheros de configuración y `README.md`. Forma parte de la entrega ACT_UT5_3 (junto con la A5.15), plazo el 17 de mayo (23:59). El enunciado original, `RA5.3.pdf`, está en el aula y pide la captura de los elementos del stack y la monitorización remota de `destino01` desde `pps01`; las dos hojas lo cubren.
+<span class="et et-ent">Entrega</span> La carpeta `ut5/a516/` de `pps-entregas` con capturas, ficheros de configuración y `README.md`. Forma parte de la entrega ACT_UT5_3 (junto con la A5.15), plazo el 17 de mayo (23:59). El enunciado de la entrega está en el aula y pide la captura de los elementos del stack y la monitorización remota de `destino01` desde `pps01`; las dos hojas lo cubren.
 
 <span class="et et-ext">Si te sobra tiempo</span> Duplica la regla como `MemoriaBaja`, con la expresión `node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1` y `for: 2m`, reinicia con `docker compose restart prometheus` y comprueba que aparece. Mira también cómo importar el mismo panel desde un fichero JSON en vez de por su identificador.
 
@@ -2858,8 +2042,11 @@ La alerta pasa por tres estados: **Inactive** (la condición no se cumple), **Pe
 
 Un sistema que se despliega con cuidado y se monitoriza puede seguir sin haber demostrado lo más importante: que se recupera solo cuando algo falla. Al terminar la sesión hay cuatro experimentos hechos con sus tiempos medidos (un contenedor que cae con y sin política de reinicio, un pod que se borra, un nodo del clúster que se apaga y un servidor que deja de responder a Prometheus) y una tabla que dice, para cada fallo, quién reaccionó, en cuánto tiempo y si saltó la alerta. Primero se ve qué es la ingeniería del caos y con qué herramientas se practica, y después qué se mide y qué reacción cabe esperar en cada capa; la hoja A5.17 reproduce esos fallos a pequeña escala.
 
-!!! consulta "Material de partida"
-    Del curso anterior se conserva el apunte "Herramientas de simulación de fallos" (`2022-02-21-Herramientas-de-simulación-de-fallos.md`, entre los apuntes de terceros que recoge la página [Material](../material.md); no declara licencia, por lo que aquí solo se enlaza y se explica con palabras propias): define la ingeniería del caos y describe Simian Army, Chaos Toolkit, Chaoskube, Simmy, Chaos Mesh y Gremlin. No existe actividad del aula para esta sesión: la hoja A5.17 es nueva y cubre el criterio e) del RA5, que el curso anterior solo trataba en teoría. Enlaces públicos: <https://principlesofchaos.org/>, <https://chaos-mesh.org/> y <https://chaostoolkit.org/>.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Principios de la ingeniería del caos](https://principlesofchaos.org/), [Chaos Mesh](https://chaos-mesh.org/) y [Chaos Toolkit](https://chaostoolkit.org/): simular fallos a propósito.
+    - El enunciado de la entrega ACT_UT5_5 está en el aula.
 
 ### Ingeniería del caos
 
@@ -2926,77 +2113,33 @@ Dos precisiones evitan interpretar mal los resultados. La política `unless-stop
 
 <span class="et et-obj">Objetivo</span> Has provocado cuatro fallos (un contenedor con y sin política de reinicio, un pod, un nodo del clúster y un servidor que deja de responder a Prometheus), has medido cuánto tardó cada uno en detectarse y en repararse, y has comprobado si saltó la alerta. Cubre el criterio e) del RA5, capacidad del sistema para reaccionar de forma automática a fallos, y produce la primera parte de la entrega ACT_UT5_5.
 
-<span class="et et-pre">Antes de empezar</span> Necesitas el clúster K3s de tres servidores de la [A5.13](#a513-k3s-en-alta-disponibilidad-sesion-50) con el despliegue `nginx` de dos réplicas y su NodePort 30080 (encendidas `k3s-1`, `k3s-2` y `k3s-3`), la monitorización de la [A5.16](#a516-monitorizacion-de-un-servidor-sesion-53) (`destino01` encendida, con node_exporter, y `pps01` con el stack de la A5.15 levantado y la regla `ServidorCaido` cargada). Son cinco VM encendidas. En `pps01` el stack de la A5.15 tiene que seguir en marcha porque es el Prometheus que vigila, así que solo se apaga Jenkins (`docker stop jenkins`), que aquí no se usa, para no chocar de puerto. Pero además, con cinco VM encendidas se suman 12 GB, por encima del [presupuesto de memoria](../laboratorio.md#presupuesto-de-memoria): parar Jenkins libera RAM dentro de `pps01`, no los 6 GB que VirtualBox reserva del anfitrión, así que antes de arrancar, con `pps01` apagada, baja su memoria a 4 GB con `VBoxManage modifyvm pps01 --memory 4096`; al terminar la hoja, restaura `--memory 6144`. Los puertos no se pisan: el stack ocupa 80, 3000, 8080, 8082 y 9090, Jenkins el 8090 y los contenedores de la hoja el 8101 y el 8102. Se han explicado la [ingeniería del caos](#ingenieria-del-caos) y [cómo medir la reacción del sistema](#medir-la-reaccion-del-sistema). `kubectl` se ejecuta en `k3s-1` (`sudo k3s kubectl ...`) o en `pps01` si dejaste allí el `kubeconfig`. Cada experimento cambia una sola cosa y se deshace al terminar.
+<span class="et et-pre">Antes de empezar</span> El clúster de la [A5.13](#a513-k3s-en-alta-disponibilidad-sesion-50) con el despliegue `nginx` de dos réplicas en el NodePort 30080 (`k3s-1`, `k3s-2` y `k3s-3`) y la monitorización de la [A5.16](#a516-monitorizacion-de-un-servidor-sesion-53): node_exporter en `destino01` y, en `pps01`, el stack de la A5.15 con la regla `ServidorCaido` cargada y Jenkins parado. Son cinco VM y 12 GB, por encima del [presupuesto de memoria](../laboratorio.md#presupuesto-de-memoria): antes de arrancar, con `pps01` apagada, bájala a 4 GB (`VBoxManage modifyvm pps01 --memory 4096`), porque parar Jenkins no libera lo que VirtualBox le reserva, y al terminar restaura `--memory 6144`. Se han explicado la [ingeniería del caos](#ingenieria-del-caos) y [cómo medir la reacción del sistema](#medir-la-reaccion-del-sistema). `kubectl` se ejecuta en `k3s-1`. Cada experimento cambia una sola cosa y se deshace al terminar.
 
 <span class="et et-pas">Pasos</span>
 
-1. En `pps01`, crea `ut5/a517/README.md` en `pps-entregas` con una tabla vacía de cuatro filas (contenedor, pod, nodo, servidor) y las columnas `Hipótesis`, `Detección`, `Recuperación`, `¿Alerta?` y `Conclusión`. Rellena la columna `Hipótesis` **antes** de romper nada, con una cifra por fila, apoyándote en la tabla de la teoría.
-2. Empieza por el fallo más lento, el del nodo, y déjalo corriendo. Mira dónde están los pods y elige un nodo que tenga un pod de `nginx` y no sea `k3s-1` (si los dos están en `k3s-1`, `kubectl rollout restart deploy/nginx` los recoloca):
+1. Prepara en `ut5/a517/README.md` de `pps-entregas` una tabla de cuatro filas (contenedor, pod, nodo, servidor) con las columnas `Hipótesis`, `Detección`, `Recuperación`, `¿Alerta?` y `Conclusión`, y rellena `Hipótesis` **antes** de romper nada, con una cifra por fila sacada de [Medir la reacción del sistema](#medir-la-reaccion-del-sistema).
 
-    ```bash
-    kubectl get pods -o wide
-    ```
+2. Empieza por el fallo más lento, el del nodo, y déjalo corriendo: con un bucle en `pps01` que pida `http://192.168.56.31:30080` cada segundo y guarde la hora y el código en `~/nodo.log`, apaga de golpe un nodo con un pod de `nginx` que no sea `k3s-1`. Anota la hora y cuánto tarda en salir como `NotReady`.
 
-3. En una segunda terminal de `pps01`, lanza un bucle que pida el servicio cada segundo con marca de hora (`000` significa que no hubo respuesta en 2 s), y déjalo abierto durante todo el experimento:
+    *Pista:* el apagado de golpe se da desde el anfitrión, con `VBoxManage controlvm <vm> poweroff`. Con `curl -m 2 -w '%{http_code}'`, la petición que no responde en 2 s deja `000`; si los dos pods están en `k3s-1`, `kubectl rollout restart deploy/nginx` los recoloca.
 
-    ```bash
-    while true; do printf '%s ' "$(date +%T)"; curl -s -o /dev/null -m 2 -w '%{http_code}\n' http://192.168.56.31:30080; sleep 1; done | tee ~/nodo.log
-    ```
+3. Mientras el clúster decide, mide en `pps01` la política de reinicio con dos `nginx:alpine`: `web-sin` en el 8101, sin política, y `web-con` en el 8102, con `unless-stopped`. Mata de golpe el proceso principal de cada uno, mide cuánto tarda `web-con` en volver a responder y compara cómo quedan los dos. Después para `web-con` con `docker stop` y mira si vuelve.
 
-4. Apaga de golpe el nodo elegido, como si se cortara la corriente. En el equipo que ejecuta VirtualBox (no dentro de `pps01`), con `VBoxManage controlvm k3s-3 poweroff` (cambia `k3s-3` por el tuyo) o con el menú **Cerrar > Apagar la máquina** de la VM. Anota la hora exacta. En `k3s-1`, mira cuándo pasa el nodo a `NotReady` (unos 40 s) y cuántas líneas `000` acumula el bucle:
+    *Pista:* el fallo es un `kill -9` al PID que da `docker inspect -f '{{.State.Pid}}'`; `RestartCount` cuenta los reinicios.
 
-    ```bash
-    kubectl get nodes -w
-    ```
+4. Borra uno de los pods de `nginx` que no esté en el nodo apagado y mide, con marca de hora, cuánto tarda el Deployment en volver a tener dos réplicas listas.
 
-5. Mientras el clúster decide qué hacer con el nodo (tarda unos cinco minutos), haz el experimento del contenedor en `pps01`. Crea dos servidores iguales, uno sin política de reinicio y otro con ella:
+    *Pista:* `kubectl get pods -w | while read -r l; do echo "$(date +%T) $l"; done` pone la hora a cada línea.
 
-    ```bash
-    docker run -d --name web-sin -p 8101:80 nginx:alpine
-    docker run -d --name web-con --restart unless-stopped -p 8102:80 nginx:alpine
-    ```
+5. Para el node_exporter de `destino01`, anota la hora y captura `ServidorCaido` en `Pending` y en `Firing` en el Prometheus de `pps01`, con la hora de cada cambio. Arráncalo de nuevo y comprueba que la alerta se resuelve.
 
-6. Simula un fallo del proceso (no una parada ordenada) matando el proceso principal de cada contenedor desde el sistema, y mide cuánto tarda en volver a responder el que tiene política. Compara al final el estado de los dos:
+6. Pasados unos cinco minutos desde el apagado, mira qué ha hecho el clúster con los pods del nodo caído, detén el bucle, cuenta los `000` de `nodo.log` y enciende el nodo hasta que vuelva a `Ready`. Completa la tabla con lo medido y, en `Conclusión`, si se cumplió cada hipótesis y qué cambiarías si no. Guarda en la carpeta `nodo.log` y las capturas (`kubectl get nodes` con el nodo `NotReady`, `docker ps -a` de los dos contenedores, el `watch` del pod y la alerta en `Pending` y en `Firing`) y retira `web-sin` y `web-con`.
 
-    ```bash
-    sudo kill -9 $(docker inspect -f '{{.State.Pid}}' web-sin)
-    t0=$(date +%s%N); sudo kill -9 $(docker inspect -f '{{.State.Pid}}' web-con)
-    until curl -sf -o /dev/null http://localhost:8102; do sleep 0.2; done
-    echo "recuperado en $(( ($(date +%s%N) - t0) / 1000000 )) ms"
-    docker ps -a --filter name=web- --format '{{.Names}} {{.Status}}'
-    docker inspect -f '{{.RestartCount}}' web-con
-    ```
-
-    Después ejecuta `docker stop web-con` y comprueba que **no** vuelve a arrancar: la política distingue un fallo de una parada pedida a mano. Anota los dos comportamientos.
-
-7. En `k3s-1`, borra uno de los dos pods de `nginx` (el que no esté en el nodo apagado; `kubectl get pods -o wide` dice cuál) y observa cuánto tarda en volver a haber dos réplicas listas. Con la segunda orden, cada línea que pinta el `watch` lleva marca de hora; pulsa `Ctrl+C` cuando el pod nuevo llegue a `Running` y `1/1`:
-
-    ```bash
-    kubectl delete pod <nombre_del_pod>
-    kubectl get pods -w | while read -r l; do echo "$(date +%T) $l"; done
-    ```
-
-8. En `destino01`, para el exporter y anota la hora. En `http://localhost:9090/alerts` (en `pps01`) observa cómo la alerta `ServidorCaido` pasa de `Inactive` a `Pending` y, tras el minuto del `for`, a `Firing`. Anota las dos horas y captura cada estado. Al terminar, vuelve a arrancarlo y comprueba que la alerta se resuelve:
-
-    ```bash
-    sudo systemctl stop prometheus-node-exporter
-    sudo systemctl start prometheus-node-exporter
-    ```
-
-9. Vuelve al experimento del nodo, cuando hayan pasado unos cinco minutos desde el paso 4. En `k3s-1`, mira qué ha hecho el clúster con los pods que estaban en el nodo apagado. Detén el bucle del paso 3 con `Ctrl+C` y cuenta las líneas que acaban en `000`. Después enciende el nodo desde VirtualBox y comprueba que vuelve a `Ready`:
-
-    ```bash
-    kubectl get pods -o wide
-    grep -c ' 000$' ~/nodo.log
-    ```
-
-10. Completa la tabla con los tiempos medidos, copia `nodo.log` a la carpeta, sube las capturas (`kubectl get nodes` con el nodo `NotReady`, `docker ps -a` de los dos contenedores, el `watch` del pod, la alerta en `Pending` y en `Firing`) y limpia: `docker rm -f web-sin web-con`. En `Conclusión` escribe, por fila, si la hipótesis se cumplió y qué cambiarías si no (por ejemplo, la política de reinicio de un servicio que no la tiene). Sube con `git add`, `git commit` y `git push`.
-
-<span class="et et-com">Comprobación</span> Las cuatro filas de la tabla tienen hipótesis, detección, recuperación y conclusión con cifras medidas, no estimadas. El contenedor `web-con` tiene `RestartCount` mayor que 0 y `web-sin` sigue parado, el Deployment ha vuelto a dos réplicas listas tras borrar el pod, el nodo apagado ha pasado por `NotReady` y ha vuelto a `Ready`, y la alerta ha llegado a `Firing` y se ha resuelto. Si el bucle del paso 3 no registra ningún `000`, el pod caído no estaba en el nodo apagado o Kubernetes ya lo había sacado del servicio antes de la siguiente petición: repite el experimento eligiendo bien el nodo.
+<span class="et et-com">Comprobación</span> Las cuatro filas de la tabla tienen hipótesis, detección, recuperación y conclusión con cifras medidas, no estimadas. El contenedor `web-con` tiene `RestartCount` mayor que 0 y `web-sin` sigue parado, el Deployment ha vuelto a dos réplicas listas tras borrar el pod, el nodo apagado ha pasado por `NotReady` y ha vuelto a `Ready`, y la alerta ha llegado a `Firing` y se ha resuelto. Si el bucle del paso 2 no registra ningún `000`, el pod caído no estaba en el nodo apagado o Kubernetes ya lo había sacado del servicio antes de la siguiente petición: repite el experimento eligiendo bien el nodo.
 
 <span class="et et-ent">Entrega</span> La carpeta `ut5/a517/` de `pps-entregas` con `README.md` (la tabla completa), `nodo.log` y las capturas. Forma parte de la entrega ACT_UT5_5 (con la hoja A5.18), plazo el 24 de mayo (23:59), y su tabla se reutiliza en la sesión 55 y en el proyecto integrador.
 
-<span class="et et-ext">Si te sobra tiempo</span> Instala `prometheus-node-exporter` en el nodo del clúster que vas a apagar, añádelo como destino en el `prometheus.yml` del stack de `pps01` y repite el paso 4: así también salta `ServidorCaido` por el nodo caído, y puedes comparar el tiempo de detección de Prometheus con el de Kubernetes.
+<span class="et et-ext">Si te sobra tiempo</span> Instala `prometheus-node-exporter` en el nodo del clúster que vas a apagar, añádelo como destino en el `prometheus.yml` del stack de `pps01` y repite el apagado del paso 2: así también salta `ServidorCaido` por el nodo caído, y puedes comparar el tiempo de detección de Prometheus con el de Kubernetes.
 
 ## Sesión 55 · Recuperación ante desastres y retroalimentación
 
@@ -3004,8 +2147,10 @@ Dos precisiones evitan interpretar mal los resultados. La política `unless-stop
 
 La sesión anterior terminó con fallos que el sistema absorbe solo (un contenedor que se reinicia, un pod que se recrea). Esta trata de los fallos que no absorbe: el volumen que se borra, la máquina que no arranca, el disco que se llena. Al acabar hay un plan de recuperación escrito con dos números que lo gobiernan (RTO y RPO), una copia de un volumen real de `pps01` restaurada en un contenedor de prueba con el tiempo medido, y una retrospectiva breve que convierte lo aprendido en acciones. La herramienta es una orden de `docker` con `tar` para la copia y un documento en Markdown para el plan; lo que importa es el procedimiento, no la herramienta.
 
-!!! consulta "Material de partida"
-    En el aula, carpeta `RA5-Despliegue-seguro/01 Material`: `05-DevOps.pdf` (cultura DevOps, entrega continua y realimentación entre desarrollo y operación) y `01-Infraestructura.pdf` (virtualización y contenedores, de donde sale la idea de que un contenedor se recrea y sus datos no). No existía actividad propia de este tema: la hoja A5.18 y la entrega ACT_UT5_5 son nuevas y cubren los criterios f y g de RA5. En la web, el índice de la unidad "Implantación de sistemas seguros de desplegado de software" (<https://github.com/EloyAlbiach/PPS/tree/main/desplegado_seguro>, licencia CC BY-NC-SA 4.0, solo como referencia de temario) y el artículo "Herramientas de simulación de fallos" de los apuntes de la web <https://psegarrac.github.io/Ciberseguridad-PePS/> (2022-02-21), que enlaza con la sesión 54. Las guías de recuperación ante desastres de la documentación de cada proveedor se consultan, no se copian.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Copia y restauración en K3s](https://docs.k3s.io/datastore/backup-restore): la recuperación del clúster.
 
 ### Plan de recuperación: copias, RTO y RPO
 
@@ -3061,49 +2206,27 @@ Los números alimentan la conversación. Cuatro métricas de despliegue, usadas 
 
 <span class="et et-obj">Objetivo</span> Redactar el plan de recuperación de dos servicios del laboratorio con su RTO y su RPO, hacer una copia del volumen `jenkins_home`, restaurarla en un Jenkins de prueba midiendo el tiempo, y cerrar con una retrospectiva breve. Es el CE f (procedimiento de recuperación documentado) y el CE g (bucle de retroalimentación) de RA5.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` encendida con el contenedor `jenkins` (imagen `pps-jenkins:2` de la [sesión 42](#a56-jenkins-con-docker-sesion-42)) y el volumen `jenkins_home` de la [sesión 40](#a54-jenkins-primer-trabajo-sesion-40), con al menos el trabajo de `pps-app`. Las mediciones de la [hoja anterior](#a517-reaccion-a-fallos-sesion-54) (tiempos de recuperación y si saltó la alerta), que se reutilizan. Se ha explicado el [plan de recuperación, RTO y RPO](#plan-de-recuperacion-copias-rto-y-rpo) y los [bucles de retroalimentación y la retrospectiva](#bucles-de-retroalimentacion-y-retrospectivas). Antes de empezar, instantánea de `pps01`. El puerto `8091` de `pps01` se usa solo para el Jenkins de prueba y se libera al terminar.
+<span class="et et-pre">Antes de empezar</span> `pps01` encendida con el contenedor `jenkins` (imagen `pps-jenkins:2` de la [sesión 42](#a56-jenkins-con-docker-sesion-42)) y el volumen `jenkins_home` de la [sesión 40](#a54-jenkins-primer-trabajo-sesion-40), con al menos el trabajo de `pps-app`. Las mediciones de la [hoja anterior](#a517-reaccion-a-fallos-sesion-54) (tiempos de recuperación y si saltó la alerta), que se reutilizan. Se han explicado el [plan de recuperación, RTO y RPO](#plan-de-recuperacion-copias-rto-y-rpo) y los [bucles de retroalimentación y la retrospectiva](#bucles-de-retroalimentacion-y-retrospectivas). Haz una instantánea de `pps01` antes de empezar.
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la carpeta de la hoja y la de copias, esta última fuera del repositorio y con permisos cerrados:
+1. Crea `~/copias` fuera de cualquier repositorio, con permisos `700`, y empieza `ut5/a518/plan-recuperacion.md` con la tabla de los dos servicios, el Jenkins de `pps01` (su dato con estado es el volumen `jenkins_home`) y `pps-app` en K3s: RPO, RTO y cómo se recupera cada uno, con una línea que justifique los valores.
 
-    ```bash
-    mkdir -p ~/pps-entregas/ut5/a518 && install -d -m 700 ~/copias
-    ```
+    *Pista:* el ejemplo de Jenkins de [Plan de recuperación](#plan-de-recuperacion-copias-rto-y-rpo) sirve de punto de partida; para `pps-app`, mira en qué renglón cae de la tabla de lo que se reconstruye y lo que se restaura.
 
-    En `~/pps-entregas/ut5/a518/plan-recuperacion.md` escribe la tabla de servicios con RTO y RPO. Se proponen valores razonables para el laboratorio; se pueden cambiar si se justifican en una línea:
+2. Copia `jenkins_home` sin parar Jenkins, que en un laboratorio basta, en un `.tar.gz` de `~/copias` con la fecha en el nombre y permisos `600`. Guarda su suma en `ut5/a518/copia.sha256` y anota la hora.
 
-    | Servicio | Datos con estado | RPO | RTO | Cómo se recupera |
-    |---|---|---|---|---|
-    | Jenkins (`pps01`) | Volumen `jenkins_home` | 24 h | 30 min | Restaurar la copia en un contenedor nuevo |
-    | `pps-app` en K3s | Ninguno (imagen y `k8s/pps-app.yaml`) | 0 | 15 min | `ansible-playbook` con la última imagen |
+    *Pista:* un contenedor `alpine` de usar y tirar que monte el volumen en solo lectura y `~/copias` hace la copia con `tar czf`.
 
-2. Haz la copia del volumen sin parar Jenkins (para un laboratorio es suficiente; en producción se pararía o se usaría el mecanismo de copia de la propia herramienta). Anota la hora antes y después:
+3. Crea en Jenkins un trabajo vacío, `posterior-a-la-copia`, y anota la hora: es el dato que se perdería si el desastre ocurriera ahora, y su distancia a la copia es el RPO real.
 
-    ```bash
-    date -u +%FT%TZ
-    docker run --rm -v jenkins_home:/datos:ro -v ~/copias:/copia alpine \
-      tar czf /copia/jenkins_home-$(date +%F).tar.gz -C /datos .
-    chmod 600 ~/copias/jenkins_home-*.tar.gz
-    sha256sum ~/copias/jenkins_home-*.tar.gz | tee ~/pps-entregas/ut5/a518/copia.sha256
-    ```
+4. Restaura la copia en un Jenkins de prueba **sin tocar el original** (volumen `jenkins_restaurado` y contenedor `jenkins-restaurado` de `pps-jenkins:2` en el 8091) y cronometra hasta que `/login` responde: es el RTO medido. Entra con tu usuario y comprueba que están el trabajo de `pps-app` y las credenciales `github-token`, `dockerhub` y `nvd-api-key` (su presencia, nunca su valor) y que `posterior-a-la-copia` **no** está. Captura la lista de trabajos.
 
-3. Simula que hay un cambio posterior a la copia, para poder medir el RPO: en Jenkins crea un trabajo vacío llamado `posterior-a-la-copia` y anota la hora. Es el "dato" que se perdería si el desastre ocurriera ahora: la diferencia entre esa hora y la de la copia es el RPO real de esta situación.
-4. Restaura en un Jenkins de prueba, **sin tocar el original**. Cronometra desde que escribes la primera orden hasta que la interfaz responde:
+    *Pista:* la extracción es la copia al revés. Con copias de varios días, `tar` no admite el comodín: elige la más reciente con `ls -t | head -1`.
 
-    ```bash
-    date +%T
-    docker volume create jenkins_restaurado
-    docker run --rm -v jenkins_restaurado:/datos -v ~/copias:/copia alpine \
-      sh -c 'tar xzf "$(ls -t /copia/jenkins_home-*.tar.gz | head -1)" -C /datos'
-    docker run -d --name jenkins-restaurado -p 8091:8080 -v jenkins_restaurado:/var/jenkins_home pps-jenkins:2
-    until curl -s -o /dev/null -w '%{http_code}' http://localhost:8091/login | grep -q 200; do sleep 5; done; date +%T
-    ```
+5. Ajusta el plan con lo medido: si el RTO supera el objetivo de la tabla del paso 1, cambia el objetivo (y di por qué) o el procedimiento (por ejemplo, un script `restaurar-jenkins.sh` con las órdenes del paso 4). Complétalo con el contenido mínimo de [la teoría](#plan-de-recuperacion-copias-rto-y-rpo) y, para `pps-app`, explica en tres líneas cómo se repone con su imagen publicada y `k8s/pps-app.yaml` (en el proyecto lo hará el [playbook de despliegue](#a520-proyecto-despliegue-y-monitorizacion-sesion-57)), con el tiempo de recuperación medido en la hoja anterior.
 
-5. Entra en `http://192.168.56.10:8091` (o `http://localhost:8091` desde `pps01`) con el usuario de tu Jenkins original. Comprueba que el trabajo de `pps-app` y las credenciales `github-token`, `dockerhub` y `nvd-api-key` (solo su presencia, nunca su valor) están, y que `posterior-a-la-copia` **no** está. Captura la pantalla de la lista de trabajos y calcula el RTO medido: la diferencia entre las dos horas que imprimió el paso 4, redondeada al minuto.
-6. Compara con la tabla del paso 1 y ajusta el plan: si el RTO medido supera el objetivo, cambia el objetivo (y di por qué) o el procedimiento (por ejemplo, un script `restaurar-jenkins.sh` con las órdenes del paso 4). Completa `plan-recuperacion.md` con el contenido mínimo: qué se copia y cada cuánto, dónde se guarda, quién restaura, las órdenes exactas, cómo se comprueba y la fecha de este ensayo. Para `pps-app` en K3s, la recuperación es la del [playbook de despliegue](#a520-proyecto-despliegue-y-monitorizacion-sesion-57): explícalo en tres líneas y añade el tiempo de recuperación medido en la hoja anterior.
-7. Retira lo de prueba (`docker rm -f jenkins-restaurado && docker volume rm jenkins_restaurado`) y, por parejas o en grupo de tres, escribe durante 10 minutos `retrospectiva.md` con el formato de tres columnas del [apartado de retrospectivas](#bucles-de-retroalimentacion-y-retrospectivas). Cada columna se rellena con hechos de las hojas A5.17 y A5.18, y las acciones llevan rol responsable y fecha. Añade una línea con las cuatro métricas de despliegue tal como se han vivido en el proyecto hasta ahora (por ejemplo, tiempo de recuperación: el medido en el paso 5).
-8. Sube todo a `pps-entregas` con `git add`, `git commit` y `git push`, sin la copia `.tar.gz`.
+6. Retira el Jenkins y el volumen de prueba y escribe en pareja o en grupo de tres, en 10 minutos, `retrospectiva.md` con el formato de [la retrospectiva](#bucles-de-retroalimentacion-y-retrospectivas): hechos de las A5.17 y A5.18, acciones con rol responsable y fecha, y una línea con las cuatro métricas de despliegue tal como se han vivido (el tiempo de recuperación, el del paso 4). Sube la carpeta sin el `.tar.gz`.
 
 <span class="et et-com">Comprobación</span> El Jenkins restaurado muestra el trabajo de `pps-app` y sus credenciales, no muestra `posterior-a-la-copia`, y `docker ps` ya no lista `jenkins-restaurado`. `git status` en `pps-entregas` no muestra ningún `.tar.gz`. El `ls -t` elige la copia más reciente: con dos copias de días distintos, `tar` no admite el comodín. Si el contenedor restaurado no arranca o pide la clave inicial de instalación, el volumen quedó vacío: revisa el nombre de la copia del paso 2 y repite el paso 4 con un volumen nuevo.
 
@@ -3117,8 +2240,11 @@ Los números alimentan la conversación. Cuatro métricas de despliegue, usadas 
 
 El proyecto integrador no introduce herramientas nuevas: recorre de una vez, sobre la misma aplicación `pps-app`, lo que la unidad ha construido por piezas. Al acabar esta sesión existe la primera mitad del recorrido, un pipeline de Jenkins que construye, prueba, analiza las dependencias y publica la imagen en Docker Hub cada vez que cambia la rama principal; la segunda mitad (despliegue, monitorización y plan de recuperación) es la sesión siguiente. Antes de la hoja se presenta qué se entrega y con qué criterios se califica.
 
-!!! consulta "Material de partida"
-    Esta actividad no existía en el aula de 2024-25: es nueva y junta las anteriores. Cada parte se apoya en el material de su hoja. Del aula, carpeta `RA5-Despliegue-seguro`: `02 ACT_RA5_1 - Jenkins/RA5.1.pdf` (Jenkinsfile y `jenkinsfile.docker`), `03 ACT_RA5_2 - Terraform & Ansible/RA5.2.pdf` (playbook), `08 ACT_RA5_4 - K3s & K9s/RA5.4.pdf` (K3s) y `07 ACT_RA5_3 - Prometheus & Grafana/RA5.3.pdf` (monitorización). En la web, la documentación oficial de Jenkins (<https://www.jenkins.io/doc/book/pipeline/>) y de Docker Hub (<https://docs.docker.com/docker-hub/>) sobre repositorios y etiquetas.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Pipelines de Jenkins](https://www.jenkins.io/doc/book/pipeline/) y [repositorios y etiquetas en Docker Hub](https://docs.docker.com/docker-hub/): construir, probar y publicar la imagen.
+    - El enunciado del proyecto integrador está en el aula.
 
 ### Enunciado del proyecto integrador
 
@@ -3151,95 +2277,34 @@ Un proyecto que no llega a una parte se califica por las que sí entrega: es mej
 
 <span class="et et-obj">Objetivo</span> Tener en `pps-app` un `Jenkinsfile` completo que, en cada cambio de la rama principal, construye y prueba con Maven, analiza las dependencias, calcula la suma del jar y publica `pps<NIA>/pps-app:<build>` en Docker Hub, y comprobar que esa imagen arranca. Es la parte de pipeline del proyecto y aporta a los criterios c y d de RA5.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` con Jenkins en `http://192.168.56.10:8090` y las credenciales `github-token`, `dockerhub` y `nvd-api-key`, y el volumen `dc-data` con la base de la NVD, de la [sesión 43](#a57-pipeline-seguro-sesion-43); el repositorio `pps-app` con la aplicación de la sesión 39, su `Dockerfile` y la rama principal protegida de la [sesión 38](#a52-git-en-equipo-sesion-38); el contenedor `jenkins` (imagen `pps-jenkins:2`) capaz de ejecutar `docker` como en la [sesión 42](#a56-jenkins-con-docker-sesion-42). Se han presentado el [enunciado y los criterios](#enunciado-del-proyecto-integrador). Si el `Jenkinsfile` de `pps-app` ya tiene alguna de las etapas de abajo, se conserva: la hoja completa lo que falte, no lo reescribe. Repositorio de Docker Hub `pps<NIA>/pps-app` público, para que K3s lo descargue sin credenciales en la sesión 57.
+<span class="et et-pre">Antes de empezar</span> `pps01` con Jenkins en `http://192.168.56.10:8090`, las credenciales `github-token`, `dockerhub` y `nvd-api-key` y el volumen `dc-data` con la base de la NVD de la [sesión 43](#a57-pipeline-seguro-sesion-43); `pps-app` con su `Dockerfile` y la rama principal protegida de la [sesión 38](#a52-git-en-equipo-sesion-38), y el contenedor `jenkins` (imagen `pps-jenkins:2`) capaz de ejecutar `docker` como en la [sesión 42](#a56-jenkins-con-docker-sesion-42). El repositorio `pps<NIA>/pps-app` de Docker Hub es público, para que K3s lo descargue sin credenciales en la sesión 57. Se han presentado el [enunciado y los criterios](#enunciado-del-proyecto-integrador). Lo que el `Jenkinsfile` ya tenga se conserva: la hoja completa lo que falte, no lo reescribe.
 
 <span class="et et-pas">Pasos</span>
 
-1. En `pps01`, clona o actualiza el repositorio, comprueba que la aplicación construye y que el `Dockerfile` existe, y crea la rama de trabajo:
+1. En una rama `proyecto-pipeline` de `pps-app`, con la aplicación construyendo en local, deja el `Jenkinsfile` con las cuatro etapas del [enunciado](#enunciado-del-proyecto-integrador): construir y probar con Maven, con el informe de JUnit; analizar las dependencias con Dependency-Check; calcular y archivar la suma `sha256` del jar; y publicar la imagen. Las tres primeras ya son las de la A5.7.
 
-    ```bash
-    cd ~/pps-app && git checkout main && git pull
-    mvn -q verify && ls Dockerfile
-    git switch -c proyecto-pipeline
-    ```
+2. Escribe la etapa de publicación: comprueba otra vez la suma del jar, construye `pps<NIA>/pps-app` con el número de build (`$BUILD_NUMBER`) como etiqueta, entra en Docker Hub con la credencial `dockerhub`, sube la imagen y cierra la sesión.
 
-2. Abre el `Jenkinsfile` y déjalo con estas etapas. Es el pipeline íntegro; si ya tenías partes, cambia solo lo que difiera. Las variables dependen de `pps<NIA>`: sustituye `pps000000` por el tuyo:
+    *Pista:* la contraseña llega con `withCredentials` y entra por la entrada estándar, en un `sh` con comillas simples para que Groovy no la interpole:
 
     ```groovy
-    pipeline {
-        agent any
-        environment {
-            IMAGEN = 'pps000000/pps-app'
-        }
-        options { timestamps() }
-        stages {
-            stage('Construir y probar') {
-                steps { sh 'mvn -B verify' }
-                post { always { junit 'target/surefire-reports/*.xml' } }
-            }
-            stage('Analizar dependencias') {
-                steps {
-                    sh 'mvn -B -q dependency:copy-dependencies -DoutputDirectory=target/dependency'
-                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
-                        sh '''
-                          docker run --rm --volumes-from jenkins \
-                            -v dc-data:/usr/share/dependency-check/data \
-                            owasp/dependency-check \
-                            --scan "$WORKSPACE/target/dependency" --scan "$WORKSPACE/target/pps-app.jar" \
-                            --project pps-app --format HTML --out "$WORKSPACE/dc-report" \
-                            --failOnCVSS 9 --nvdApiKey "$NVD_KEY"
-                        '''
-                    }
-                }
-                post { always { archiveArtifacts artifacts: 'dc-report/**', allowEmptyArchive: true } }
-            }
-            stage('Suma del artefacto') {
-                steps {
-                    sh 'sha256sum target/pps-app.jar > target/pps-app.jar.sha256'
-                    archiveArtifacts artifacts: 'target/pps-app.jar,target/pps-app.jar.sha256', fingerprint: true
-                }
-            }
-            stage('Publicar imagen') {
-                steps {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub',
-                                     usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-                        sh '''
-                          sha256sum -c target/pps-app.jar.sha256
-                          docker build -t "$IMAGEN:$BUILD_NUMBER" .
-                          echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                          docker push "$IMAGEN:$BUILD_NUMBER"
-                          docker logout
-                        '''
-                    }
-                }
-            }
-        }
+    withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                     usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+        sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
     }
     ```
 
-    Es el pipeline de la sesión 43 más la publicación: `--volumes-from jenkins` hace que Dependency-Check vea el espacio de trabajo con la misma ruta que Jenkins, y `dc-data` es la base de la NVD ya descargada (si usaste otro nombre, cámbialo). La suma se comprueba de nuevo justo antes de publicar.
+3. Comprueba que el `Jenkinsfile` no lleva ningún secreto y llévalo a `main` con un pull request que apruebe tu pareja de laboratorio desde su cuenta: la rama protegida no deja fusionar sin esa revisión.
 
-3. Comprueba que el fichero no lleva ningún secreto y súbelo en la rama, no en `main`:
+    *Pista:* `grep -inE 'password|token|secret' Jenkinsfile` solo puede devolver las líneas del bloque de credenciales, que nombran variables y no llevan ningún valor.
 
-    ```bash
-    grep -inE 'password|token|secret' Jenkinsfile ; git add Jenkinsfile && git commit -m "Proyecto: pipeline completo" && git push -u origin proyecto-pipeline
-    ```
+4. Lanza el trabajo de `pps-app`, que lee el `Jenkinsfile` de `main` con la credencial `github-token` (*Pipeline script from SCM*), hasta que quede verde. Anota el número de build y captura las etapas, el informe de dependencias archivado (`dc-report`) y la lista de artefactos.
 
-    El `grep` solo debe imprimir las tres líneas del bloque de credenciales de Docker Hub (`usernamePassword`, `passwordVariable` y `--password-stdin`), que nombran la variable y no llevan ningún valor. Cualquier otra línea es un secreto escrito en el fichero.
-4. En GitHub, abre un pull request de `proyecto-pipeline` a `main` y pide la revisión a tu pareja de laboratorio, que la aprueba en su cuenta si el `Jenkinsfile` no contiene secretos. La rama protegida no deja fusionar sin esa aprobación. Fusiona.
-5. En Jenkins, comprueba que el trabajo de `pps-app` apunta al repositorio con la credencial `github-token` y que lee el `Jenkinsfile` del repositorio (Definition: Pipeline script from SCM, rama `main`). Pulsa **Construir ahora**. La primera ejecución con Dependency-Check es la más lenta; mientras corre, sigue la salida de consola.
-6. Si el pipeline falla, lee la primera línea de error y corrige antes de repetir: los fallos habituales están en [Errores frecuentes](#errores-frecuentes-en-el-laboratorio). Cuando quede verde, anota el número de build, abre el informe de dependencias archivado (`dc-report`) y la lista de artefactos, y captura el resultado.
-7. Comprueba que la imagen está en Docker Hub con esa etiqueta y que arranca y responde. Sustituye `N` por el número de build:
+    *Pista:* la primera ejecución con Dependency-Check es la más lenta. Si falla, la primera línea de error de la consola dice qué corregir; los fallos habituales están en [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-    ```bash
-    docker pull pps000000/pps-app:N
-    docker run -d --name prueba-app -p 8083:8080 pps000000/pps-app:N
-    curl -s http://localhost:8083/salud; docker rm -f prueba-app
-    ```
+5. Comprueba lo publicado: la imagen con esa etiqueta está en Docker Hub y responde en `/salud` (en el puerto 8083 de `pps01`, solo para esta prueba), y la suma de los artefactos del build valida el jar archivado con `sha256sum -c`.
 
-    La respuesta esperada es `{"estado":"ok"}`. El puerto `8083` es temporal, solo para esta comprobación.
-8. Vuelve a comprobar la suma: descarga `pps-app.jar.sha256` desde los artefactos del build y ejecuta `sha256sum -c` sobre el jar archivado. Debe decir `OK`.
-9. Crea `~/pps-entregas/ut5/proyecto/` con un `README.md` que lleve el enlace a `pps-app`, el número de build verde, las capturas (etapas verdes, informe de dependencias, etiqueta en Docker Hub) y el resultado del `curl`. Sube con `git add`, `git commit` y `git push`.
+6. Crea `~/pps-entregas/ut5/proyecto/README.md` con el enlace a `pps-app`, el número de build verde, las capturas (etapas verdes, informe de dependencias, etiqueta en Docker Hub) y el resultado del `curl`.
 
 <span class="et et-com">Comprobación</span> El build queda verde con las cuatro etapas, la etiqueta `N` existe en `pps<NIA>/pps-app`, el contenedor responde `{"estado":"ok"}` en `/salud` y `sha256sum -c` dice `OK`. El historial del `Jenkinsfile` en `main` muestra un commit que vino de un pull request aprobado. Ni el repositorio ni las capturas muestran la contraseña de Docker Hub.
 
@@ -3253,8 +2318,10 @@ Un proyecto que no llega a una parte se califica por las que sí entrega: es mej
 
 Con la imagen ya publicada por el pipeline, esta sesión cierra el recorrido: un playbook de Ansible la despliega en el clúster K3s, Prometheus y Grafana vigilan los nodos y el plan de recuperación se ajusta al proyecto y se ensaya con un tiempo medido. Al terminar, el proyecto está listo para entregarse el 31 de mayo. Antes de la hoja se repasan las dudas que se repiten en este tipo de integración.
 
-!!! consulta "Material de partida"
-    Sin actividad propia en el aula de 2024-25: esta sesión reutiliza `03 ACT_RA5_2 - Terraform & Ansible/RA5.2.pdf` y `06 Material Ansible` (playbook), `08 ACT_RA5_4 - K3s & K9s/RA5.4.pdf` (K3s y despliegue con dos réplicas) y `07 ACT_RA5_3 - Prometheus & Grafana/RA5.3.pdf` (Prometheus, `node_exporter` y el panel de Grafana). En la web, <https://docs.ansible.com/>, <https://k3s.io/> y <https://prometheus.io/docs/>. Las guías de terceros se consultan, no se copian.
+!!! consulta "Recursos de la sesión"
+    **Para la práctica**
+
+    - [Ansible](https://docs.ansible.com/), [K3s](https://k3s.io/) y [Prometheus](https://prometheus.io/docs/): desplegar con réplicas y monitorizar.
 
 ### Dudas comunes del proyecto
 
@@ -3297,145 +2364,37 @@ Dos criterios de diseño se defienden en el informe. El primero: **la etiqueta d
 
 <span class="et et-obj">Objetivo</span> Desplegar en K3s, con un playbook de Ansible, la imagen publicada por el pipeline; ver los tres nodos en Prometheus y Grafana; y dejar en el proyecto el plan de recuperación con el tiempo de reposición de la aplicación medido. Es la parte de despliegue, monitorización y recuperación del proyecto y aporta a los criterios d, e y f de RA5.
 
-<span class="et et-pre">Antes de empezar</span> Encendidas `pps01`, `k3s-1`, `k3s-2`, `k3s-3` (el clúster de la [sesión 50](#a513-k3s-en-alta-disponibilidad-sesion-50)), con el Prometheus y el Grafana de `pps01` (el stack de la [A5.15](#a515-prometheus-y-grafana-sesion-52) ampliado en la [A5.16](#a516-monitorizacion-de-un-servidor-sesion-53)) y con acceso a Internet; `~/pps-iac/ansible/` con el inventario de la [sesión 46](#a510-ansible-primer-playbook-sesion-46); una imagen `pps<NIA>/pps-app:N` publicada en la [hoja anterior](#a519-proyecto-construccion-y-pipeline-sesion-56) y el plan de la [sesión 55](#a518-plan-de-recuperacion-sesion-55). Se han repasado las [dudas comunes](#dudas-comunes-del-proyecto). Apaga `destino01` y para Jenkins (`docker stop jenkins`) si el equipo va justo de memoria; el stack de monitorización de `pps01` se queda en marcha. `vagrant` ya tiene `sudo` sin contraseña en los tres nodos. Son cuatro máquinas distintas en 100 minutos: los pasos 1 a 5 son lo largo, y la captura del panel de Grafana y el plan se dejan para el final.
+<span class="et et-pre">Antes de empezar</span> Encendidas, con salida a Internet, `pps01` y `k3s-1`, `k3s-2` y `k3s-3` (el clúster de la [sesión 50](#a513-k3s-en-alta-disponibilidad-sesion-50)). En `pps01`, el Prometheus y el Grafana de la [A5.15](#a515-prometheus-y-grafana-sesion-52) ampliados en la [A5.16](#a516-monitorizacion-de-un-servidor-sesion-53), `~/pps-iac/ansible/` con el inventario de la [sesión 46](#a510-ansible-primer-playbook-sesion-46), la imagen `pps<NIA>/pps-app:N` publicada en la [hoja anterior](#a519-proyecto-construccion-y-pipeline-sesion-56) y el plan de la [sesión 55](#a518-plan-de-recuperacion-sesion-55). Se han repasado las [dudas comunes](#dudas-comunes-del-proyecto). Si el equipo va justo de memoria, apaga `destino01` y para Jenkins; el stack de monitorización se queda en marcha. `vagrant` tiene `sudo` sin contraseña en los tres nodos. Son cuatro máquinas en 100 minutos: los pasos 1 a 4 son lo largo, y la captura de Grafana y el plan se dejan para el final.
 
 <span class="et et-pas">Pasos</span>
 
-1. Añade los tres nodos al inventario `~/pps-iac/ansible/inventario.ini` y comprueba que Ansible llega a ellos. Si falla por la clave, copia la de `pps01` con `ssh-copy-id vagrant@192.168.56.31` (y `.32`, `.33`):
+1. Añade al inventario de `~/pps-iac/ansible/` un grupo `k3s` con los tres nodos por su IP y el usuario `vagrant`, y comprueba que Ansible llega a los tres.
 
-    ```ini
-    [k3s]
-    k3s-1 ansible_host=192.168.56.31
-    k3s-2 ansible_host=192.168.56.32
-    k3s-3 ansible_host=192.168.56.33
+    *Pista:* si falla por la clave, falta copiar la de `pps01` a cada nodo con `ssh-copy-id`.
 
-    [k3s:vars]
-    ansible_user=vagrant
-    ```
+2. En una rama `proyecto-k8s` de `pps-app`, deja `k8s/pps-app.yaml` solo con el Deployment de la [A5.14](#a514-balanceo-en-k3s-y-k9s-sesion-51) (dos réplicas y sonda de `/salud`) y un Service `NodePort` en el 30081 que publique el 8080, con la línea `image: IMAGEN_PPS_APP`, que el playbook cambiará por la imagen del build. Súbelo a la rama.
 
-    ```bash
-    cd ~/pps-iac/ansible && ansible k3s -i inventario.ini -m ping
-    ```
+    *Pista:* el 30080 es del nginx de la sesión 50. El playbook lee el fichero del disco de `pps01`, así que el pull request a `main` puede esperar al final.
 
-2. En `~/pps-app/k8s/pps-app.yaml` deja el manifiesto. El de la [A5.14](#a514-balanceo-en-k3s-y-k9s-sesion-51) (con `image` fijada a una etiqueta, servicio `ClusterIP`, Redis e Ingress) no sirve tal cual: se sustituye por este, con la línea `image` igual a `IMAGEN_PPS_APP` y el servicio `NodePort` en el `30081` (el `30080` es el del nginx de la sesión 50). El Redis y el Ingress de aquella hoja siguen en el clúster, pero el Ingress deja de servir la aplicación porque el servicio pasa al puerto 8080:
+3. Escribe `~/pps-iac/ansible/despliegue-k3s.yml` con tres jugadas: en los tres nodos, `prometheus-node-exporter` instalado, en marcha y habilitado; en `k3s-1` y con `become`, aplicar el manifiesto con la imagen `pps<NIA>/pps-app:{{ build }}` y esperar a las réplicas con `k3s kubectl rollout status`; y desde cada nodo, comprobar con `uri` que `/salud` responde `ok` en el 30081.
+
+    *Pista:* la tarea que no se adivina es la que aplica: lee el manifiesto en `pps01` (variable `manifiesto`, con la ruta absoluta), cambia el marcador por la variable `imagen` y lo pasa por la entrada estándar. Solo marca cambio si `kubectl` dice `created` o `configured`, para que la segunda pasada dé `changed=0`, y la espera lleva `changed_when: false`:
 
     ```yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: pps-app
-    spec:
-      replicas: 2
-      selector:
-        matchLabels: {app: pps-app}
-      template:
-        metadata:
-          labels: {app: pps-app}
-        spec:
-          containers:
-            - name: pps-app
-              image: IMAGEN_PPS_APP
-              ports: [{containerPort: 8080}]
-              readinessProbe:
-                httpGet: {path: /salud, port: 8080}
-                initialDelaySeconds: 3
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: pps-app
-    spec:
-      type: NodePort
-      selector: {app: pps-app}
-      ports:
-        - port: 8080
-          targetPort: 8080
-          nodePort: 30081
+    - ansible.builtin.command:
+        cmd: k3s kubectl apply -f -
+        stdin: "{{ lookup('ansible.builtin.file', manifiesto) | replace('IMAGEN_PPS_APP', imagen) }}"
+      register: aplicar
+      changed_when: "'configured' in aplicar.stdout or 'created' in aplicar.stdout"
     ```
 
-    Guárdalo en una rama de `pps-app` (`git switch -c proyecto-k8s`, commit y push). El playbook lo lee del disco de `pps01`, no de GitHub, así que el pull request a `main` se abre al final, si queda tiempo, y si no, en casa antes del plazo.
+4. Despliega con `-e build=N`, el número de build de la hoja anterior, y repite: la segunda pasada tiene que dar `changed=0` en `k3s-1`. Comprueba desde `pps01` los dos pods `pps-app` en `Running`, repartidos en nodos, y la respuesta en el 30081 de los tres, y captura las salidas.
 
-3. Crea `~/pps-iac/ansible/despliegue-k3s.yml`. El primer bloque instala `node_exporter` en los tres nodos (paquete de Ubuntu, escucha en el 9100); el segundo aplica el manifiesto con la imagen que se le pase y comprueba el servicio en cada nodo. Sustituye `pps000000` por tu usuario:
+    *Pista:* un `ImagePullBackOff` en la espera suele ser una etiqueta mal escrita o un repositorio privado ([dudas comunes](#dudas-comunes-del-proyecto)). Desde `pps01`, `kubectl` se lanza por `ssh` con `sudo k3s kubectl`.
 
-    ```yaml
-    - name: Preparar los nodos para la monitorización
-      hosts: k3s
-      become: true
-      tasks:
-        - name: Instalar node_exporter
-          ansible.builtin.apt:
-            name: prometheus-node-exporter
-            state: present
-            update_cache: true
-            cache_valid_time: 3600
-        - name: Servicio en marcha y habilitado
-          ansible.builtin.service:
-            name: prometheus-node-exporter
-            state: started
-            enabled: true
+5. Añade al `prometheus.yml` del stack de `pps01` un trabajo `k3s` con el 9100 de los tres nodos y comprueba que están en `UP`; después elige `k3s-1` en el dashboard de node_exporter de Grafana. Captura Targets y el panel con la CPU y la memoria de `k3s-1`.
 
-    - name: Desplegar pps-app en K3s
-      hosts: k3s-1
-      become: true
-      vars:
-        imagen: "pps000000/pps-app:{{ build }}"
-        manifiesto: "{{ lookup('env', 'HOME') }}/pps-app/k8s/pps-app.yaml"
-      tasks:
-        - name: Aplicar el manifiesto con la imagen indicada
-          ansible.builtin.command:
-            cmd: k3s kubectl apply -f -
-            stdin: "{{ lookup('ansible.builtin.file', manifiesto) | replace('IMAGEN_PPS_APP', imagen) }}"
-          register: aplicar
-          changed_when: "'configured' in aplicar.stdout or 'created' in aplicar.stdout"
-        - name: Esperar a que las réplicas estén listas
-          ansible.builtin.command: k3s kubectl rollout status deployment/pps-app --timeout=120s
-          changed_when: false
-
-    - name: Comprobar el servicio desde cada nodo
-      hosts: k3s
-      tasks:
-        - name: /salud responde
-          ansible.builtin.uri:
-            url: "http://{{ ansible_host }}:30081/salud"
-            return_content: true
-          register: salud
-          failed_when: "'ok' not in salud.content"
-    ```
-
-4. Ejecútalo con el número de build de la hoja anterior y mira el resumen; después ejecútalo otra vez. La segunda pasada debe terminar con `changed=0` en `k3s-1` (los nodos que ya tenían `node_exporter` tampoco cambian):
-
-    ```bash
-    ansible-playbook -i inventario.ini despliegue-k3s.yml -e build=N
-    ansible-playbook -i inventario.ini despliegue-k3s.yml -e build=N
-    ```
-
-    Un error `ImagePullBackOff` en el paso de espera casi siempre es una etiqueta mal escrita o un repositorio privado: mira la tabla de las [dudas comunes](#dudas-comunes-del-proyecto).
-5. Comprueba el resultado desde `pps01`: los dos pods en `Running` repartidos en nodos, y el servicio respondiendo por cualquier nodo:
-
-    ```bash
-    ssh vagrant@192.168.56.31 'sudo k3s kubectl get pods,svc -o wide'
-    for ip in 31 32 33; do curl -s http://192.168.56.$ip:30081/; echo; done
-    ```
-
-    La respuesta esperada es `Hola PPS` desde los tres. Captura la salida.
-6. En `pps01`, añade los nodos a Prometheus. En el `prometheus.yml` del stack (`~/monitor/prometheus_grafana_example/prometheus/`, el de las hojas A5.15 y A5.16) añade un trabajo nuevo bajo `scrape_configs`, y reinicia el servicio con `docker compose restart prometheus` desde `~/monitor/prometheus_grafana_example`:
-
-    ```yaml
-      - job_name: k3s
-        static_configs:
-          - targets: ['192.168.56.31:9100', '192.168.56.32:9100', '192.168.56.33:9100']
-    ```
-
-    Abre `http://localhost:9090/targets` y comprueba que los tres estén en `UP`. Captura.
-7. En Grafana (`http://localhost:3000`), abre el panel de node_exporter de la sesión 53 y elige uno de los nodos de K3s en el selector de instancia. Captura el panel con datos de CPU y memoria de `k3s-1`.
-8. Ensaya la recuperación de la aplicación y cronométrala. Borra el despliegue y vuelve a lanzar el playbook; el tiempo de la segunda orden es el RTO medido de `pps-app`:
-
-    ```bash
-    ssh vagrant@192.168.56.31 'sudo k3s kubectl delete deployment,svc pps-app'
-    time ansible-playbook -i inventario.ini despliegue-k3s.yml -e build=N
-    ```
-
-9. Copia a `~/pps-entregas/ut5/proyecto/plan-recuperacion.md` el plan de la hoja A5.18 y ajústalo al proyecto: dos servicios (Jenkins con su copia, `pps-app` con el playbook), el RTO medido en el paso 8 frente al objetivo de cada uno y la frase de la retrospectiva más importante. Amplía el `README.md` del proyecto con las capturas de los pasos 4 a 7 y el playbook completo. Sube con `git add`, `git commit` y `git push`, y guarda `despliegue-k3s.yml` también en el repositorio `pps-iac`.
+6. Ensaya la recuperación: borra el Deployment y el Service de `pps-app` y cronometra el playbook que los repone, que es su RTO medido. Copia a `~/pps-entregas/ut5/proyecto/plan-recuperacion.md` el plan de la A5.18 ajustado al proyecto: Jenkins con su copia y `pps-app` con el playbook, el RTO medido de cada uno frente a su objetivo y la frase más importante de la retrospectiva. Amplía el `README.md` del proyecto con las capturas de los pasos 4 y 5 y el playbook, y guarda `despliegue-k3s.yml` también en `pps-iac`.
 
 <span class="et et-com">Comprobación</span> El playbook termina sin errores y su segunda pasada da `changed=0` en `k3s-1`; hay dos pods `pps-app` en `Running` y el `curl` responde `Hola PPS` en los tres nodos; los tres objetivos de Prometheus están `UP` y el panel de Grafana muestra datos de un nodo; el RTO medido de `pps-app` está escrito en el plan. Ningún fichero del repositorio contiene contraseñas.
 
@@ -3487,7 +2446,7 @@ El orden de plazos no sigue el de los números: ACT_UT5_4 (K3s) vence antes que 
 
 <p class="ut-meta" markdown>Sale de las hojas [A5.1](#a51-el-pipeline-de-entrega-sesion-37) a [A5.7](#a57-pipeline-seguro-sesion-43) · plazo jueves 15 de abril, 23:59 · RA5 CE a, b, c</p>
 
-Es la entrega que ancla la unidad: a partir del repositorio `pps-app` se demuestra que existe un flujo de integración continua conectado al control de versiones y que ese flujo se puede fiar de sí mismo. Lo que se pide es lo del enunciado original, ampliado con lo que exigen los CE a y b.
+Es la entrega que ancla la unidad: a partir del repositorio `pps-app` se demuestra que existe un flujo de integración continua conectado al control de versiones y que ese flujo se puede fiar de sí mismo. Lo que se pide es lo del enunciado de la entrega, ampliado con lo que exigen los CE a y b.
 
 Entrega en GitHub, en el repositorio `pps-app`:
 
@@ -3552,7 +2511,7 @@ Entrega en las carpetas `ut5/a512`, `ut5/a513` y `ut5/a514` de `pps-entregas`, c
 | Balanceo de carga desplegado en K3s y verificado con K9s | d | A5.14 | 25 % |
 | Reacción del orquestador comprobada: un pod borrado se recrea sin perder el servicio | e | A5.12 a A5.14 | 20 % |
 
-Niveles: 40, 60, 80, 90 y 100 %. La rúbrica original de esta actividad está en el aula (`RA5.4.pdf`, última página).
+Niveles: 40, 60, 80, 90 y 100 %. La rúbrica de esta actividad está en el aula.
 
 ### ACT_UT5_3 · Prometheus y Grafana
 
@@ -3620,7 +2579,7 @@ Entrega:
 
 Niveles: 40, 60, 80, 90 y 100 %.
 
-El enunciado original de las actividades ACT_UT5_1, ACT_UT5_2, ACT_UT5_3 y ACT_UT5_4 está en el aula (carpeta `RA5-Despliegue-seguro`); ACT_UT5_5 y el proyecto integrador son nuevos y su enunciado es el de esta página.
+El enunciado de las actividades ACT_UT5_1 a ACT_UT5_4 está en el aula; ACT_UT5_5 y el proyecto integrador son nuevos, y su enunciado es el de esta página.
 
 ## Errores frecuentes en el laboratorio
 
@@ -3636,6 +2595,14 @@ Para lo general (VM que no arranca, disco lleno, puertos ocupados, Docker sin pe
 
 **Maven: `Fatal error compiling: release version 17 not supported` o `mvn: command not found` dentro de Jenkins.** El agente solo tiene JRE, o no tiene Maven. En `pps01` hace falta un JDK 17 (`javac -version`) y en Jenkins la herramienta Maven configurada en Administrar Jenkins > Tools, o un contenedor de construcción con `maven` y JDK. La versión de `maven.compiler.release` del `pom.xml` no puede ser mayor que el JDK disponible.
 
+**A5.4 · `mvn: command not found` en la primera construcción.** El contenedor se arrancó con la imagen `jenkins/jenkins` y no con `pps-jenkins:1`, que es la que trae Maven. Se para, se borra el contenedor (el volumen `jenkins_home` se conserva) y se arranca con la imagen propia.
+
+**A5.4 · La construcción #1 falla al clonar.** Casi siempre es una de tres cosas: la URL del repositorio, la rama (el trabajo busca `*/master` y el repositorio usa `main`) o la credencial `github-token`, que no está seleccionada en el trabajo o tiene el token caducado.
+
+**A5.6 · `permission denied` en `/var/run/docker.sock` aunque el contenedor se arrancó con `--group-add`.** El número de grupo no es el del socket en `pps01`. Se mira con `stat -c %g /var/run/docker.sock` y se vuelve a arrancar el contenedor con ese número.
+
+**A5.7 · La descarga de la base de la NVD termina con `Invalid API Key`, 403 o 429.** Los dos primeros son la clave: se revisa la credencial `nvd-api-key` de Jenkins (sin espacios ni salto de línea al final) y se repite. El 429 es que se han hecho demasiadas peticiones seguidas: basta esperar un poco y repetir.
+
 **Dependency-Check tarda muchísimo o falla al bajar la base de vulnerabilidades.** La primera ejecución descarga toda la base (NVD) y, sin clave de API, el servicio la limita: con treinta alumnos a la vez el aula agota la cuota y salen errores `403` o `429`. Soluciones, por orden: pedir una clave gratuita de la NVD y guardarla como credencial de Jenkins (nunca en el `Jenkinsfile`), conservar la carpeta de datos en un volumen para que solo la primera vez sea lenta, y en clase escalonar el arranque. Un fallo de descarga no debe interpretarse como "sin vulnerabilidades": el pipeline tiene que fallar, no dar verde.
 
 **Terraform con VirtualBox: `VBoxManage: error` o el `apply` deja la VM a medias.** Casi siempre la virtualización por hardware está desactivada, otra VM tiene bloqueado el disco, o el nombre de la VM ya existe en VirtualBox de una prueba anterior. `VBoxManage list vms` muestra qué hay; si Terraform no la conoce, se elimina a mano y se repite. Si aparece `Error: Failed to query available provider packages`, no hay salida a Internet desde `pps01` durante `init`. Nunca se borra `terraform.tfstate` para "empezar de cero" con la VM viva: se pierde la relación entre el código y la máquina.
@@ -3645,6 +2612,8 @@ Para lo general (VM que no arranca, disco lleno, puertos ocupados, Docker sin pe
 **K3s: los nodos no se unen al clúster.** Las tres causas habituales son: el token (`sudo cat /var/lib/rancher/k3s/server/node-token` en el primer servidor) mal copiado, el nombre de máquina repetido entre nodos (cada uno tiene que llamarse `k3s-1`, `k3s-2` y `k3s-3`), o el puerto `6443` inalcanzable desde el nuevo nodo (`curl -k https://192.168.56.31:6443`). Con etcd embebido el primer servidor se instala con `--cluster-init` y los demás con `--server https://192.168.56.31:6443`. Con 1,5 GB por nodo, si un nodo queda en `NotReady` conviene mirar `free -m` y `journalctl -u k3s`: la falta de memoria es lo más probable. Tras apagar un nodo del trío, `kubectl` deja de responder si se apuntó al nodo apagado: el kubeconfig debe apuntar a uno vivo.
 
 **K3s: el puerto 80 de un nodo responde la página de Apache, o Traefik no enlaza el 80.** El nodo se clonó de `destino01`, que trae `apache2` escuchando en el 80 (A5.10 y A5.11), y ese Apache heredado ocupa el puerto que Traefik necesita para la entrada HTTP. Se desactiva en cada nodo con `sudo systemctl disable --now apache2` y se repite el despliegue.
+
+**K3s: pods en `ImagePullBackOff`, o `curl` a la entrada que devuelve `404 page not found`.** El primero es un fallo al descargar la imagen: el repositorio de Docker Hub es privado, la etiqueta del manifiesto no existe o el nodo no tiene salida a Internet. `kubectl describe pod <pod>` muestra en sus eventos el error exacto, y `docker pull` de esa misma imagen desde `pps01` dice si existe. El `404` lo da Traefik cuando ninguna regla de Ingress casa con la petición: falta la cabecera `Host` (`curl -H "Host: pps.lab"`), el `host` del Ingress está mal escrito o el Ingress no se ha creado (`kubectl get ingress`).
 
 **Prometheus no recoge las métricas (target `DOWN` o ausente).** `curl http://192.168.56.20:9100/metrics` desde `pps01` es la prueba: si falla, `node_exporter` no corre en `destino01` o el cortafuegos bloquea el puerto `9100`. Si responde y Prometheus sigue sin ver el target, el `prometheus.yml` tiene un error de sangría (Prometheus no arranca, `docker logs` lo dice) o el fichero editado no es el montado en el contenedor. Después de cambiarlo se recarga o se reinicia el contenedor. `localhost` dentro del contenedor de Prometheus es el propio contenedor: los objetivos se escriben con la IP de `destino01`.
 

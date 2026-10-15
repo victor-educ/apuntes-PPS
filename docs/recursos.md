@@ -1,6 +1,6 @@
 # Bibliografía y enlaces
 
-Los enlaces concretos de cada unidad están en la página [Para ampliar](ampliacion.md), junto con los apartados que van más allá de lo que se hace en clase, y el material del curso anterior que se conserva está en [Material de partida](material.md). Aquí está lo transversal: documentación de referencia, libros que merecen la pena y sitios donde practicar. Todo en línea y gratuito salvo los libros, y todos los enlaces se comprobaron al escribir esta página.
+Los enlaces concretos de cada unidad están en la página [Para ampliar](ampliacion.md), junto con los apartados que van más allá de lo que se hace en clase. Aquí está lo transversal: documentación de referencia, libros que merecen la pena y sitios donde practicar. Todo en línea y gratuito salvo los libros, y todos los enlaces se comprobaron al escribir esta página.
 
 ## Documentación oficial
 
@@ -45,7 +45,7 @@ La primera fuente siempre. Cuando un comando de los apuntes no funcione en una v
 - Scott Chacon y Ben Straub, *Pro Git*. Gratis y en español en [git-scm.com/book/es/v2](https://git-scm.com/book/es/v2). Los capítulos de ramas y de Git en el servidor cubren lo que pide la UT5 sobre control de versiones.
 - OWASP, *Web Security Testing Guide*. Gratis en [owasp.org](https://owasp.org/www-project-web-security-testing-guide/). Es la metodología completa de pruebas de una aplicación web, y el hilo natural tras la UT3.
 - Dafydd Stuttard y Marcus Pinto, *The Web Application Hacker's Handbook* (Wiley, 2ª ed.). De pago y de 2011, así que algunas tecnologías han cambiado, pero la forma de razonar un ataque web sigue siendo la misma. Sus autores son los creadores de Burp Suite.
-- Nigel Poulton, *Docker Deep Dive*. De pago. Es el libro que el aula del curso anterior ya usaba como consulta para la parte de contenedores (ver [Material de partida](material.md)).
+- Nigel Poulton, *Docker Deep Dive*. De pago. Consulta de fondo para la parte de contenedores.
 - Gene Kim, Jez Humble, Patrick Debois y John Willis, *The DevOps Handbook* (IT Revolution, 2ª ed.). De pago. Justifica la cultura, la entrega continua y la realimentación entre equipos que evalúan el RA5.
 - Betsy Beyer y otros, *Site Reliability Engineering* (Google). Gratis en [sre.google/books](https://sre.google/books/). Los capítulos de monitorización y de respuesta a incidencias sirven de fondo a la última parte de la UT5.
 
@@ -74,16 +74,3 @@ La primera fuente siempre. Cuando un comando de los apuntes no funcione en una v
 - [Real Decreto 479/2020, de 7 de abril](https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-4963), por el que se establece el curso de especialización en ciberseguridad en entornos de las tecnologías de la información y se fijan los aspectos básicos del currículo. Define los cinco resultados de aprendizaje y sus criterios de evaluación; el resumen en lenguaje llano está en la [página del módulo](modulo.md).
 - Currículo de la Comunitat Valenciana: se publica en el [Diari Oficial de la Generalitat Valenciana](https://dogv.gva.es/) y la Conselleria de Educación mantiene la [página de formación profesional](https://ceice.gva.es/es/web/formacion-profesional).
 - [Todofp](https://www.todofp.es/), portal estatal de formación profesional, con la oferta de cursos de especialización.
-
-## Créditos del material del curso anterior
-
-Este sitio parte del material con el que se impartió la asignatura en el curso 2024-25. Se cita por su autoría y no se copia; qué hay en cada carpeta del aula y en qué sesión se usa está en [Material de partida](material.md).
-
-| Material | Autoría y licencia | Origen |
-|----------|--------------------|--------|
-| *Ciberseguridad-PePS*, apuntes de la asignatura | Víctor Ponz Artero; sin licencia declarada, por lo que solo se enlaza | [github.com/victorponz/Ciberseguridad-PePS](https://github.com/victorponz/Ciberseguridad-PePS) |
-| Copia publicada de los mismos apuntes | Bifurcación (fork) del repositorio anterior, con la misma autoría | [psegarrac.github.io/Ciberseguridad-PePS](https://psegarrac.github.io/Ciberseguridad-PePS/) |
-| *PPS*, apuntes y prácticas de la asignatura | Eloy Albiach Forner, © 2023, CC BY-NC-SA 4.0 (el `LICENSE` del repositorio dice BY-SA y su Readme BY-NC-SA; se respeta la más restrictiva) | [github.com/EloyAlbiach/PPS](https://github.com/EloyAlbiach/PPS) |
-| PDF, enunciados y rúbricas del aula de Aules | Material de terceros: solo consulta, no se publica aquí | Aula de Aules del curso |
-
-El texto propio de estos apuntes se publica con licencia [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.es).
