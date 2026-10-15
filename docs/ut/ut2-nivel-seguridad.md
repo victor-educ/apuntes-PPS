@@ -11,7 +11,7 @@ Antes de escribir una línea de código de una aplicación hace falta responder 
 
 <p class="ut-meta" markdown>5 de noviembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Fuentes abiertas de vulnerabilidades: OWASP Top 10, CWE y CVE · 15 min&#10;CVSS: puntuar la gravedad · 10 min&#10;A2.1 Riesgos de una aplicación · 85 min" data-dur="Fuentes abiertas de vulnerabilidades: OWASP Top 10, CWE y CVE · 15 min&#10;CVSS: puntuar la gravedad · 10 min&#10;A2.1 Riesgos de una aplicación · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión hay diez vulnerabilidades reales clasificadas por categoría de OWASP Top 10, identificador CWE y puntuación CVSS, cada una con una explicación del riesgo concreto que supone para una aplicación. Antes de eso, dos apartados cortos dan el vocabulario: de dónde salen estos catálogos y qué significa cada sigla, y cómo se lee una puntuación CVSS. Es la sesión que abre la unidad y también la que sienta el vocabulario de riesgo que reaparece en la UT3.
+Al acabar esta sesión hay diez vulnerabilidades reales clasificadas por categoría de OWASP Top 10, identificador CWE y puntuación CVSS, cada una con una explicación del riesgo concreto que supone para una aplicación. Antes de eso, dos apartados cortos dan el vocabulario: de dónde salen estos catálogos y qué significa cada sigla, y cómo se lee una puntuación CVSS. Es la sesión que abre la unidad y también la que sienta el vocabulario de riesgo que se usa el resto del curso.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -43,7 +43,7 @@ flowchart LR
 
 El **CWE** (*Common Weakness Enumeration*, enumeración de debilidades comunes), del MITRE, no describe un fallo que haya ocurrido, describe un tipo de fallo que puede ocurrir: `CWE-89` es "SQL Injection" como concepto, no un caso concreto. Un requisito de ASVS o una vulnerabilidad de la A2.1 se etiquetan con su CWE porque es la forma más precisa de decir "esto es exactamente este tipo de problema", con independencia del lenguaje o del producto donde aparezca.
 
-El **CVE** (*Common Vulnerabilities and Exposures*, vulnerabilidades y exposiciones comunes) identifica un caso concreto, ya descubierto en un producto real y publicado: `CVE-2021-44228` es la puerta trasera concreta de una versión concreta de Log4j, no el concepto de inyección. Cada CVE tiene una ficha pública en la **NVD** (*National Vulnerability Database*, base de datos nacional de vulnerabilidades), el catálogo que mantiene el NIST de EE. UU., con su descripción, su CWE asociado y su puntuación CVSS.
+El **CVE** (*Common Vulnerabilities and Exposures*, vulnerabilidades y exposiciones comunes) identifica un caso concreto, ya descubierto en un producto real y publicado: `CVE-2021-44228` es un fallo concreto de unas versiones concretas de Log4j, no el concepto de inyección. Cada CVE tiene una ficha pública en la **NVD** (*National Vulnerability Database*, base de datos nacional de vulnerabilidades), el catálogo que mantiene el NIST de EE. UU., con su descripción, su CWE asociado y su puntuación CVSS.
 
 El **OWASP Top 10** agrupa los CWE más frecuentes en diez categorías amplias, pensadas para priorizar sin tener que conocer cientos de CWE de memoria. La edición usada en el curso es la de 2021, que es la que sigue el material de referencia de la asignatura; en 2025 OWASP ha publicado una revisión que reordena y renombra varias categorías, y la comparación entre las dos queda en [Para ampliar](../ampliacion.md#ut2-nivel-de-seguridad-requerido).
 
@@ -60,7 +60,7 @@ El **OWASP Top 10** agrupa los CWE más frecuentes en diez categorías amplias, 
 | A09: Security Logging and Monitoring Failures | No queda registro de lo que pasó, así que un incidente se detecta tarde o no se detecta |
 | A10: Server-Side Request Forgery | El servidor hace una petición a una URL que controla el atacante |
 
-`CVE-2024-3094`, el caso de la sesión 13, es a la vez A06 (una dependencia comprometida) y A08 (código que se acepta sin comprobar su integridad); es habitual que un mismo caso encaje en más de una categoría, y la A2.1 pide elegir la que mejor explica el riesgo principal, no la única posible.
+`CVE-2024-3094`, la puerta trasera de las herramientas de compresión `xz`, es a la vez A06 (una dependencia comprometida) y A08 (código que se acepta sin comprobar su integridad); es habitual que un mismo caso encaje en más de una categoría, y la A2.1 pide elegir la que mejor explica el riesgo principal, no la única posible. Ese caso se reproduce en el laboratorio el 19 de noviembre.
 
 ### CVSS: puntuar la gravedad
 
@@ -107,7 +107,7 @@ La ficha de la NVD de cada CVE incluye su vector CVSS completo (una cadena como 
 
 <span class="et et-com">Comprobación</span> La tabla tiene diez filas completas, cada CVSS coincide con el que muestra la ficha de la NVD de ese CVE, y ninguna explicación de riesgo es una frase genérica que valdría para cualquier vulnerabilidad de la lista.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut2/a21/` de `pps-entregas` con el `README.md` y la tabla. Forma parte de la entrega **ACT_UT2_1 · OWASP ASVS**, plazo el lunes 16 de noviembre a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut2/a21/` de `pps-entregas` el `README.md` y la tabla. Lo recoge la entrega **ACT_UT2_1 · OWASP ASVS** (plazo, el 16 de noviembre).
 
 ## Sesión 10 · ASVS: niveles y requisitos
 
@@ -200,7 +200,7 @@ El enunciado pide además indicar **en qué servidor** se aplica cada requisito,
 
 <span class="et et-com">Comprobación</span> La portada indica el nivel elegido con su justificación, las doce filas de V2.1 tienen las siete columnas completas y ninguna fila deja "riesgo residual" en blanco.
 
-<span class="et et-ent">Entrega</span> La hoja de cálculo, con el nivel y V2.1 resueltos, en `ut2/a22/` de `pps-entregas`. Es un avance de la entrega **ACT_UT2_1 · OWASP ASVS**: la A2.3 completa el resto de los requisitos L1 sobre el mismo fichero, y el plazo conjunto es el lunes 16 de noviembre a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut2/a22/` de `pps-entregas` la hoja de cálculo con el nivel y V2.1 resueltos: la A2.3 completa sobre el mismo fichero el resto de los requisitos L1. Lo recoge la entrega **ACT_UT2_1 · OWASP ASVS** (plazo, el 16 de noviembre).
 
 ## Sesión 11 · ASVS: verificación de los requisitos L1
 
@@ -225,7 +225,7 @@ Tres columnas de la plantilla fallan más que las demás cuando se rellenan sin 
 
 Un requisito que no aplica al escenario (por ejemplo, uno sobre autenticación multifactor si el escenario no la contempla) se marca "aplica: no" con una frase que explique por qué, no se deja en blanco ni se omite la fila.
 
-Cuatro requisitos más, resueltos como modelo para los capítulos que se hacen en casa (el escenario y los tres servidores son los de la sesión 10):
+Cuatro requisitos más, resueltos como modelo para los capítulos que se hacen en casa, sobre el mismo escenario de compra-venta y sus [tres servidores](#elegir-el-nivel-l1-l2-y-l3):
 
 | Requisito | Servidor y componente | Técnica o fichero | Prueba de verificación | Riesgo residual |
 |---|---|---|---|---|
@@ -252,7 +252,7 @@ Cuatro requisitos más, resueltos como modelo para los capítulos que se hacen e
 
 <span class="et et-com">Comprobación</span> Las 27 filas de V2 y las 6 de V3.1 a V3.3 tienen las siete columnas completas y ninguna fila queda sin marcar en "Aplica".
 
-<span class="et et-ent">Entrega</span> La hoja de cálculo completa, con los 128 requisitos L1 resueltos, en `ut2/a23/` de `pps-entregas` y subida a la tarea de Aules en el formato que pide el enunciado. Lo que no se ha hecho en clase se termina **en casa, antes del plazo**: es un trabajo a ritmo propio y el plazo no se mueve. Cierra la entrega **ACT_UT2_1 · OWASP ASVS** (A2.1, A2.2 y A2.3), lunes 16 de noviembre a las 23:59.
+<span class="et et-ent">Para practicar</span> Termina **en casa, antes del plazo**, lo que no acabes en clase (es trabajo a ritmo propio y el plazo no se mueve) y guarda en `ut2/a23/` de `pps-entregas` la hoja de cálculo completa, con los 128 requisitos L1 resueltos: es la `ACT_UT2_1.ods` que empezaste en `ut2/a22/`, terminada. Lo recoge la entrega **ACT_UT2_1 · OWASP ASVS** (plazo, el 16 de noviembre), con la A2.1 y la A2.2; la hoja de cálculo va a su tarea de Aules en el formato del enunciado.
 
 ## Sesión 12 · Seguridad en Docker
 
@@ -371,12 +371,12 @@ La configuración del demonio vive en `/etc/docker/daemon.json`; ahí se desacti
 
 <span class="et et-com">Comprobación</span> `trivy` ha localizado Log4j en la imagen; el servicio responde en `http://127.0.0.1:8082/` pero el contenedor no alcanza Internet; la expresión de prueba se resuelve antes de la mitigación y no después; el `README.md` explica tres hallazgos reales de `docker-bench-security`; y el contenedor con perfil escribe en `/tmp` pero no en `/etc`, mientras que el contenedor sin perfil escribe en los dos sitios. Si algo falla, revisa [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> La carpeta `ut2/a24/` de `pps-entregas`, con el `README.md`, `trivy-log4shell.txt`, `docker-bench.txt`, el perfil `pps-confinado` y las capturas. Es la entrega **ACT_UT2_2 · Seguridad en Docker**, plazo el lunes 23 de noviembre a las 23:59. El enunciado del aula incluye además dos escaneos más con las mismas herramientas de la práctica 1, que **se hacen en casa antes del plazo** y se añaden a la misma carpeta:
+<span class="et et-ent">Para practicar</span> Guarda en `ut2/a24/` de `pps-entregas` el `README.md`, `trivy-log4shell.txt`, `docker-bench.txt`, el perfil `pps-confinado` y las capturas. Lo recoge la entrega **ACT_UT2_2 · Seguridad en Docker** (plazo, el 23 de noviembre), cuyo enunciado pide además dos escaneos más con las mismas herramientas de la práctica 1: hazlos **en casa antes del plazo** y añádelos a la misma carpeta:
 
 - Práctica 2, un escaneo con `trivy` de una imagen antigua de WordPress (una etiqueta con años de antigüedad, no la última, para que tenga vulnerabilidades que mostrar): `docker run --rm aquasec/trivy image --scanners vuln --severity HIGH,CRITICAL wordpress:5.9 | tee trivy-wordpress.txt`. Resume cuántas vulnerabilidades críticas hay y por qué la etiqueta antigua es peor.
 - Práctica 3, un inventario de componentes (SBOM) y su análisis: genera el inventario con [Syft](https://github.com/anchore/syft) en formato CycloneDX (`syft <imagen> -o cyclonedx-json > sbom.json`), analízalo con [Grype](https://github.com/anchore/grype) (`grype sbom:sbom.json`) y súbelo a [Dependency-Track](https://dependencytrack.org/) si lo tienes instalado; si no, basta con Grype y la explicación de qué añade un SBOM a un escaneo directo de la imagen.
 
-**Antes de la sesión 13, en casa.** La A2.5 crea la VM `debian12` desde una instalación desatendida y la necesita ya descargada. Comprueba con `curl` la última versión 12.x en [cdimage.debian.org](https://cdimage.debian.org/cdimage/archive/latest-oldstable/amd64/iso-cd/) (por ejemplo, `curl -sI https://cdimage.debian.org/cdimage/archive/latest-oldstable/amd64/iso-cd/debian-12.15.0-amd64-netinst.iso` tiene que responder `200`, aunque el número de versión concreto cambie), descárgala en el anfitrión (el equipo donde corre VirtualBox, no en `pps01`) y déjala en `~/iso/`. Son unos 700 MB; hacerlo en casa evita que treinta equipos la pidan a la vez en el aula.
+**Antes del jueves 19 de noviembre, en casa.** La hoja de ese día, la A2.5 sobre el caso xz, crea la VM `debian12` desde una instalación desatendida y necesita la ISO ya descargada. Comprueba con `curl` la última versión 12.x en [cdimage.debian.org](https://cdimage.debian.org/cdimage/archive/latest-oldstable/amd64/iso-cd/) (por ejemplo, `curl -sI https://cdimage.debian.org/cdimage/archive/latest-oldstable/amd64/iso-cd/debian-12.15.0-amd64-netinst.iso` tiene que responder `200`, aunque el número de versión concreto cambie), descárgala en el anfitrión (el equipo donde corre VirtualBox, no en `pps01`) y déjala en `~/iso/`. Son unos 700 MB; hacerlo en casa evita que treinta equipos la pidan a la vez en el aula.
 
 <span class="et et-ext">Si te sobra tiempo</span> Endurece el arranque de `vulnerable-app` con las opciones del cheat sheet de Docker del enunciado (`--cap-drop=ALL`, `--security-opt no-new-privileges`, `--read-only` con `--tmpfs /tmp`, `--memory 256m` y `--cpus 0.5`) y comprueba que el servicio sigue respondiendo. Arranca despacio (medio minuto o más en un equipo lento). Anota si alguna de ellas rompe la aplicación y, si es así, por qué; si no rompe ninguna, explica qué protege cada opción.
 
@@ -427,7 +427,7 @@ Se descubrió porque un ingeniero que mantenía software de bases de datos notó
 
 <span class="et et-obj">Objetivo</span> Los tres escenarios del laboratorio de `xzbot` reproducidos en la VM aislada (`sshd` con la librería original, con la infectada y con la infectada parcheada), con el resultado esperado de cada uno comprobado e interpretado, una investigación con `ldd` de la cadena de dependencias entre `sshd` y `liblzma`, y un análisis de qué controles habrían detectado el ataque antes de que llegara a producción.
 
-<span class="et et-pre">Antes de empezar</span> La ISO de Debian 12 descargada en `~/iso/` del anfitrión (tarea de la sesión anterior). Esta hoja crea la VM `debian12` al principio y la deja, ya instalada, sin salida a Internet ([máquinas virtuales](../laboratorio.md#maquinas-virtuales)). Se ha explicado [el caso xz](#la-cadena-de-suministro-el-caso-xz). Esta hoja sigue el README de [`amlweems/xzbot`](https://github.com/amlweems/xzbot) paso a paso: cada orden remite a la sección del README que la documenta y ninguna se reproduce aquí. El tercer escenario dispara el backdoor con la clave de investigación que el propio README sustituye por la del atacante (sección "ed448 patch"), nunca con la clave real, y solo en local (`127.0.0.1`), sin exponer nada a la red del aula.
+<span class="et et-pre">Antes de empezar</span> La ISO de Debian 12 descargada en `~/iso/` del anfitrión, como pide el aviso del final de la [A2.4](#a24-docker-aislamiento-y-auditoria-sesion-12). Esta hoja crea la VM `debian12` al principio y la deja, ya instalada, sin salida a Internet ([máquinas virtuales](../laboratorio.md#maquinas-virtuales)). Se ha explicado [el caso xz](#la-cadena-de-suministro-el-caso-xz). Esta hoja sigue el README de [`amlweems/xzbot`](https://github.com/amlweems/xzbot) paso a paso: cada orden remite a la sección del README que la documenta y ninguna se reproduce aquí. El tercer escenario dispara el backdoor con la clave de investigación que el propio README sustituye por la del atacante (sección "ed448 patch"), nunca con la clave real, y solo en local (`127.0.0.1`), sin exponer nada a la red del aula.
 
 !!! ojo "Solo con la clave de investigación, solo en loopback"
     El tercer escenario ejecuta de verdad el código de explotación que publica `xzbot`, pero con una clave ED448 propia en vez de la del atacante real: es el mecanismo que el propio proyecto documenta para poder estudiar el backdoor sin depender de una clave privada que nadie tiene. Se hace solo contra el `sshd` de prueba de `debian12`, en `127.0.0.1` y sin red externa. Hacerlo contra un servidor ajeno, con la clave real o fuera de esta VM aislada es delito (Código Penal, artículos 197 bis y 264 y siguientes).
@@ -462,13 +462,13 @@ Se descubrió porque un ingeniero que mantenía software de bases de datos notó
 
 <span class="et et-com">Comprobación</span> Los tres escenarios se han ejecutado en orden y el resultado de cada uno coincide con lo esperado (conexión normal en el 1 y en el 2, ejecución de `id` sin autenticación en el 3); el apartado de `ldd` dice explícitamente si la cadena `sshd` → `libsystemd` → `liblzma` existe en `debian12`, con la orden y su salida como evidencia; y el análisis final nombra al menos dos controles de cadena de suministro concretos, no genéricos.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut2/a25/` de `pps-entregas`, con el `README.md` y las salidas guardadas de los tres escenarios (el binario `xzbot` y los ficheros `.so` descargados no hace falta subirlos: están en el repositorio original). Forma parte de la entrega **ACT_UT2_3 · Seguridad en Unix (xz)**, plazo el jueves 26 de noviembre a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut2/a25/` de `pps-entregas` el `README.md` y las salidas de los tres escenarios (el binario `xzbot` y los ficheros `.so` descargados no hace falta subirlos: están en el repositorio original). Lo recoge la entrega **ACT_UT2_3 · Seguridad en Unix (xz)** (plazo, el 26 de noviembre).
 
 ## Sesión 14 · Margen y repaso de la unidad 2
 
 <p class="ut-meta" markdown>23 de noviembre · Margen · <span class="dur" tabindex="0" aria-label="Repaso y recuperación · 110 min" data-dur="Repaso y recuperación · 110 min">:material-school:<i class="dur-barra" style="--teoria:0%"></i>:material-flask:</span></p>
 
-Esta sesión no trae contenido nuevo: absorbe el retraso de las clases que se hayan perdido en las sesiones 9 a 13 y, si no se ha perdido ninguna, sirve para repasar la unidad y para la actividad optativa ACT_UT2_4. Hoy vence el plazo de ACT_UT2_2 (Docker) y el de ACT_UT2_3 (xz) vence el jueves 26 de noviembre; los plazos no se mueven aunque se haya perdido una clase, solo se mueve el contenido.
+Esta sesión no trae contenido nuevo: absorbe el retraso de las clases de la unidad que se hayan perdido y, si no se ha perdido ninguna, sirve para repasar la unidad y para la actividad optativa ACT_UT2_4. Hoy vence el plazo de ACT_UT2_2 (Docker) y el de ACT_UT2_3 (xz) vence el jueves 26 de noviembre; los plazos no se mueven aunque se haya perdido una clase, solo se mueve el contenido.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -479,15 +479,15 @@ Esta sesión no trae contenido nuevo: absorbe el retraso de las clases que se ha
 
 **Si se ha perdido alguna clase**
 
-- Recuperar primero lo que tiene plazo más cercano. Hoy vence ACT_UT2_2, así que si falta la A2.4 (sesión 12) es lo primero: sigue sus pasos completos y sube la carpeta `ut2/a24/` antes de las 23:59.
-- Después, lo que vence el jueves 26 de noviembre: la A2.5 (sesión 13). Necesita la VM `debian12` con su instantánea inicial ([máquinas virtuales](../laboratorio.md#maquinas-virtuales)).
-- La A2.1, A2.2 y A2.3 (entrega ACT_UT2_1) vencieron el lunes 16 de noviembre. Quien no las haya entregado las sube ya: fuera de plazo y sin causa justificada se corrige sobre el 50 %.
+- Recuperar primero lo que tiene plazo más cercano. Hoy vence ACT_UT2_2, así que si falta la [A2.4](#a24-docker-aislamiento-y-auditoria-sesion-12), la de Docker, es lo primero: se siguen sus pasos completos y se sube la carpeta `ut2/a24/` antes de las 23:59.
+- Después, lo que vence el jueves 26 de noviembre: la [A2.5](#a25-el-caso-xz-sesion-13), la del caso xz. Necesita la VM `debian12` con su instantánea inicial ([máquinas virtuales](../laboratorio.md#maquinas-virtuales)).
+- ACT_UT2_1, la entrega que recoge la A2.1, la A2.2 y la A2.3, venció el lunes 16 de noviembre. Quien no la haya entregado la sube ya: fuera de plazo y sin causa justificada se corrige sobre el 50 %.
 - Solo cuando todo lo obligatorio esté entregado, si queda tiempo, mirar la actividad optativa de más abajo.
 
 **Si no se ha perdido ninguna clase**
 
 - Repasar los criterios de las [prácticas evaluables](#practicas-evaluables-de-la-unidad) y comprobar que cada criterio (a, b, c, d) tiene su evidencia en `pps-entregas` (`ut2/a21/` a `ut2/a25/`).
-- Terminar lo que haya quedado a medias de las tres partes que se hacen en casa: la hoja de cálculo completa de la A2.3 si aún no está entregada y los dos escaneos adicionales de la A2.4 (WordPress antiguo y SBOM).
+- Terminar lo que haya quedado a medias de las tres partes que se hacen en casa: la hoja de cálculo completa de la A2.3, si ACT_UT2_1 aún no está entregada, y los dos escaneos adicionales de la A2.4 (WordPress antiguo y SBOM).
 - Repasar las [prácticas evaluables](#practicas-evaluables-de-la-unidad) y sus tablas de criterios: cada fila indica de qué hoja sale su evidencia y cuánto pesa.
 - Hacer la actividad optativa ACT_UT2_4, descrita a continuación, si el tiempo lo permite.
 
@@ -560,8 +560,8 @@ Los niveles de logro son: el 40 y el 60 % se alcanzan con un **funcionamiento co
 | Criterio | CE | Peso | Evidencia |
 |---|---|---:|---|
 | Práctica 1: escaneo con `trivy` de la imagen Log4Shell, con el paquete, su versión y la versión que lo corrige | c | 17 % | A2.4, paso 1 |
-| Práctica 2: escaneo de una imagen antigua de WordPress y resumen de por qué es peor que la actual | c | 17 % | A2.4, entrega |
-| Práctica 3: inventario de componentes (SBOM) y su análisis con vulnerabilidades | c | 16 % | A2.4, entrega |
+| Práctica 2: escaneo de una imagen antigua de WordPress y resumen de por qué es peor que la actual | c | 17 % | A2.4, «Para practicar» |
+| Práctica 3: inventario de componentes (SBOM) y su análisis con vulnerabilidades | c | 16 % | A2.4, «Para practicar» |
 | Laboratorio Log4Shell contenido (sin salida a Internet), vulnerabilidad comprobada y mitigada, con la corrección definitiva explicada | d | 20 % | A2.4, paso 2 |
 | `docker-bench-security` ejecutado y tres hallazgos de secciones distintas explicados (qué comprueba, por qué importa, cómo se resuelve) | d | 15 % | A2.4, paso 3 |
 | Perfil de AppArmor propio aplicado a un contenedor y comparado con otro sin perfil | d | 15 % | A2.4, paso 4 |
@@ -618,7 +618,7 @@ Para lo general (VM que no arranca, disco lleno, Docker sin permisos, puertos oc
 
 **ASVS: los identificadores de la hoja no coinciden con los del CSV.** Se mezclaron dos versiones del estándar. El curso usa la 4.0.3 (capítulos V1 a V14); la 5.0 tiene otra numeración y otros capítulos. Se descarga el CSV de la versión 4.0.3 y se comprueba que la primera fila indica esa versión.
 
-**ASVS: la hoja lista requisitos de L2 o le faltan de L1.** Al filtrar el CSV por nivel hay que quedarse solo con los marcados para L1: son 128, y V1 no tiene ninguno. El recuento por capítulo de la sesión 10 sirve para comprobar que no falta ni sobra ninguno.
+**ASVS: la hoja lista requisitos de L2 o le faltan de L1.** Al filtrar el CSV por nivel hay que quedarse solo con los marcados para L1: son 128, y V1 no tiene ninguno. El [recuento por capítulo](#owasp-asvs-que-es-y-su-estructura-por-capitulos) sirve para comprobar que no falta ni sobra ninguno.
 
 **ASVS: filas con «aplica: sí» y «dónde: el servidor».** Es la respuesta que el enunciado descarta: no sirve una explicación sin fundamento técnico. Cada fila dice qué servidor (aplicación, base de datos, proxy), qué fichero o técnica y qué prueba concreta; si un requisito no aplica al escenario, se marca «no» y se justifica en una línea.
 

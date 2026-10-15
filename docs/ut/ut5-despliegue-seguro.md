@@ -5,10 +5,10 @@
 Una aplicación que funciona en el portátil de quien la escribe todavía no está en producción. Entre el `git push` y el servicio que atiende a los usuarios hay una cadena de pasos (construir, probar, analizar, empaquetar, crear la máquina, configurarla, desplegar, vigilar) y cada paso hecho a mano es un sitio donde se cuela un error, un secreto en un fichero o una versión que nadie sabe de dónde salió. Esta unidad automatiza esa cadena y la protege: Git con roles y ramas protegidas para que nadie cambie el código sin revisión, Maven y Jenkins para construir y probar en cada cambio, Docker para empaquetar, Terraform y Ansible para crear y configurar la máquina destino, K3s para orquestar los contenedores, Prometheus y Grafana para ver cómo se comportan y un plan de recuperación para el día en que algo falle. La unidad se cierra con un proyecto integrador que junta todas las piezas en un solo recorrido, desde el commit hasta el servicio monitorizado.
 
 !!! consulta "Solo sobre lo propio"
-    Todo lo que se hace en esta unidad se hace en el laboratorio del alumno: las máquinas `pps01`, `destino01`, `k3s-1`, `k3s-2` y `k3s-3` en una red solo anfitrión, y los repositorios y la cuenta de Docker Hub `pps<NIA>`. Jenkins, Terraform y Ansible son herramientas con mucho poder por diseño: Jenkins ejecuta código en cada cambio y puede tocar el demonio de Docker, Terraform crea y destruye máquinas, Ansible entra por SSH y cambia lo que encuentra. Usarlas contra servidores, repositorios o cuentas ajenas sin autorización escrita es acceso sin autorización a un sistema ajeno, delito tipificado en el artículo 197 bis del Código Penal. Lo mismo vale para los ejercicios de fallos de la UT5: apagar un nodo o matar un contenedor a propósito se hace solo en el clúster propio. Los secretos (tokens de GitHub, contraseña de Docker Hub, claves SSH) son personales: se guardan en el almacén de credenciales de Jenkins o en variables de entorno, nunca en el repositorio ni en una captura de pantalla.
+    Todo lo que se hace en esta unidad se hace en el laboratorio del alumno: las máquinas `pps01`, `destino01`, `k3s-1`, `k3s-2` y `k3s-3` en una red solo anfitrión, y los repositorios y la cuenta de Docker Hub `pps<NIA>`. Jenkins, Terraform y Ansible son herramientas con mucho poder por diseño: Jenkins ejecuta código en cada cambio y puede tocar el demonio de Docker, Terraform crea y destruye máquinas, Ansible entra por SSH y cambia lo que encuentra. Usarlas contra servidores, repositorios o cuentas ajenas sin autorización escrita es acceso sin autorización a un sistema ajeno, delito tipificado en el artículo 197 bis del Código Penal. Lo mismo vale para los ejercicios de fallos de esta unidad: apagar un nodo o matar un contenedor a propósito se hace solo en el clúster propio. Los secretos (tokens de GitHub, contraseña de Docker Hub, claves SSH) son personales: se guardan en el almacén de credenciales de Jenkins o en variables de entorno, nunca en el repositorio ni en una captura de pantalla.
 
 !!! ojo "Montar docker.sock en Jenkins equivale a dar root"
-    Para que las etapas de Jenkins construyan imágenes, el contenedor `jenkins` necesita hablar con el demonio de Docker, y la forma más corta es montar el socket del anfitrión (`-v /var/run/docker.sock:/var/run/docker.sock`). Quien controla ese socket puede arrancar un contenedor privilegiado que monte el disco del anfitrión entero, así que cualquiera que pueda editar un `Jenkinsfile` (o un pull request que lo modifique) obtiene en la práctica root en la máquina. En el laboratorio se acepta, porque `pps01` es una VM propia sin datos de nadie y con instantánea. En producción no: se usa un agente efímero aislado y dedicado a construir, un demonio de Docker sin privilegios (rootless) o un constructor de imágenes que no necesite el socket (Kaniko, Buildah), y la construcción de código que viene de ramas no revisadas queda fuera del controlador. La [sesión 43](#sesion-43-pipeline-seguro-componentes-y-secretos) vuelve sobre esto con los secretos.
+    Para que las etapas de Jenkins construyan imágenes, el contenedor `jenkins` necesita hablar con el demonio de Docker, y la forma más corta es montar el socket del anfitrión (`-v /var/run/docker.sock:/var/run/docker.sock`). Quien controla ese socket puede arrancar un contenedor privilegiado que monte el disco del anfitrión entero, así que cualquiera que pueda editar un `Jenkinsfile` (o un pull request que lo modifique) obtiene en la práctica root en la máquina. En el laboratorio se acepta, porque `pps01` es una VM propia sin datos de nadie y con instantánea. En producción no: se usa un agente efímero aislado y dedicado a construir, un demonio de Docker sin privilegios (rootless) o un constructor de imágenes que no necesite el socket (Kaniko, Buildah), y la construcción de código que viene de ramas no revisadas queda fuera del controlador. El 8 de abril, la sesión de [pipeline seguro](#sesion-43-pipeline-seguro-componentes-y-secretos) vuelve sobre esto con los secretos.
 
 ## Sesión 37 · DevOps y puesta segura en producción
 
@@ -31,7 +31,7 @@ Los principios se resumen en cinco:
 - **Automatización**: todo lo que se repite (compilar, probar, empaquetar, desplegar, crear servidores) lo hace una herramienta y queda escrito como código.
 - **Cambios pequeños y frecuentes**: un cambio de veinte líneas se revisa, se prueba y se deshace con facilidad; uno de veinte mil no.
 - **Medición**: lo que no se mide no se puede mejorar. Cuatro métricas son las de referencia del sector (las de DORA, el programa de investigación de Google sobre entrega de software): frecuencia de despliegue, plazo desde el commit hasta producción, porcentaje de despliegues que fallan y tiempo de recuperación.
-- **Retroalimentación rápida**: cuanto antes se entera el equipo de un fallo (una prueba roja a los cinco minutos, una alerta a los dos), más barato es corregirlo. Es el bucle que cierra el ciclo y que se trabaja en las últimas sesiones de la unidad.
+- **Retroalimentación rápida**: cuanto antes se entera el equipo de un fallo (una prueba roja a los cinco minutos, una alerta a los dos), más barato es corregirlo. Es el bucle que cierra el ciclo.
 
 El objetivo que une los cinco principios es entregar valor más a menudo con menos fallos y recuperarse deprisa cuando alguno ocurre. Tres prácticas distintas se suelen confundir y conviene separarlas:
 
@@ -130,7 +130,7 @@ El segundo eje es el empaquetado. Una máquina virtual lleva un sistema operativ
 
 <span class="et et-com">Comprobación</span> `git --version`, `java -version`, `mvn -v` y `docker --version` responden sin error, `hello-world` imprime su mensaje de bienvenida, el repositorio `pps-app` existe en tu cuenta y está clonado en `~/pps-app`, y al abrir `pipeline.md` en GitHub se ve el diagrama con los siete nodos, cada uno con su control.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a51/` de `pps-entregas` (`README.md` con las respuestas y `pipeline.md` con el dibujo y las tablas), con las salidas del paso 1 como captura. Forma parte de la entrega ACT_UT5_1 (CE a, b y c), plazo el jueves 15 de abril a las 23:59, que se cierra con las hojas A5.2 a A5.7.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a51/` de `pps-entregas` el `README.md` con las respuestas, `pipeline.md` con el dibujo y las tablas, y una captura con las salidas del paso 1. Lo recoge la entrega ACT_UT5_1 (CE a, b y c), que se cierra con las hojas A5.2 a A5.7 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade al dibujo una segunda vía: qué cambia en el pipeline si el despliegue fuera azul-verde en lugar de sustituir la versión anterior, y en qué fase harías la prueba del entorno verde antes de pasarle el tráfico.
 
@@ -206,7 +206,7 @@ La regla que guía los permisos es la del mínimo privilegio: cada persona recib
 
 Dos detalles evitan sorpresas. Una aprobación de pull request solo cuenta para la regla de aprobaciones si la da alguien con rol Write o superior, de modo que una persona con Read puede comentar pero no aprobar. Y un rol se puede dar a una persona o, mejor, a un equipo de la organización: cuando alguien cambia de puesto se le cambia de equipo y no hay que revisar repositorio por repositorio. Las organizaciones pueden además exigir autenticación en dos pasos a todos sus miembros, que es la primera medida contra el robo de una cuenta.
 
-Los pipelines también necesitan acceso, y la misma regla se aplica a las cuentas de máquina: el token que use Jenkins (hoja A5.4) se crea con permisos solo de lectura sobre el repositorio que construye, y una clave de despliegue (*deploy key*) de solo lectura es aún más estrecha.
+Los pipelines también necesitan acceso, y la misma regla se aplica a las cuentas de máquina: el token que use Jenkins se crea con permisos solo de lectura sobre el repositorio que construye, y una clave de despliegue (*deploy key*) de solo lectura es aún más estrecha.
 
 GitLab ofrece lo mismo con otros nombres, y la correspondencia es directa:
 
@@ -250,7 +250,7 @@ GitLab ofrece lo mismo con otros nombres, y la correspondencia es directa:
 
 <span class="et et-com">Comprobación</span> El `git push` directo de B a `main` se rechaza, el de C a cualquier rama también, el botón de fusionar del pull request no se activa hasta la aprobación de A, y tras fusionar `saludo.txt` está en `main` con un único commit añadido. Si el aviso de protección no aparece en la rama, revisa que el ruleset esté en *Active* y que el repositorio sea público.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a52/` de `pps-entregas` con `README.md` (tabla de personas y roles, tabla de comparación con GitLab y explicación breve de cada prueba) y las capturas con nombre descriptivo (`ruleset.png`, `push-rechazado-b.png`, `permiso-denegado-c.png`, `pr-aprobado.png`). Añade la URL del repositorio `equipo-demo`. Forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a52/` de `pps-entregas` el `README.md` (tabla de personas y roles, tabla de comparación con GitLab, explicación breve de cada prueba y URL del repositorio `equipo-demo`) y las capturas con nombre descriptivo (`ruleset.png`, `push-rechazado-b.png`, `permiso-denegado-c.png`, `pr-aprobado.png`). Lo recoge la entrega ACT_UT5_1 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade el fichero `.github/CODEOWNERS` con la línea `* @pps<NIA de A>` en un pull request nuevo, activa en el ruleset *Require review from Code Owners* y comprueba que ahora solo la aprobación de A desbloquea la fusión. Después, provoca un conflicto: cambia la misma línea de `saludo.txt` en dos ramas y resuélvelo al fusionar la segunda.
 
@@ -261,7 +261,7 @@ GitLab ofrece lo mismo con otros nombres, y la correspondencia es directa:
 
 <p class="ut-meta" markdown>15 de marzo · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Qué automatiza un sistema de construcción · 5 min&#10;Maven: ciclo de vida, dependencias y pruebas · 15 min&#10;Maven frente a Gradle · 5 min&#10;A5.3 Construcción con Maven · 85 min" data-dur="Qué automatiza un sistema de construcción · 5 min&#10;Maven: ciclo de vida, dependencias y pruebas · 15 min&#10;Maven frente a Gradle · 5 min&#10;A5.3 Construcción con Maven · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al terminar la sesión existe el código completo de `pps-app`, la aplicación Java que se usa en el resto de la unidad, con su `pom.xml`, sus pruebas y un informe de pruebas generado, y `mvn verify` la construye desde cero en una sola orden. Esa orden es exactamente lo que Jenkins ejecutará en las sesiones siguientes. La teoría explica qué automatiza una herramienta de construcción, cómo lo hace Maven (ciclo de vida, dependencias y pruebas) y cuándo se prefiere Gradle.
+Al terminar la sesión existe el código completo de `pps-app`, la aplicación Java que se usa en el resto de la unidad, con su `pom.xml`, sus pruebas y un informe de pruebas generado, y `mvn verify` la construye desde cero en una sola orden, que es lo que hace falta para automatizarla. La teoría explica qué automatiza una herramienta de construcción, cómo lo hace Maven (ciclo de vida, dependencias y pruebas) y cuándo se prefiere Gradle.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -310,9 +310,9 @@ flowchart LR
 
 Las fases no hacen nada por sí solas: cada una tiene enganchados los *goals* de unos plugins. `compile` ejecuta el plugin del compilador, `test` el plugin `surefire` (que busca las clases cuyo nombre termina en `Test`, las ejecuta y escribe el informe en `target/surefire-reports/`) y `package` el plugin `jar`. Dos órdenes más completan lo básico: `mvn clean` borra `target/` para construir desde cero, y `-B` (modo por lotes) elimina los colores y las barras de progreso, que es como se lanza en un pipeline. Cuando alguna prueba falla, Maven termina con código de salida distinto de cero: es la señal con la que Jenkins sabe que la construcción ha fallado.
 
-**Dependencias.** Cada `<dependency>` se descarga de Maven Central y se guarda en la caché local `~/.m2`, por lo que la primera construcción tarda y las siguientes no. El `scope` dice cuándo hace falta: `compile` (por defecto, siempre), `test` (solo para las pruebas, como JUnit, y no viaja en el jar), `provided` (la aporta el entorno) y `runtime`. Una dependencia arrastra las suyas (dependencias transitivas), y `mvn dependency:tree` las muestra. Este dato importa para la seguridad: cada biblioteca que entra en el árbol es código ajeno que forma parte de la aplicación, y una vulnerabilidad en una dependencia transitiva afecta igual. Por eso `pps-app` no usa más dependencias de ejecución que el propio JDK, y por eso la hoja A5.7 analiza el árbol con OWASP Dependency-Check.
+**Dependencias.** Cada `<dependency>` se descarga de Maven Central y se guarda en la caché local `~/.m2`, por lo que la primera construcción tarda y las siguientes no. El `scope` dice cuándo hace falta: `compile` (por defecto, siempre), `test` (solo para las pruebas, como JUnit, y no viaja en el jar), `provided` (la aporta el entorno) y `runtime`. Una dependencia arrastra las suyas (dependencias transitivas), y `mvn dependency:tree` las muestra. Este dato importa para la seguridad: cada biblioteca que entra en el árbol es código ajeno que forma parte de la aplicación, y una vulnerabilidad en una dependencia transitiva afecta igual. Por eso `pps-app` no usa más dependencias de ejecución que el propio JDK. El 8 de abril, el pipeline pasa a analizar ese árbol con OWASP Dependency-Check.
 
-**Pruebas.** Una prueba unitaria es un método que llama a una parte del código y comprueba con `assertEquals` que devuelve lo esperado. JUnit 5 es la biblioteca estándar y marca cada método con `@Test`. Un pipeline que compila pero no prueba solo comprueba que el código está bien escrito, no que funciona. La opción `-DskipTests` omite las pruebas: en un pipeline solo se admite en una etapa de construcción si otra etapa las ejecuta después (como en la sesión 41), nunca como forma de que pase.
+**Pruebas.** Una prueba unitaria es un método que llama a una parte del código y comprueba con `assertEquals` que devuelve lo esperado. JUnit 5 es la biblioteca estándar y marca cada método con `@Test`. Un pipeline que compila pero no prueba solo comprueba que el código está bien escrito, no que funciona. La opción `-DskipTests` omite las pruebas: en un pipeline solo se admite en una etapa de construcción si otra etapa las ejecuta después, nunca como forma de que pase.
 
 ### Maven frente a Gradle
 
@@ -325,11 +325,11 @@ Gradle resuelve el mismo problema con otro enfoque. El proyecto se describe en u
 | Velocidad | Suficiente en proyectos pequeños | Más rápido con construcciones incrementales y en proyectos grandes |
 | Uso típico | Java empresarial, servicios | Android y proyectos grandes con varios módulos |
 
-El criterio habitual para este curso es Maven, porque su fichero declarativo se audita de un vistazo (basta leer qué dependencias y plugins lleva), su estructura es la misma en todos los proyectos y las herramientas del pipeline (Jenkins, el análisis de dependencias) lo integran con menos configuración. Gradle compensa cuando la velocidad de la construcción es un problema real. La sesión de margen de la primera parte de la unidad propone construir `pps-app` con Gradle como ampliación.
+El criterio habitual para este curso es Maven, porque su fichero declarativo se audita de un vistazo (basta leer qué dependencias y plugins lleva), su estructura es la misma en todos los proyectos y las herramientas del pipeline (Jenkins, el análisis de dependencias) lo integran con menos configuración. Gradle compensa cuando la velocidad de la construcción es un problema real. La sesión de margen del 22 de abril propone construir `pps-app` con Gradle como ampliación.
 
 ### A5.3 Construcción con Maven (sesión 39)
 
-<span class="et et-obj">Objetivo</span> Escribir `pps-app` completa (servidor HTTP mínimo con dos rutas, dos pruebas y su `pom.xml`), construirla y probarla con Maven, generar el informe de pruebas y subirla a tu repositorio. El código que se escribe hoy es el que usan todas las hojas siguientes sin reescribirlo. Prepara la construcción que Jenkins automatiza en A5.4, dentro de ACT_UT5_1 (CE c).
+<span class="et et-obj">Objetivo</span> Escribir `pps-app` completa (servidor HTTP mínimo con dos rutas, dos pruebas y su `pom.xml`), construirla y probarla con Maven, generar el informe de pruebas y subirla a tu repositorio. El código que se escribe hoy es el que usan todas las hojas siguientes sin reescribirlo, y la hoja trabaja el CE c de ACT_UT5_1. Jenkins automatiza esta misma construcción a partir del 18 de marzo.
 
 <span class="et et-pre">Antes de empezar</span> El repositorio `pps-app` creado y clonado en `~/pps-app` en la [A5.1](#a51-el-pipeline-de-entrega-sesion-37), y `java`, `mvn` y `git` funcionando en `pps01`. Se han explicado [qué automatiza un sistema de construcción](#que-automatiza-un-sistema-de-construccion) y [Maven: ciclo de vida, dependencias y pruebas](#maven-ciclo-de-vida-dependencias-y-pruebas).
 
@@ -505,7 +505,7 @@ El criterio habitual para este curso es Maven, porque su fichero declarativo se 
 
 <span class="et et-com">Comprobación</span> `mvn -B clean verify` termina en `BUILD SUCCESS` con las dos pruebas en verde, con el cambio del paso 3 la construcción falla con código distinto de cero y sin él pasa, `curl` devuelve `Hola PPS` y `{"estado":"ok"}`, y en GitHub `pps-app` tiene `pom.xml`, `src/` y `.gitignore` pero no `target/`.
 
-<span class="et et-ent">Entrega</span> La URL del repositorio `pps-app` y la carpeta `ut5/a53/` de `pps-entregas` con `README.md` (comandos usados, plugin de cada fase del paso 2, explicación del paso 5) y las capturas `build-success.png`, `informe-pruebas.png`, `prueba-fallida.png` y `curl.png`. Forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a53/` de `pps-entregas` el `README.md` (URL del repositorio `pps-app`, comandos usados, plugin de cada fase del paso 2 y explicación del paso 5) y las capturas `build-success.png`, `informe-pruebas.png`, `prueba-fallida.png` y `curl.png`. Lo recoge la entrega ACT_UT5_1 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade una tercera prueba que compruebe que una ruta inexistente (`/nada`) también responde 200, porque `/` captura todo lo que no es `/salud`, y decide si ese comportamiento es el deseable para una aplicación real.
 
@@ -539,7 +539,7 @@ Las tres siglas se distinguen por hasta dónde llega la automatización:
 | Entrega continua (CD) | Lo anterior más dejar un artefacto listo para desplegar | Una persona, con un botón |
 | Despliegue continuo | Lo anterior más desplegar en producción | Nadie: si las pruebas pasan, se despliega |
 
-El pipeline de esta unidad llega hasta la entrega continua: construye, prueba y deja una imagen de contenedor; el despliegue se hace después con las herramientas de las sesiones siguientes. La regla de oro de un pipeline de integración es que **una etapa que falla detiene las siguientes**: si no compila, no se prueba; si las pruebas fallan, no se publica nada. Esa parada es también el primer control de seguridad del pipeline, porque una puerta que no se puede saltar es la base de cualquier control posterior (análisis de dependencias, firma de artefactos) que se añade en la [sesión 43](#a57-pipeline-seguro-sesion-43).
+El pipeline de esta unidad llega hasta la entrega continua: construye, prueba y deja una imagen de contenedor, y el despliegue lo hacen otras herramientas. La regla de oro de un pipeline de integración es que **una etapa que falla detiene las siguientes**: si no compila, no se prueba; si las pruebas fallan, no se publica nada. Esa parada es también el primer control de seguridad del pipeline, porque una puerta que no se puede saltar es la base de cualquier control posterior, como el análisis de dependencias o la firma de artefactos.
 
 ```mermaid
 flowchart LR
@@ -572,10 +572,10 @@ Jenkins se compone de cuatro elementos:
 |---|---|---|
 | Controlador (antes "maestro") | El proceso Jenkins: interfaz web, configuración, credenciales, planificación y registro de resultados | Guarda todo en el directorio `JENKINS_HOME` (en el contenedor, `/var/jenkins_home`, montado como volumen) |
 | Agente (nodo) | Una máquina, VM o contenedor que ejecuta las construcciones y se conecta al controlador (por SSH o por el puerto `50000`) | Es quien ejecuta el código del repositorio, que no siempre es de confianza |
-| Trabajo (job) | La definición de qué construir: de dónde se descarga el código, cuándo se lanza y qué comandos se ejecutan | Puede ser de estilo libre (formulario en la web) o pipeline (código, la [sesión 41](#a55-jenkinsfile-sesion-41)) |
+| Trabajo (job) | La definición de qué construir: de dónde se descarga el código, cuándo se lanza y qué comandos se ejecutan | Puede ser de estilo libre (formulario en la web) o pipeline (código) |
 | Plugin | Una extensión que añade funciones: fuentes de código, pasos de pipeline, publicación de informes, Docker | Cada plugin es código que corre con los privilegios de Jenkins: se instala lo necesario y se mantiene actualizado |
 
-Cada ejecución de un trabajo es una construcción (build) con número correlativo (`#1`, `#2`...), su registro de consola y sus artefactos. Ese número es el que se usa como etiqueta de las imágenes de Docker a partir de la [A5.6](#a56-jenkins-con-docker-sesion-42).
+Cada ejecución de un trabajo es una construcción (build) con número correlativo (`#1`, `#2`...), su registro de consola y sus artefactos. Desde el 5 de abril, cuando el pipeline pasa a [construir imágenes de Docker](#a56-jenkins-con-docker-sesion-42), ese número les sirve de etiqueta.
 
 ```mermaid
 flowchart TB
@@ -613,9 +613,9 @@ Las versiones LTS reciben las correcciones de seguridad y cambian poco: es la et
 
 Tres decisiones de instalación tienen consecuencias de seguridad:
 
-- **El volumen es el estado.** El contenedor se puede borrar y recrear (para actualizar la imagen, por ejemplo) sin perder trabajos, plugins ni credenciales, siempre que se monte el mismo volumen. Ese volumen es también lo que hay que copiar en la copia de seguridad ([A5.18](#a518-plan-de-recuperacion-sesion-55)).
+- **El volumen es el estado.** El contenedor se puede borrar y recrear (para actualizar la imagen, por ejemplo) sin perder trabajos, plugins ni credenciales, siempre que se monte el mismo volumen. Ese volumen es también lo que hay que copiar en la copia de seguridad.
 - **La primera contraseña de administrador** la genera Jenkins en su primer arranque y la deja en el registro del contenedor y en `secrets/initialAdminPassword`. Sirve una sola vez, para crear el usuario administrador real; no se comparte ni se sube a ningún sitio.
-- **Los plugins.** El asistente ofrece "instalar los sugeridos", que incluye lo necesario para esta unidad: Git (descargar código), Pipeline (escribir pipelines como código), Credentials y Credentials Binding (guardar secretos y entregarlos al trabajo), y JUnit (publicar el resultado de las pruebas). Más adelante se añade Docker Pipeline ([A5.6](#a56-jenkins-con-docker-sesion-42)). Se instala lo que se va a usar: cada plugin de más es superficie de ataque, y los avisos de seguridad de Jenkins se refieren casi siempre a plugins.
+- **Los plugins.** El asistente ofrece "instalar los sugeridos", que incluye lo necesario para esta unidad: Git (descargar código), Pipeline (escribir pipelines como código), Credentials y Credentials Binding (guardar secretos y entregarlos al trabajo), y JUnit (publicar el resultado de las pruebas). Se instala lo que se va a usar: cada plugin de más es superficie de ataque, y los avisos de seguridad de Jenkins se refieren casi siempre a plugins. Docker Pipeline se añade el 5 de abril, cuando el pipeline [pasa a usar Docker](#a56-jenkins-con-docker-sesion-42).
 
 Para que Jenkins descargue un repositorio privado de GitHub, se le da una **credencial**, que se guarda en el almacén de Jenkins, se cifra en `JENKINS_HOME` y se identifica por un ID (aquí `github-token`). El trabajo la nombra por su ID y Jenkins la entrega al ejecutarlo, enmascarando su valor en el registro. La credencial nunca va escrita en el trabajo ni en el repositorio. Lo que se guarda es un token personal de GitHub con el mínimo permiso posible (lectura de contenido de un solo repositorio), no la contraseña de la cuenta: un token se revoca sin cambiar la contraseña, y si se filtra solo abre lo que se le concedió.
 
@@ -654,7 +654,7 @@ Para que Jenkins descargue un repositorio privado de GitHub, se le da una **cred
 
 <span class="et et-com">Comprobación</span> `docker ps` muestra `jenkins` con los puertos `8090` y `50000`; en el panel del trabajo hay tres construcciones (verde, roja, verde); la roja muestra el test que falla en la pestaña *Test Result*; y tu token no aparece en ninguna captura ni en `git log`.
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a54/` de `pps-entregas` con un `README.md` que diga qué se ha hecho, los comandos de los pasos 1 y 2 y la captura de cada construcción (`build1-verde.png`, `build2-rojo.png`, `build3-verde.png`) y de la configuración del trabajo sin el token (`config-trabajo.png`). Forma parte de la entrega ACT_UT5_1, con plazo el jueves 15 de abril a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a54/` de `pps-entregas` un `README.md` con lo que has hecho y los comandos de los pasos 1 y 2, la captura de cada construcción (`build1-verde.png`, `build2-rojo.png`, `build3-verde.png`) y la de la configuración del trabajo sin el token (`config-trabajo.png`). Lo recoge la entrega ACT_UT5_1 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Borra el contenedor (`docker rm -f jenkins`) y vuelve a crearlo con la misma orden del paso 2: el trabajo, el usuario y la credencial siguen ahí porque viven en el volumen `jenkins_home`. Luego mira en *Manage Jenkins*, *Nodes*, cuántos ejecutores tiene el nodo integrado y qué cambiaría si se pusiera a cero.
 
@@ -687,7 +687,7 @@ Jenkins admite dos sintaxis. La *scripted* es Groovy libre y permite casi todo, 
 
 Un *step* es una sola operación (`sh` ejecuta una orden de shell, `echo` escribe en el registro, `junit` publica resultados de pruebas, `archiveArtifacts` guarda ficheros). Una *stage* agrupa steps con un nombre, y esos nombres son las columnas de la vista de etapas que Jenkins dibuja para cada construcción: verde si la etapa pasó, roja si falló y gris si no llegó a ejecutarse.
 
-Las variables de `environment` se leen en los `sh` como variables de shell (`$APP`). Jenkins añade las suyas, entre ellas `BUILD_NUMBER` (el número de la construcción), `WORKSPACE` (la carpeta de trabajo) y `JOB_NAME`. Una precaución de Groovy que da problemas reales: una cadena entre comillas simples se pasa tal cual al shell, y una entre comillas dobles la interpola Groovy antes de ejecutar. Para valores públicos da igual; para un secreto, la interpolación de Groovy deja el valor en el registro de la construcción y en el historial, y por eso los secretos se usan siempre en comillas simples y con el mecanismo de credenciales ([sesión 43](#a57-pipeline-seguro-sesion-43)).
+Las variables de `environment` se leen en los `sh` como variables de shell (`$APP`). Jenkins añade las suyas, entre ellas `BUILD_NUMBER` (el número de la construcción), `WORKSPACE` (la carpeta de trabajo) y `JOB_NAME`. Una precaución de Groovy que da problemas reales: una cadena entre comillas simples se pasa tal cual al shell, y una entre comillas dobles la interpola Groovy antes de ejecutar. Para valores públicos da igual; para un secreto, la interpolación de Groovy deja el valor en el registro de la construcción y en el historial, y por eso los secretos se usan siempre en comillas simples y con el mecanismo de credenciales. Ese mecanismo, `withCredentials`, se ve el 8 de abril, en la sesión de [pipeline seguro](#a57-pipeline-seguro-sesion-43).
 
 ```groovy
 pipeline {
@@ -746,7 +746,7 @@ Jenkins hace primero la descarga del repositorio y después lee el fichero, de m
 
 <span class="et et-com">Comprobación</span> El trabajo tiene construcciones verdes, una lanzada por el commit del paso 3 y tres rojas (una por etapa rota). En cada roja, solo esa etapa y las posteriores cambian de color, y el `Jenkinsfile` de la última construcción es el que está en `main`.
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a55/` de `pps-entregas` con el `README.md` del paso 5, la vista de etapas del pipeline correcto y la de cada etapa rota (`etapas-verde.png`, `etapas-construir.png`, `etapas-pruebas.png`, `etapas-informe.png`), y el `Jenkinsfile` final. El repositorio `pps-app` con el `Jenkinsfile` en la raíz forma parte de la entrega ACT_UT5_1, con plazo el jueves 15 de abril a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a55/` de `pps-entregas` el `README.md` del paso 5, el `Jenkinsfile` final y la vista de etapas del pipeline correcto y de cada etapa rota (`etapas-verde.png`, `etapas-construir.png`, `etapas-pruebas.png`, `etapas-informe.png`), y deja el `Jenkinsfile` en la raíz de `pps-app`. Lo recoge la entrega ACT_UT5_1 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade una etapa `Analisis` entre `Pruebas` e `Informe` que ejecute `mvn -B verify` y comprueba en la vista de etapas cuánto tiempo añade. O prueba `parallel` para lanzar dos comprobaciones a la vez dentro de una etapa.
 
@@ -770,10 +770,10 @@ Al acabar esta sesión `pps-app` tiene un `Dockerfile` y un `compose.yml`, y un 
 | Imagen | Plantilla de solo lectura, hecha de capas: sistema base, dependencias, aplicación | Es el artefacto que se construye una vez y se despliega igual en todos los entornos |
 | Etiqueta (tag) | Nombre de versión de una imagen, como `pps-app:12` | Una etiqueta se puede mover: `latest` apunta a otra imagen mañana. El pipeline etiqueta con el número de construcción (`pps<NIA>/pps-app:12`) para saber qué código lleva cada imagen |
 | Contenedor | Una imagen en ejecución: un proceso aislado con su sistema de ficheros y su red | Es desechable: se para y se sustituye, no se arregla dentro |
-| Registro | Servidor de imágenes (Docker Hub) | Publicar en él es la última etapa del pipeline de la [A5.19](#a519-proyecto-construccion-y-pipeline-sesion-56) |
+| Registro | Servidor de imágenes (Docker Hub) | Publicar en él es la última etapa del pipeline |
 | Volumen | Almacenamiento que sobrevive al contenedor | Lo que no está en un volumen se pierde al recrear el contenedor |
 
-Una imagen no debe llevar secretos: cada instrucción del `Dockerfile` crea una capa, y una contraseña copiada y borrada en una capa posterior sigue estando en la anterior. Tampoco debe ejecutarse como `root` si no hace falta: si un fallo de la aplicación permite ejecutar órdenes, las ejecuta con el usuario del contenedor. Estos dos criterios (sin secretos, sin `root`) son los que revisa la [A2.4 de la UT2](ut2-nivel-seguridad.md#a24-docker-aislamiento-y-auditoria-sesion-12) y los que se aplican a la imagen de `pps-app`.
+Una imagen no debe llevar secretos: cada instrucción del `Dockerfile` crea una capa, y una contraseña copiada y borrada en una capa posterior sigue estando en la anterior. Tampoco debe ejecutarse como `root` si no hace falta: si un fallo de la aplicación permite ejecutar órdenes, las ejecuta con el usuario del contenedor. Estos dos criterios (sin secretos, sin `root`) son los que revisa la [auditoría de Docker de la UT2](ut2-nivel-seguridad.md#a24-docker-aislamiento-y-auditoria-sesion-12) y los que se aplican a la imagen de `pps-app`.
 
 ### Dockerfile y compose de pps-app
 
@@ -803,7 +803,7 @@ services:
     restart: unless-stopped
 ```
 
-El servicio `app` publica el `8080` del contenedor en el `8092` de la VM. `restart: unless-stopped` hace que Docker lo levante de nuevo si el proceso muere o si se reinicia la máquina, y es lo que la [A5.17](#a517-reaccion-a-fallos-sesion-54) pondrá a prueba. El compose de balanceo con dos réplicas y nginx, que se despliega en K3s en la [A5.14](#a514-balanceo-en-k3s-y-k9s-sesion-51), es una ampliación de este mismo fichero.
+El servicio `app` publica el `8080` del contenedor en el `8092` de la VM. `restart: unless-stopped` hace que Docker lo levante de nuevo si el proceso muere o si se reinicia la máquina. La [simulación de fallos](#a517-reaccion-a-fallos-sesion-54) del 17 de mayo pone a prueba esa política.
 
 ### Jenkins y Docker
 
@@ -894,7 +894,7 @@ Un detalle práctico del agente Docker: la carpeta de trabajo de la construcció
 
 <span class="et et-com">Comprobación</span> La vista de etapas de una construcción correcta muestra las cinco etapas en verde; `docker images` lista `pps<NIA>/pps-app` con el número de construcción como etiqueta y `curl` al `8092` devuelve `{"estado":"ok"}`. En la construcción rota, la etapa de pruebas está en rojo y la de compose en gris: no se ha desplegado nada nuevo.
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a56/` de `pps-entregas` con el `README.md` (qué hace cada etapa en una línea, los comandos de los pasos 2, 3 y 5, y qué implica montar `docker.sock` en tres frases tuyas), el `jenkinsfile.docker`, el `Dockerfile`, el `compose.yml` y las capturas `etapas-docker-verde.png`, `etapas-docker-roja.png` y `curl-salud.png`. El repositorio `pps-app` con los cuatro ficheros forma parte de la entrega ACT_UT5_1 (enunciado RA5.1, punto 3.2), con plazo el jueves 15 de abril a las 23:59, y su README tiene que incluir una captura de las pipelines funcionando con una breve explicación.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a56/` de `pps-entregas` el `README.md` (qué hace cada etapa en una línea, los comandos de los pasos 2, 3 y 5, y qué implica montar `docker.sock` en tres frases tuyas), el `jenkinsfile.docker`, el `Dockerfile`, el `compose.yml` y las capturas `etapas-docker-verde.png`, `etapas-docker-roja.png` y `curl-salud.png`. Añade al README de `pps-app` una captura de las pipelines funcionando con una breve explicación, como pide el punto 3.2 del enunciado RA5.1. Lo recoge, con el repositorio y sus cuatro ficheros, la entrega ACT_UT5_1 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Cierra la tarea 1 y 2 del apunte de Jenkins del enunciado, que pide la calculadora en Python: crea un repositorio `calculadora` con `calculadora.py` (multiplica dos números de la línea de comandos), `test_calculadora.py` con `unittest` y un `Jenkinsfile` con `agent { docker { image 'python:3.12-slim' } }`, un `sh 'python -m unittest'` y `pollSCM`. Rompe una etapa y comprueba la reacción, igual que en la A5.5.
 
@@ -910,7 +910,7 @@ Un detalle práctico del agente Docker: la carpeta de trabajo de la construcció
 
 <p class="ut-meta" markdown>8 de abril · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Análisis de dependencias con OWASP Dependency-Check · 10 min&#10;Secretos en el pipeline y firma de artefactos · 10 min&#10;A5.7 Pipeline seguro · 90 min" data-dur="Análisis de dependencias con OWASP Dependency-Check · 10 min&#10;Secretos en el pipeline y firma de artefactos · 10 min&#10;A5.7 Pipeline seguro · 90 min">:material-school:<i class="dur-barra" style="--teoria:18%"></i>:material-flask:</span></p>
 
-Al terminar la sesión el pipeline de `pps-app` tiene una etapa que analiza sus dependencias y se rompe si encuentra una vulnerabilidad crítica, las credenciales viven en Jenkins y no en el repositorio, y el jar publicado lleva una suma de verificación que se comprueba antes de usarlo. La aplicación no se toca: lo que se añade son controles de seguridad al pipeline de las sesiones 40 a 42.
+Al terminar la sesión el pipeline de `pps-app` tiene una etapa que analiza sus dependencias y se rompe si encuentra una vulnerabilidad crítica, las credenciales viven en Jenkins y no en el repositorio, y el jar publicado lleva una suma de verificación que se comprueba antes de usarlo. La aplicación no se toca: lo que se añade son controles de seguridad al pipeline de Jenkins que ya construye, prueba y empaqueta `pps-app` en una imagen.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -977,7 +977,7 @@ Jenkins guarda los secretos en su almacén de credenciales, cifrados, y el pipel
 
 Al usar una credencial con `withCredentials`, Jenkins enmascara su valor en el registro de la construcción y lo sustituye por asteriscos. Ese enmascarado es una red de seguridad, no una garantía: un valor transformado (codificado en base64, cortado en trozos) ya no coincide y aparece en claro. La regla es que el secreto no se imprima, no se pase como argumento visible con comillas dobles de Groovy (que lo interpolan antes de ejecutar) y no se guarde en un fichero del espacio de trabajo. En un `sh` con comillas simples es el intérprete de la terminal quien lee la variable de entorno, y el valor nunca pasa por Groovy.
 
-Otros controles que completan lo anterior, y que caen en el examen: los privilegios de Jenkins (un usuario que crea pipelines ejecuta código en el controlador, luego los permisos se reparten por rol y no se da administrador a todos), los agentes (el código de un pipeline debe ejecutarse en un agente y no en el controlador, que es quien guarda todas las credenciales) y el acceso al demonio de Docker (montar `docker.sock` equivale a dar `root`, tal como se avisa en la sesión 42).
+Otros controles que completan lo anterior, y que caen en el examen: los privilegios de Jenkins (un usuario que crea pipelines ejecuta código en el controlador, luego los permisos se reparten por rol y no se da administrador a todos), los agentes (el código de un pipeline debe ejecutarse en un agente y no en el controlador, que es quien guarda todas las credenciales) y el acceso al demonio de Docker (montar `docker.sock` equivale a dar `root`).
 
 #### Integridad y firma del artefacto
 
@@ -1004,7 +1004,7 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
 
 <span class="et et-pas">Pasos</span>
 
-1. Guarda en Jenkins dos credenciales nuevas: `nvd-api-key`, de tipo *Secret text*, con tu clave de la NVD, y `dockerhub`, de tipo *Username with password*, con `pps<NIA>` y un token de acceso de Docker Hub de lectura y escritura, nunca la contraseña de la cuenta. `dockerhub` la usa la A5.19 para publicar la imagen y se deja lista hoy. Comprueba que `github-token` sigue en la lista con ese ID exacto.
+1. Guarda en Jenkins dos credenciales nuevas: `nvd-api-key`, de tipo *Secret text*, con tu clave de la NVD, y `dockerhub`, de tipo *Username with password*, con `pps<NIA>` y un token de acceso de Docker Hub de lectura y escritura, nunca la contraseña de la cuenta. `dockerhub` no se usa hoy: la necesita el proyecto integrador, el 24 de mayo, para publicar la imagen. Comprueba que `github-token` sigue en la lista con ese ID exacto.
 
     *Pista:* el token de Docker Hub se crea en *Account settings*, *Personal access tokens*, y solo se muestra una vez.
 
@@ -1050,7 +1050,7 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
 
 <span class="et et-com">Comprobación</span> Con la dependencia `2.14.1` el pipeline falla en `Análisis de dependencias` y el informe muestra una vulnerabilidad crítica; con la `2.17.1` termina en verde, con la suma calculada y verificada. `git grep` no encuentra ningún valor secreto, el registro enmascara la clave, y la lista de credenciales muestra `github-token`, `nvd-api-key` y `dockerhub` con esos ID exactos. Si la etapa falla por un motivo distinto al esperado (`docker: not found`, error de permisos, un 403 de la NVD), mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> `Jenkinsfile` y `pom.xml`, subidos a `pps-app`, y en `ut5/a57/` de `pps-entregas` un `README.md` con qué se ha hecho, los comandos y el CVE que encontró el análisis (identificador, CVSS y librería), con las capturas del pipeline en rojo, del informe, del registro con `****`, de la lista de credenciales sin valores y del pipeline en verde. La hoja forma parte de la entrega ACT_UT5_1, plazo el jueves 15 de abril a las 23:59, junto con A5.1 a A5.6; la clave de la NVD y cualquier token no aparecen en ningún fichero ni captura.
+<span class="et et-ent">Para practicar</span> Sube a `pps-app` el `Jenkinsfile` y el `pom.xml`, y guarda en `ut5/a57/` de `pps-entregas` un `README.md` con lo que has hecho, los comandos y el CVE que encontró el análisis (identificador, CVSS y librería), con las capturas del pipeline en rojo, del informe, del registro con `****`, de la lista de credenciales sin valores y del pipeline en verde. Ni la clave de la NVD ni ningún token pueden aparecer en un fichero o una captura. Lo recoge, con las A5.1 a A5.6, la entrega ACT_UT5_1 (plazo, el jueves 15 de abril a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Comprueba que la suma detecta un cambio: entra en el contenedor con `docker exec -it jenkins bash`, ve a `/var/jenkins_home/workspace/<nombre del trabajo>`, copia el jar a `/tmp`, añádele un byte con `echo x >> /tmp/pps-app.jar` y compara `sha256sum` de la copia con `target/pps-app.jar.sha256`: tienen que ser distintas. Firma el jar con GPG: genera una clave de prueba en `pps01` (`gpg --quick-generate-key ops-pps default default never`), firma con `gpg --detach-sign --armor target/pps-app.jar` y verifica con `gpg --verify target/pps-app.jar.asc target/pps-app.jar`. En un pipeline real la clave privada sería una credencial de tipo `Secret file`. Otra prueba: crea un fichero de supresiones con una entrada que silencie un hallazgo, con su motivo y una fecha, y pásalo con `--suppression`.
 
@@ -1061,7 +1061,7 @@ En el laboratorio se calcula y se verifica la suma en el pipeline (etapa de inte
 
 <p class="ut-meta" markdown>12 de abril · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Infraestructura como código · 10 min&#10;Terraform: proveedores, recursos, estado y ciclo de trabajo · 15 min&#10;A5.8 Terraform: primera máquina · 85 min" data-dur="Infraestructura como código · 10 min&#10;Terraform: proveedores, recursos, estado y ciclo de trabajo · 15 min&#10;A5.8 Terraform: primera máquina · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al terminar la sesión existe una máquina virtual Ubuntu 24.04 en VirtualBox que nadie ha creado con el ratón: la ha creado Terraform a partir de un fichero de texto, y un segundo `plan` confirma que no hay nada que cambiar. Antes de escribir el fichero se ve qué gana un equipo al describir su infraestructura como código y qué piezas tiene Terraform; la máquina resultante, `destino01`, es la que configura Ansible en la sesión 46.
+Al terminar la sesión existe una máquina virtual Ubuntu 24.04 en VirtualBox que nadie ha creado con el ratón: la ha creado Terraform a partir de un fichero de texto, y un segundo `plan` confirma que no hay nada que cambiar. Antes de escribir el fichero se ve qué gana un equipo al describir su infraestructura como código y qué piezas tiene Terraform. La máquina resultante, `destino01`, es la que Ansible configura a partir del 19 de abril.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -1076,17 +1076,17 @@ Al terminar la sesión existe una máquina virtual Ubuntu 24.04 en VirtualBox qu
 
 ### Infraestructura como código
 
-El objetivo es entender qué problema resuelve describir servidores, redes y discos en ficheros. La herramienta que se usa para ello es Terraform; su compañera Ansible (sesión 46) configura lo que hay dentro de las máquinas.
+El objetivo es entender qué problema resuelve describir servidores, redes y discos en ficheros. La herramienta que se usa para ello es Terraform; su compañera Ansible configura lo que hay dentro de las máquinas.
 
 Crear una máquina con el ratón funciona una vez y falla la segunda: nadie recuerda qué casillas se marcaron, dos entornos que debían ser iguales acaban distintos y, si se pierde el servidor, no hay receta para rehacerlo. La infraestructura como código (IaC) sustituye el ratón por ficheros de texto que una herramienta aplica. Al ser texto, van a Git y heredan todo lo que ya se sabe hacer con el código: historial, revisión en un pull request, vuelta atrás y ejecución automática desde un pipeline.
 
 El punto de partida de todas las herramientas de IaC es el enfoque declarativo: el fichero describe el estado final que se quiere ("una máquina con 2 CPU y 1,5 GB de memoria") y la herramienta calcula qué hacer para llegar a él. Frente a un script que lista pasos, lo declarativo tiene una propiedad decisiva: es idempotente. Aplicarlo dos veces produce el mismo resultado que aplicarlo una, porque la segunda vez la herramienta compara lo deseado con lo que existe y no encuentra diferencias.
 
-| Herramienta | Qué hace | Cuándo entra |
-|---|---|---|
-| Terraform (y OpenTofu) | Crea y modifica la infraestructura: máquinas, redes, discos, DNS | Sesiones 44 y 45 |
-| Ansible | Configura el interior de las máquinas: paquetes, ficheros, servicios | Sesiones 46 y 48 |
-| Jenkins | Ejecuta las dos anteriores desde un pipeline | Proyecto integrador |
+| Herramienta | Qué hace |
+|---|---|
+| Terraform (y OpenTofu) | Crea y modifica la infraestructura: máquinas, redes, discos, DNS |
+| Ansible | Configura el interior de las máquinas: paquetes, ficheros, servicios |
+| Jenkins | Ejecuta las dos anteriores desde un pipeline |
 
 La división de trabajo es la habitual del sector: Terraform aprovisiona (deja la máquina creada y con red) y Ansible configura (la deja útil). Confundirlos lleva a scripts enormes que hacen mal las dos cosas. La seguridad gana tres cosas concretas: el estado deseado es auditable en el historial de Git, un entorno comprometido se destruye y se recrea en minutos desde un origen conocido (infraestructura inmutable: no se arregla un servidor, se sustituye), y los cambios pasan por revisión antes de aplicarse.
 
@@ -1102,7 +1102,7 @@ Este apartado presenta las piezas de un proyecto Terraform y el ciclo `init`, `p
 | Estado (`terraform.tfstate`) | Fichero donde Terraform anota qué ha creado y con qué valores | Se genera solo tras el primer `apply` |
 | Fichero de bloqueo (`.terraform.lock.hcl`) | Versión y huellas de los proveedores descargados | Se sube a Git; el directorio `.terraform/` no |
 
-El estado es la pieza que más se subestima. Terraform no consulta a la plataforma qué existe: compara el código con el estado que él mismo guardó y con la respuesta de la plataforma. Sin estado, no sabe que ya creó la máquina y la crearía otra vez. Además el estado guarda los valores completos de cada recurso, incluidas contraseñas y claves si algún recurso las maneja: por eso no se sube a Git y se trata como un secreto (se desarrolla en la sesión 45).
+El estado es la pieza que más se subestima. Terraform no consulta a la plataforma qué existe: compara el código con el estado que él mismo guardó y con la respuesta de la plataforma. Sin estado, no sabe que ya creó la máquina y la crearía otra vez. Además el estado guarda los valores completos de cada recurso, incluidas contraseñas y claves si algún recurso las maneja: por eso no se sube a Git y se trata como un secreto. Dónde guardarlo y cómo protegerlo se ve el 15 de abril.
 
 ```mermaid
 flowchart TB
@@ -1165,7 +1165,7 @@ resource "virtualbox_vm" "destino01" {
 
 ### A5.8 Terraform: primera máquina (sesión 44)
 
-<span class="et et-obj">Objetivo</span> Desde un proyecto Terraform propio, el proveedor de VirtualBox crea la máquina `destino01` (Ubuntu 24.04, 1 CPU, 1,5 GB, con NAT y red solo anfitrión), entras en ella por SSH, un segundo `plan` dice que no hay cambios y el proyecto queda en un repositorio Git sin el estado ni el directorio `.terraform/`. La máquina se conserva: la usan las sesiones 45 y 46.
+<span class="et et-obj">Objetivo</span> Desde un proyecto Terraform propio, el proveedor de VirtualBox crea la máquina `destino01` (Ubuntu 24.04, 1 CPU, 1,5 GB, con NAT y red solo anfitrión), entras en ella por SSH, un segundo `plan` dice que no hay cambios y el proyecto queda en un repositorio Git sin el estado ni el directorio `.terraform/`. La máquina se conserva: el 15 de abril se parametriza su proyecto y el 19 la configura Ansible.
 
 <span class="et et-pre">Antes de empezar</span> Este trabajo se hace en el anfitrión del aula (o en tu portátil), que es donde está VirtualBox 7.x, y no en `pps01`; hace falta conexión a Internet para descargar el proveedor y la imagen, que pesa varios cientos de megabytes, y `pps01` puede estar apagada. Se ha explicado [qué es la infraestructura como código](#infraestructura-como-codigo) y [las piezas y el ciclo de Terraform](#terraform-proveedores-recursos-estado-y-ciclo-de-trabajo). El aviso sobre `VBoxManage` está en ese mismo apartado.
 
@@ -1193,7 +1193,7 @@ resource "virtualbox_vm" "destino01" {
 
 <span class="et et-com">Comprobación</span> `VBoxManage list runningvms` muestra `destino01`, el SSH entra en `192.168.56.20` con un Ubuntu 24.04, el segundo `plan` termina con `No changes. Your infrastructure matches the configuration.` y el repositorio no contiene `terraform.tfstate`. Si `terraform init` no encuentra el proveedor, revisa que la versión sea exactamente `0.2.2-alpha.1`. Si `terraform show` no da `ipv4_address` o el SSH no conecta, la máquina arrancó pero la segunda interfaz no tiene IP: abre `destino01` desde VirtualBox, entra por la consola y pide dirección a mano con `sudo dhclient enp0s8` (el nombre de la interfaz sale de `ip -br a`).
 
-<span class="et et-ent">Entrega</span> Repositorio `pps-iac` con `.gitignore`, `terraform/main.tf` y `terraform/.terraform.lock.hcl`, y en `ut5/a58/` de `pps-entregas` un `README.md` con los comandos y las capturas del primer plan, del apply, del SSH dentro de la máquina y del segundo plan sin cambios. La hoja forma parte de la entrega ACT_UT5_2 (punto 3.1 del enunciado), plazo el lunes 3 de mayo a las 23:59, junto con A5.9, A5.10 y A5.11.
+<span class="et et-ent">Para practicar</span> Deja en `pps-iac` el `.gitignore`, `terraform/main.tf` y `terraform/.terraform.lock.hcl`, y guarda en `ut5/a58/` de `pps-entregas` un `README.md` con los comandos y las capturas del primer plan, del apply, del SSH dentro de la máquina y del segundo plan sin cambios. Es el punto 3.1 del enunciado de la entrega ACT_UT5_2, que lo recoge con las A5.9, A5.10 y A5.11 (plazo, el lunes 3 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Cambia `memory` a `"2048 mib"` con la máquina creada y ejecuta `terraform plan`: mira si el proveedor marca `~` (modifica en sitio) o `-/+` (destruye y recrea) y por qué importa la diferencia en una máquina con datos. Después vuelve al valor original y comprueba que el plan queda sin cambios. Compara además el tamaño de `terraform.tfstate` con el de `main.tf` y abre el estado: cuenta cuántos atributos guarda de una máquina que tú describiste en cinco líneas.
 
@@ -1201,7 +1201,7 @@ resource "virtualbox_vm" "destino01" {
 
 <p class="ut-meta" markdown>15 de abril · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Variables, salidas y módulos · 5 min&#10;El estado y los secretos · 10 min&#10;A5.9 Terraform: variables y estado · 95 min" data-dur="Variables, salidas y módulos · 5 min&#10;El estado y los secretos · 10 min&#10;A5.9 Terraform: variables y estado · 95 min">:material-school:<i class="dur-barra" style="--teoria:14%"></i>:material-flask:</span></p>
 
-Al terminar la sesión el proyecto de la sesión 44 no lleva valores escritos a mano en el código, deja como salida la IP de `destino01` para que Ansible la use, y el repositorio está protegido para que ni el estado ni los ficheros de valores lleguen a Git. Hoy vence además la entrega ACT_UT5_1 (A5.1 a A5.7) a las 23:59; esta hoja forma parte de la siguiente, ACT_UT5_2.
+Al terminar la sesión el proyecto Terraform que creó `destino01` no lleva valores escritos a mano en el código, deja como salida la IP de la máquina para que Ansible la use, y el repositorio está protegido para que ni el estado ni los ficheros de valores lleguen a Git. Hoy vence además, a las 23:59, la entrega ACT_UT5_1, que recoge las A5.1 a A5.7; lo que se hace hoy lo recoge la siguiente, ACT_UT5_2.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -1278,7 +1278,7 @@ Un principio de fondo acompaña a todo lo anterior: mínimo privilegio. Quien pu
 
 <span class="et et-com">Comprobación</span> `main.tf` no contiene valores literales de nombre, CPU, memoria, imagen ni red; el `plan` tras el refactor dijo `No changes`; `terraform output -raw ip_destino01` da `192.168.56.20`; el `plan` con 512 MiB falla con tu mensaje; el valor de `clave_acceso` aparece en `terraform.tfstate` pero no en el repositorio; y `git status` no muestra ningún `tfstate` ni `terraform.tfvars`. Si el `plan` del paso 2 quiere recrear la máquina, compara `terraform show` con `variables.tf` valor a valor.
 
-<span class="et et-ent">Entrega</span> Repositorio `pps-iac` con `variables.tf`, `outputs.tf`, `main.tf`, `terraform.tfvars.example`, `.terraform.lock.hcl` y `.gitignore`; en `ut5/a59/` de `pps-entregas`, el `README.md` con las capturas del `plan` sin cambios, del fallo de validación, de la salida `<sensitive>` y del `grep` sobre el estado (tapa el valor de la contraseña en la captura antes de subirla) y las cinco líneas del paso 6. La hoja forma parte de la entrega ACT_UT5_2, plazo el lunes 3 de mayo a las 23:59.
+<span class="et et-ent">Para practicar</span> Deja en `pps-iac` `variables.tf`, `outputs.tf`, `main.tf`, `terraform.tfvars.example`, `.terraform.lock.hcl` y `.gitignore`, y guarda en `ut5/a59/` de `pps-entregas` el `README.md` con las cinco líneas del paso 6 y las capturas del `plan` sin cambios, del fallo de validación, de la salida `<sensitive>` y del `grep` sobre el estado (tapa el valor de la contraseña en la captura antes de subirla). Lo recoge la entrega ACT_UT5_2 (plazo, el lunes 3 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Mueve la máquina a un módulo: crea `terraform/modules/vm/` con `main.tf`, `variables.tf` y `outputs.tf`, llámalo desde el `main.tf` de la raíz con `module "destino01" { source = "./modules/vm" ... }` y ejecuta `terraform init` y `terraform plan`. Como el recurso cambia de dirección, el plan querrá destruir y crear la máquina: `terraform state mv virtualbox_vm.destino01 module.destino01.virtualbox_vm.destino01` mueve el recurso en el estado y deja el plan sin cambios. Otra opción: exporta `TF_VAR_vm_memory_mib=2048` y comprueba con `terraform plan` que una variable de entorno gana sobre el valor por defecto.
 
@@ -1381,7 +1381,7 @@ Dos opciones ahorran tiempo en clase: `--check` simula el playbook sin cambiar n
 
 <span class="et et-com">Comprobación</span> El paso 2 responde `pong`, `curl` devuelve `HTTP/1.1 200 OK` y el `PLAY RECAP` de la primera ejecución muestra `changed` distinto de 0 mientras el de la segunda muestra `changed=0` y `failed=0`. Si la segunda pasada sigue marcando `changed` en la primera tarea porque han salido paquetes nuevos entre las dos, repítela: debe estabilizarse. Si algo no conecta, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a510/` de `pps-entregas` con el `README.md` (qué se ha hecho, comandos, validación), las capturas de la primera y la segunda ejecución con su `PLAY RECAP` y los tres ficheros del proyecto. Forma parte de la entrega ACT_UT5_2, plazo el lunes 3 de mayo a las 23:59; la completa la hoja A5.11.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a510/` de `pps-entregas` el `README.md` (qué has hecho, comandos y validación), las capturas de la primera y la segunda ejecución con su `PLAY RECAP` y los tres ficheros del proyecto. Lo recoge la entrega ACT_UT5_2, que se completa con la hoja A5.11 (plazo, el lunes 3 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Simula el playbook con `ansible-playbook site.yml --check --diff` sobre una máquina donde Apache ya está instalado (sobre una virgen la tarea del servicio falla en simulación, porque el paquete aún no existe). Ejecuta `ansible web -m ansible.builtin.setup -a 'filter=ansible_distribution*'` y lee los datos que Ansible recoge de la máquina (los hechos). Después añade una tarea que instale `curl` y `unzip` con una sola llamada a `apt` usando una lista en `name`.
 
@@ -1400,9 +1400,9 @@ Esta sesión no trae contenido nuevo ni hoja propia. Cierra la primera mitad de 
 Se recupera en este orden, porque cada hoja usa lo que dejó la anterior. Lo que ya está hecho se salta.
 
 - Sesiones 37 a 39 (DevOps, Git en equipo y Maven): las hojas [A5.1](#a51-el-pipeline-de-entrega-sesion-37), [A5.2](#a52-git-en-equipo-sesion-38) y [A5.3](#a53-construccion-con-maven-sesion-39). La A5.3 deja el repositorio `pps-app` que usan las siguientes, así que es la primera prioridad.
-- Sesiones 40 a 43 (Jenkins): [A5.4](#a54-jenkins-primer-trabajo-sesion-40), [A5.5](#a55-jenkinsfile-sesion-41), [A5.6](#a56-jenkins-con-docker-sesion-42) y [A5.7](#a57-pipeline-seguro-sesion-43). Pertenecen a la entrega ACT_UT5_1, cuyo plazo ya venció el jueves 15 de abril: entregada fuera de plazo y sin causa justificada se corrige sobre el 50 %.
+- Sesiones 40 a 43 (Jenkins): [A5.4](#a54-jenkins-primer-trabajo-sesion-40), [A5.5](#a55-jenkinsfile-sesion-41), [A5.6](#a56-jenkins-con-docker-sesion-42) y [A5.7](#a57-pipeline-seguro-sesion-43). Las recoge la entrega ACT_UT5_1, cuyo plazo ya venció el jueves 15 de abril: entregada fuera de plazo y sin causa justificada, se corrige sobre el 50 %.
 - Sesiones 44 y 45 (Terraform): [A5.8](#a58-terraform-primera-maquina-sesion-44) y [A5.9](#a59-terraform-variables-y-estado-sesion-45). Sin `destino01` no se puede hacer Ansible.
-- Sesiones 46 y 48 (Ansible): [A5.10](#a510-ansible-primer-playbook-sesion-46) y [A5.11](#a511-ansible-despliegue-sesion-48). La A5.11 se hace en su fecha; la A5.10 sí se puede recuperar hoy. Las dos forman parte de ACT_UT5_2, plazo el lunes 3 de mayo.
+- Sesiones 46 y 48 (Ansible): [A5.10](#a510-ansible-primer-playbook-sesion-46) y [A5.11](#a511-ansible-despliegue-sesion-48). La A5.11 se hace en su fecha; la A5.10 sí se puede recuperar hoy. Las dos las recoge ACT_UT5_2, con plazo el lunes 3 de mayo.
 
 ### Si no se ha perdido ninguna
 
@@ -1410,7 +1410,7 @@ La reserva tiene dos partes: primero el repaso, que sostiene las entregas, y des
 
 - **Jenkins.** Vuelve a arrancar el pipeline de `pps-app` desde cero: haz un cambio mínimo en el código, empuja y comprueba que la construcción, las pruebas y el análisis de dependencias salen sin tocar nada a mano. Si algo falla, el fallo es la lección.
 - **Terraform.** Destruir `destino01` con `terraform destroy`, volver a crearla con `terraform apply` y comprobar que la IP de salida es la misma (la máquina nueva no tiene la clave SSH del alumno: hay que repetir `ssh-copy-id`). Comprobar que `.gitignore` deja fuera el estado y las variables con secretos.
-- **Ansible.** Con `destino01` recién creada, ejecuta el playbook de la A5.10: una máquina nueva queda configurada sin entrar en ella por SSH. Ese es el ciclo que se necesita en el proyecto integrador. El playbook de la A5.11 se ve en la sesión siguiente.
+- **Ansible.** Con `destino01` recién creada, ejecuta el playbook de la A5.10: una máquina nueva queda configurada sin entrar en ella por SSH. El proyecto integrador de finales de mayo se apoya en este mismo ciclo.
 - **Ampliación con Nginx.** Cambia el servidor web del playbook de la A5.10: escribe una variante que instale `nginx` en lugar de `apache2` (paquete y servicio) y comprueba con `curl` que responde. Sirve para ver qué es específico del paquete (nombre, servicio, ruta de la web) y qué no.
 - **Ampliación con Gradle.** Construye `pps-app` con Gradle en lugar de Maven y compara el fichero de construcción, el tiempo y la salida de las pruebas. La comparación se hizo en teoría en la sesión 39; aquí se hace con las manos.
 
@@ -1511,7 +1511,7 @@ El último nivel es el que cuenta para el resultado. Se hace desde `pps01`, que 
 
 <span class="et et-com">Comprobación</span> La primera ejecución muestra `changed` en la plantilla y el handler `Reiniciar Apache`; la segunda termina con `changed=0` y sin handler; con `-e` hay un `changed` y un reinicio; el `assert` da `ok` y `curl` devuelve `Ansible rocks`. Si el handler no aparece nunca, el nombre del `notify` no coincide con el del handler. Si algo no conecta, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> Carpeta `ut5/a511/` de `pps-entregas` con el `README.md`, las capturas y el proyecto `ansible/`. Con la A5.8, la A5.9 y la A5.10 completa la entrega ACT_UT5_2: el `README` de la entrega recoge la captura de la provisión con Terraform, la de la configuración con Ansible y la de la validación con `curl`. Plazo el lunes 3 de mayo a las 23:59.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a511/` de `pps-entregas` el `README.md`, las capturas y el proyecto `ansible/`. Con las A5.8, A5.9 y A5.10, lo recoge la entrega ACT_UT5_2 (plazo, el lunes 3 de mayo a las 23:59), cuyo `README` lleva la captura de la provisión con Terraform, la de la configuración con Ansible y la de la validación con `curl`.
 
 <span class="et et-ext">Si te sobra tiempo</span> Rompe la comprobación a propósito: cambia el `assert` para que busque un texto distinto y comprueba que el playbook falla al final con el mensaje de `fail_msg`. Después mueve la tarea de actualización del sistema a su propio rol `base` y aplica los dos roles en `site.yml`.
 
@@ -1575,10 +1575,10 @@ El objetivo es saber por qué se usa K3s en el laboratorio y qué se conserva de
 | Recursos por servidor | Varios GB | Mínimo documentado: 2 CPU y 2 GB de memoria (agente: 1 CPU y 512 MB) |
 | `kubectl` y YAML | Los estándar | Los mismos: un YAML sirve en ambos |
 
-En un nodo K3s ejecuta a la vez el plano de control (API, planificador y controladores) y los pods de las aplicaciones. Por eso un solo nodo es un laboratorio y no un entorno de producción: si esa máquina cae, cae todo. La alta disponibilidad se ve en la sesión 50.
+En un nodo K3s ejecuta a la vez el plano de control (API, planificador y controladores) y los pods de las aplicaciones. Por eso un solo nodo es un laboratorio y no un entorno de producción: si esa máquina cae, cae todo. La alta disponibilidad, con tres servidores, se monta el 3 de mayo.
 
 !!! ojo "Los recursos del laboratorio quedan por debajo del mínimo documentado"
-    Cada VM `k3s-N` del curso tiene 1 vCPU y 1,5 GB, por debajo de los 2 CPU y 2 GB que K3s documenta para un servidor. Con nginx funciona, pero el arranque es lento (de dos a cuatro minutos hasta que el nodo pasa a `Ready`) y un nodo que se queda sin memoria se reinicia sin avisar. El criterio habitual es respetar el mínimo si el equipo lo permite: con 16 GB, tres VM de 2 GB (6 GB) caben si `pps01` está apagada. Si ni así caben las tres, la alternativa es k3d, que ejecuta K3s dentro de contenedores Docker en `pps01` y que se explica en la sesión 50.
+    Cada VM `k3s-N` del curso tiene 1 vCPU y 1,5 GB, por debajo de los 2 CPU y 2 GB que K3s documenta para un servidor. Con nginx funciona, pero el arranque es lento (de dos a cuatro minutos hasta que el nodo pasa a `Ready`) y un nodo que se queda sin memoria se reinicia sin avisar. El criterio habitual es respetar el mínimo si el equipo lo permite: con 16 GB, tres VM de 2 GB (6 GB) caben si `pps01` está apagada. Si ni así caben las tres, la alternativa es k3d, que ejecuta K3s dentro de contenedores Docker en `pps01`.
 
 !!! examen "Qué se evalúa"
     Diferencia entre escalado vertical y horizontal y cuál permite tolerar fallos; qué hace un orquestador; función de pod, deployment y service (quién mantiene las réplicas y quién reparte el tráfico); por qué K3s y no Kubernetes completo en un laboratorio.
@@ -1620,7 +1620,7 @@ En un nodo K3s ejecuta a la vez el plano de control (API, planificador y control
 
 <span class="et et-com">Comprobación</span> `kubectl get nodes` muestra `k3s-1` en `Ready`, el despliegue `nginx` dice `2/2`, `curl http://192.168.56.31:30080` devuelve la página `Welcome to nginx!` y K9s lista los dos pods en `Running`. Si `curl` da `Connection refused` o el nodo no arranca, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a512/` de `pps-entregas` con el README y las capturas, más `nginx.yaml`. Forma parte de la entrega ACT_UT5_4, plazo el jueves 13 de mayo (23:59), junto con las hojas A5.13 y A5.14.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a512/` de `pps-entregas` el README, las capturas y `nginx.yaml`. Lo recoge, con las hojas A5.13 y A5.14, la entrega ACT_UT5_4 (plazo, el jueves 13 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Cambia la imagen a `nginx:alpine` en `nginx.yaml`, aplícalo de nuevo y observa con `kubectl rollout status deploy/nginx` cómo Kubernetes sustituye los pods uno a uno sin cortar el servicio.
 
@@ -1685,7 +1685,7 @@ flowchart TB
 Los servidores nuevos necesitan tres cosas para unirse: la dirección del primero (`--server https://192.168.56.31:6443`), el mismo **token** (un secreto compartido, que no va al repositorio) y visibilidad de los puertos 6443, 2379 y 2380 entre ellos. Un límite del montaje del laboratorio: todos los clientes apuntan a `k3s-1`, así que si cae ese servidor `kubectl` deja de responder desde él aunque el clúster siga vivo. En producción se pone delante una IP virtual o un balanceador, y se usa `--tls-san` para que el certificado la admita.
 
 !!! truco "Si las tres VM no caben: k3d"
-    Si el equipo no soporta tres VM más, la alternativa es k3d, que ejecuta cada nodo K3s como un contenedor Docker dentro de `pps01`, sin VM nuevas y con arranque en segundos. Es K3s de verdad, con etcd embebido y tres servidores, pero comparten kernel y disco y no permite probar el apagado de una máquina completa (se detiene el contenedor). Se instala con `curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash` y el clúster se crea con `k3d cluster create pps --servers 3 -p "30080:30080@server:0" -p "80:80@loadbalancer"`. Los nodos se llaman `k3d-pps-server-0`, `k3d-pps-server-1` y `k3d-pps-server-2`; nginx queda en `http://localhost:30080`, la entrada HTTP de la A5.14 en `http://localhost` (con la cabecera `Host`), se apaga un nodo con `docker stop k3d-pps-server-2` y `kubectl` se ejecuta con `docker exec k3d-pps-server-0 kubectl get nodes`. El resto de la hoja (nginx, K9s, comprobaciones) es idéntico. Documentación: <https://k3d.io/stable/>.
+    Si el equipo no soporta tres VM más, la alternativa es k3d, que ejecuta cada nodo K3s como un contenedor Docker dentro de `pps01`, sin VM nuevas y con arranque en segundos. Es K3s de verdad, con etcd embebido y tres servidores, pero comparten kernel y disco y no permite probar el apagado de una máquina completa (se detiene el contenedor). Se instala con `curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash` y el clúster se crea con `k3d cluster create pps --servers 3 -p "30080:30080@server:0" -p "80:80@loadbalancer"`. Los nodos se llaman `k3d-pps-server-0`, `k3d-pps-server-1` y `k3d-pps-server-2`; nginx queda en `http://localhost:30080`, se apaga un nodo con `docker stop k3d-pps-server-2` y `kubectl` se ejecuta con `docker exec k3d-pps-server-0 kubectl get nodes`. El resto de la hoja (nginx, K9s, comprobaciones) es idéntico. La entrada HTTP que se monta el 6 de mayo queda en `http://localhost`, con la cabecera `Host`. Documentación: <https://k3d.io/stable/>.
 
 !!! examen "Qué se evalúa"
     Qué guarda etcd y por qué el clúster necesita mayoría; cálculo del quórum y de las caídas toleradas con 3 y 5 servidores; por qué dos servidores no mejoran a uno; diferencia entre etcd embebido y base de datos externa y cuál conviene en un laboratorio.
@@ -1718,7 +1718,7 @@ Los servidores nuevos necesitan tres cosas para unirse: la dirección del primer
 
 <span class="et et-com">Comprobación</span> Tres nodos en `Ready`, `nginx` con `2/2`, un `200` desde las tres IP en el paso 3 y, con `k3s-3` apagada, un `200` desde `.31` y `.32` y un `scale` que se aplica. Si un nodo nuevo no aparece o se queda en `NotReady`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a513/` de `pps-entregas` con el README y las capturas. Forma parte de la entrega ACT_UT5_4, plazo el jueves 13 de mayo (23:59), junto con las hojas A5.12 y A5.14.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a513/` de `pps-entregas` el README y las capturas. Lo recoge, con las hojas A5.12 y A5.14, la entrega ACT_UT5_4 (plazo, el jueves 13 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Apaga ahora `k3s-2` y `k3s-3` a la vez y observa: `kubectl` deja de responder o se queda esperando (sin quórum no hay API), pero `curl` a `192.168.56.31:30080` puede seguir sirviendo mientras el pod siga en `k3s-1`. Enciende una de las dos y comprueba que el API vuelve. Anota cuál de los dos comportamientos es el del plano de control y cuál el de los pods.
 
@@ -1785,7 +1785,7 @@ flowchart TB
 
 <span class="et et-obj">Objetivo</span> Desplegar `pps-app` en el clúster de la A5.13 con el fichero `k8s/pps-app.yaml` (aplicación, Redis y regla de entrada), comprobar el reparto de carga entre réplicas y validarlo con K9s. Es el punto 5.3 del enunciado de la entrega ACT_UT5_4: la traducción a K3s del `docker-compose` de balanceo.
 
-<span class="et et-pre">Antes de empezar</span> Se han explicado [los servicios, la entrada HTTP, el balanceo y K9s](#servicios-entrada-http-y-balanceo-de-carga-k9s). Se da por hecho el clúster de tres servidores de la A5.13 (se encienden `k3s-1`, `k3s-2` y `k3s-3`) y la imagen `pps<NIA>/pps-app` que construyó el pipeline en la A5.6, que solo existe en el Docker local de `pps01`: la publicación desde el pipeline llega en la A5.19, así que hoy se sube a mano en el paso 1, con el token de Docker Hub de la A5.7.
+<span class="et et-pre">Antes de empezar</span> Se han explicado [los servicios, la entrada HTTP, el balanceo y K9s](#servicios-entrada-http-y-balanceo-de-carga-k9s). Se da por hecho el clúster de tres servidores de la A5.13 (se encienden `k3s-1`, `k3s-2` y `k3s-3`) y la imagen `pps<NIA>/pps-app` que construyó el pipeline en la A5.6, que solo existe en el Docker local de `pps01`: el pipeline no la publica hasta el proyecto integrador, el 24 de mayo, así que hoy se sube a mano en el paso 1, con un token de Docker Hub. El de la A5.7 quedó guardado como credencial de Jenkins y Docker Hub no vuelve a mostrarlo: si no lo apuntaste, crea otro en la configuración de tu cuenta.
 
 <span class="et et-pas">Pasos</span>
 
@@ -1813,7 +1813,7 @@ flowchart TB
 
 <span class="et et-com">Comprobación</span> `curl` con `Host: pps.lab` devuelve `Hola PPS` desde las tres IP, el recuento muestra tres nombres de pod distintos, K9s muestra cinco pods de `pps-app` al escalar y el pod borrado se recrea. Si los pods se quedan en `ImagePullBackOff` o el `curl` devuelve `404 page not found`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> `k8s/pps-app.yaml` y `k8s/reparto.yaml` en el repositorio `pps-app`, y la carpeta `ut5/a514/` de `pps-entregas` con el README y las capturas. Cierra la entrega ACT_UT5_4 (A5.12, A5.13 y A5.14), plazo el jueves 13 de mayo (23:59).
+<span class="et et-ent">Para practicar</span> Deja `k8s/pps-app.yaml` y `k8s/reparto.yaml` en `pps-app` y guarda en `ut5/a514/` de `pps-entregas` el README y las capturas. Lo recoge, con las A5.12 y A5.13, la entrega ACT_UT5_4 (plazo, el jueves 13 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Cambia la imagen de `pps-app` a la etiqueta del build anterior con `kubectl set image deploy/pps-app pps-app=pps<NIA>/pps-app:<otra etiqueta>` y observa con `kubectl rollout status` cómo se sustituyen los pods sin cortar el servicio; deshaz el cambio con `kubectl rollout undo deploy/pps-app`.
 
@@ -1866,7 +1866,7 @@ La pregunta que se hace a Prometheus se escribe en **PromQL**. Tres consultas ba
 | `rate(node_cpu_seconds_total{mode="idle"}[1m])` | fracción de tiempo ociosa de cada CPU en el último minuto |
 | `sum by (code) (rate(traefik_service_requests_total[1m]))` | peticiones por segundo del proxy, separadas por código HTTP |
 
-`up` es la más útil de todas: es la que dice si el propio sistema de monitorización ve al servicio, y la que se usa en la sesión 54 para avisar de que algo se ha caído.
+`up` es la más útil de todas: es la que dice si el propio sistema de monitorización ve al servicio. La alerta de servidor caído que se escribe el 13 de mayo se basa en ella.
 
 ### Arquitectura de Prometheus
 
@@ -1920,7 +1920,7 @@ Cada destino recibe automáticamente dos etiquetas, `job` (el nombre del trabajo
 
 <span class="et et-obj">Objetivo</span> En `pps01` corre el stack de ejemplo (Traefik con una aplicación de prueba, Prometheus, cAdvisor, node_exporter y Grafana), los cuatro destinos de Prometheus salen en `UP`, has lanzado consultas PromQL sobre ellos y Grafana muestra el panel de node_exporter con datos reales. Es la primera actividad de ACT_UT5_3 del aula: levantar el stack y validar cada componente con captura.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` encendida, con Docker sin `sudo` (sesión 42) y salida a Internet por su adaptador NAT para descargar cinco imágenes. El stack añade seis contenedores a los 6 GB de la máquina, así que conviene parar Jenkins (`docker stop jenkins`). Se han explicado [métricas, exporters y consultas](#metricas-exporters-y-consultas) y la [arquitectura de Prometheus](#arquitectura-de-prometheus).
+<span class="et et-pre">Antes de empezar</span> `pps01` encendida, con Docker sin `sudo` y salida a Internet por su adaptador NAT para descargar cinco imágenes. El stack añade seis contenedores a los 6 GB de la máquina, así que conviene parar Jenkins (`docker stop jenkins`). Se han explicado [métricas, exporters y consultas](#metricas-exporters-y-consultas) y la [arquitectura de Prometheus](#arquitectura-de-prometheus).
 
 <span class="et et-pas">Pasos</span>
 
@@ -1938,11 +1938,11 @@ Cada destino recibe automáticamente dos etiquetas, `job` (el nombre del trabajo
 
 4. Valida cAdvisor y Grafana: en el 8080, el contenedor `nodeapp` con su CPU y su memoria; en el 3000 (usuario `admin` y contraseña `grafana`, las del ejemplo), la fuente Prometheus del ejemplo con **Save & test** y el dashboard `1860` ("Node Exporter Full") importado y con datos. Captura los dos.
 
-5. Crea `ut5/a515/` en `pps-entregas` con las capturas de `docker compose ps`, de Targets, de cAdvisor y de Grafana, y un `README.md` que diga, por componente, qué hace en una línea, cómo lo has validado y qué devolvió `up`. Deja el stack levantado: la A5.16 lo usa.
+5. Crea `ut5/a515/` en `pps-entregas` con las capturas de `docker compose ps`, de Targets, de cAdvisor y de Grafana, y un `README.md` que diga, por componente, qué hace en una línea, cómo lo has validado y qué devolvió `up`. Deja el stack levantado: lo usa la A5.16, el 13 de mayo.
 
 <span class="et et-com">Comprobación</span> Los cuatro destinos aparecen en `UP` en Prometheus, la consulta de peticiones por código HTTP muestra dos series (`200` y `500`) y el panel de Grafana dibuja CPU y memoria de `pps01` sin el aviso "No data". Si una gráfica sale vacía, el primer sitio donde mirar es **Status > Targets**, y si Grafana no consulta a Prometheus, la dirección de la fuente de datos tiene que ser `http://prometheus:9090` (el nombre del servicio dentro de la red del compose, no `localhost`).
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a515/` de `pps-entregas` con el `README.md` y las cuatro capturas. Forma parte de la entrega ACT_UT5_3, plazo el 17 de mayo (23:59), junto con la hoja A5.16.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a515/` de `pps-entregas` el `README.md` y las cuatro capturas. Lo recoge, con la hoja A5.16, la entrega ACT_UT5_3 (plazo, el 17 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Importa también el panel de cAdvisor (identificador `14282`) y detén el contenedor de la aplicación con `docker compose stop nodeapp`: mira cuánto tarda su serie en dejar de actualizarse y qué hace la consulta `up` (no cambia, porque `nodeapp` no es un destino de Prometheus: piensa por qué).
 
@@ -2010,7 +2010,7 @@ La alerta pasa por tres estados: **Inactive** (la condición no se cumple), **Pe
 
 ### A5.16 Monitorización de un servidor (sesión 53)
 
-<span class="et et-obj">Objetivo</span> `destino01` expone sus métricas con node_exporter, el Prometheus del stack de la A5.15 (en `pps01`) las recoge y el panel de node_exporter muestra en el Grafana de `pps01` la CPU, la memoria y el disco de `destino01`. Son dos máquinas distintas, una que vigila y otra vigilada, como pide la segunda actividad de ACT_UT5_3 del aula. De paso queda escrita la regla de alerta `ServidorCaido`, que la hoja A5.17 pondrá a prueba.
+<span class="et et-obj">Objetivo</span> `destino01` expone sus métricas con node_exporter, el Prometheus del stack de la A5.15 (en `pps01`) las recoge y el panel de node_exporter muestra en el Grafana de `pps01` la CPU, la memoria y el disco de `destino01`. Son dos máquinas distintas, una que vigila y otra vigilada, como pide la segunda actividad de ACT_UT5_3 del aula. De paso queda escrita la regla de alerta `ServidorCaido`. La simulación de fallos del 17 de mayo la pone a prueba.
 
 <span class="et et-pre">Antes de empezar</span> Necesitas encendidas `destino01` (192.168.56.20, la de la A5.8, con su adaptador NAT activo para instalar el paquete) y `pps01` (192.168.56.10) con los seis servicios del stack de la A5.15 levantados en `~/monitor/prometheus_grafana_example`. Las dos VM en la red solo anfitrión. Se han explicado [monitorizar otra máquina con node_exporter](#monitorizar-otra-maquina-node_exporter) y los [paneles, las fuentes de datos y las alertas](#paneles-fuentes-de-datos-y-alertas-en-grafana).
 
@@ -2032,7 +2032,7 @@ La alerta pasa por tres estados: **Inactive** (la condición no se cumple), **Pe
 
 <span class="et et-com">Comprobación</span> El Prometheus de `pps01` tiene a `destino01` (`192.168.56.20:9100`) en `UP`, Grafana dibuja las métricas de `destino01` (no las de `pps01`: el desplegable `Host` lo confirma), la CPU sube durante el paso 4 y la regla de alerta está cargada sin errores. Si Prometheus no arranca tras el reinicio, es un error de sangría en `prometheus.yml` (lo dice `docker compose logs prometheus`); si el panel sale sin datos con el aviso de fuente de datos, la dirección es `http://prometheus:9090` y no `localhost`.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a516/` de `pps-entregas` con capturas, ficheros de configuración y `README.md`. Forma parte de la entrega ACT_UT5_3 (junto con la A5.15), plazo el 17 de mayo (23:59). El enunciado de la entrega está en el aula y pide la captura de los elementos del stack y la monitorización remota de `destino01` desde `pps01`; las dos hojas lo cubren.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a516/` de `pps-entregas` las capturas, los ficheros de configuración y el `README.md`. Lo recoge, con la A5.15, la entrega ACT_UT5_3 (plazo, el 17 de mayo a las 23:59), cuyo enunciado, en el aula, pide la captura de los elementos del stack y la monitorización remota de `destino01` desde `pps01`: las dos hojas lo cubren.
 
 <span class="et et-ext">Si te sobra tiempo</span> Duplica la regla como `MemoriaBaja`, con la expresión `node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1` y `for: 2m`, reinicia con `docker compose restart prometheus` y comprueba que aparece. Mira también cómo importar el mismo panel desde un fichero JSON en vez de por su identificador.
 
@@ -2102,7 +2102,7 @@ La diferencia entre "detectar" y "reparar" es la que se mide. Dos tiempos resume
 | Tiempo de detección | Desde que ocurre el fallo hasta que el sistema o la monitorización lo notan | Hora del fallo frente a hora de `NotReady` o de `Firing` |
 | Tiempo de recuperación | Desde el fallo hasta que el servicio vuelve a responder | Bucle de `curl` con marca de hora |
 
-El tiempo de recuperación es la métrica de despliegue "tiempo medio de recuperación" (se retoma en la sesión 55). Y un fallo que se repara solo pero no avisa deja un problema oculto: un contenedor que se reinicia cada minuto está sano para el usuario y roto para quien lo mantiene. Por eso el experimento comprueba las dos cosas, reparación y alerta.
+El tiempo de recuperación es la métrica de despliegue "tiempo medio de recuperación". Y un fallo que se repara solo pero no avisa deja un problema oculto: un contenedor que se reinicia cada minuto está sano para el usuario y roto para quien lo mantiene. Por eso el experimento comprueba las dos cosas, reparación y alerta.
 
 Dos precisiones evitan interpretar mal los resultados. La política `unless-stopped` no reinicia un contenedor parado a mano con `docker stop`: es la diferencia entre un fallo y una decisión. Y los cinco minutos antes de reprogramar los pods de un nodo caído son intencionados (evitan moverlo todo por un corte de red de segundos) y se ajustan con `tolerationSeconds`.
 
@@ -2111,7 +2111,7 @@ Dos precisiones evitan interpretar mal los resultados. La política `unless-stop
 
 ### A5.17 Reacción a fallos (sesión 54)
 
-<span class="et et-obj">Objetivo</span> Has provocado cuatro fallos (un contenedor con y sin política de reinicio, un pod, un nodo del clúster y un servidor que deja de responder a Prometheus), has medido cuánto tardó cada uno en detectarse y en repararse, y has comprobado si saltó la alerta. Cubre el criterio e) del RA5, capacidad del sistema para reaccionar de forma automática a fallos, y produce la primera parte de la entrega ACT_UT5_5.
+<span class="et et-obj">Objetivo</span> Has provocado cuatro fallos (un contenedor con y sin política de reinicio, un pod, un nodo del clúster y un servidor que deja de responder a Prometheus), has medido cuánto tardó cada uno en detectarse y en repararse, y has comprobado si saltó la alerta. Cubre el criterio e) del RA5, capacidad del sistema para reaccionar de forma automática a fallos, y es la primera de las dos hojas que recoge la entrega ACT_UT5_5.
 
 <span class="et et-pre">Antes de empezar</span> El clúster de la [A5.13](#a513-k3s-en-alta-disponibilidad-sesion-50) con el despliegue `nginx` de dos réplicas en el NodePort 30080 (`k3s-1`, `k3s-2` y `k3s-3`) y la monitorización de la [A5.16](#a516-monitorizacion-de-un-servidor-sesion-53): node_exporter en `destino01` y, en `pps01`, el stack de la A5.15 con la regla `ServidorCaido` cargada y Jenkins parado. Son cinco VM y 12 GB, por encima del [presupuesto de memoria](../laboratorio.md#presupuesto-de-memoria): antes de arrancar, con `pps01` apagada, bájala a 4 GB (`VBoxManage modifyvm pps01 --memory 4096`), porque parar Jenkins no libera lo que VirtualBox le reserva, y al terminar restaura `--memory 6144`. Se han explicado la [ingeniería del caos](#ingenieria-del-caos) y [cómo medir la reacción del sistema](#medir-la-reaccion-del-sistema). `kubectl` se ejecuta en `k3s-1`. Cada experimento cambia una sola cosa y se deshace al terminar.
 
@@ -2137,7 +2137,7 @@ Dos precisiones evitan interpretar mal los resultados. La política `unless-stop
 
 <span class="et et-com">Comprobación</span> Las cuatro filas de la tabla tienen hipótesis, detección, recuperación y conclusión con cifras medidas, no estimadas. El contenedor `web-con` tiene `RestartCount` mayor que 0 y `web-sin` sigue parado, el Deployment ha vuelto a dos réplicas listas tras borrar el pod, el nodo apagado ha pasado por `NotReady` y ha vuelto a `Ready`, y la alerta ha llegado a `Firing` y se ha resuelto. Si el bucle del paso 2 no registra ningún `000`, el pod caído no estaba en el nodo apagado o Kubernetes ya lo había sacado del servicio antes de la siguiente petición: repite el experimento eligiendo bien el nodo.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut5/a517/` de `pps-entregas` con `README.md` (la tabla completa), `nodo.log` y las capturas. Forma parte de la entrega ACT_UT5_5 (con la hoja A5.18), plazo el 24 de mayo (23:59), y su tabla se reutiliza en la sesión 55 y en el proyecto integrador.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a517/` de `pps-entregas` el `README.md` con la tabla completa, `nodo.log` y las capturas. Lo recoge, con la A5.18, la entrega ACT_UT5_5 (plazo, el 24 de mayo a las 23:59). La tabla se reutiliza en el plan de recuperación del 20 de mayo y en el proyecto integrador.
 
 <span class="et et-ext">Si te sobra tiempo</span> Instala `prometheus-node-exporter` en el nodo del clúster que vas a apagar, añádelo como destino en el `prometheus.yml` del stack de `pps01` y repite el apagado del paso 2: así también salta `ServidorCaido` por el nodo caído, y puedes comparar el tiempo de detección de Prometheus con el de Kubernetes.
 
@@ -2197,7 +2197,7 @@ DevOps insiste en los **bucles de retroalimentación** cortos: cuanto antes lleg
 
 La regla es que **una retrospectiva sin acciones con responsable y fecha no ha servido**: cada punto de "qué mejorar" o bien se convierte en una acción o se descarta a propósito. Los roles se escriben (`ops`, `admin`, "el equipo de Sistemas"), no nombres de personas, y en la reunión siguiente se revisa qué acciones se cumplieron.
 
-Los números alimentan la conversación. Cuatro métricas de despliegue, usadas de forma habitual, resumen la salud de la entrega: **frecuencia de despliegue** (cada cuánto llega un cambio a producción), **plazo de entrega de un cambio** (del commit al servicio), **tasa de fallos** de los cambios y **tiempo de recuperación** (lo que se tarda en volver a un estado bueno tras un fallo). Las dos últimas enlazan directamente con esta sesión: el tiempo de recuperación medido en la restauración es el dato que se compara con el RTO, y las mediciones de la sesión 54 son la base de la retrospectiva.
+Los números alimentan la conversación. Cuatro métricas de despliegue, usadas de forma habitual, resumen la salud de la entrega: **frecuencia de despliegue** (cada cuánto llega un cambio a producción), **plazo de entrega de un cambio** (del commit al servicio), **tasa de fallos** de los cambios y **tiempo de recuperación** (lo que se tarda en volver a un estado bueno tras un fallo). Las dos últimas enlazan directamente con esta sesión: el tiempo de recuperación medido en la restauración es el dato que se compara con el RTO, y las mediciones de la simulación de fallos son la base de la retrospectiva.
 
 !!! examen "Qué se evalúa de este bloque"
     Definir RTO y RPO con un ejemplo y decir de qué depende cada uno. Distinguir qué se reconstruye (código, imágenes, máquinas) de qué se restaura (datos con estado) y por qué una copia no probada no cuenta. Enumerar el contenido de un plan de recuperación. Explicar qué es un bucle de retroalimentación, el formato de una retrospectiva y las cuatro métricas de despliegue. Es el criterio f (documentar la recuperación) y el g (bucles de retroalimentación).
@@ -2224,13 +2224,13 @@ Los números alimentan la conversación. Cuatro métricas de despliegue, usadas 
 
     *Pista:* la extracción es la copia al revés. Con copias de varios días, `tar` no admite el comodín: elige la más reciente con `ls -t | head -1`.
 
-5. Ajusta el plan con lo medido: si el RTO supera el objetivo de la tabla del paso 1, cambia el objetivo (y di por qué) o el procedimiento (por ejemplo, un script `restaurar-jenkins.sh` con las órdenes del paso 4). Complétalo con el contenido mínimo de [la teoría](#plan-de-recuperacion-copias-rto-y-rpo) y, para `pps-app`, explica en tres líneas cómo se repone con su imagen publicada y `k8s/pps-app.yaml` (en el proyecto lo hará el [playbook de despliegue](#a520-proyecto-despliegue-y-monitorizacion-sesion-57)), con el tiempo de recuperación medido en la hoja anterior.
+5. Ajusta el plan con lo medido: si el RTO supera el objetivo de la tabla del paso 1, cambia el objetivo (y di por qué) o el procedimiento (por ejemplo, un script `restaurar-jenkins.sh` con las órdenes del paso 4). Complétalo con el contenido mínimo de [la teoría](#plan-de-recuperacion-copias-rto-y-rpo) y, para `pps-app`, explica en tres líneas cómo se repone con su imagen publicada y `k8s/pps-app.yaml`, con el tiempo de recuperación medido en la hoja anterior. En el proyecto integrador, el 27 de mayo, esa reposición la hace el [playbook de despliegue](#a520-proyecto-despliegue-y-monitorizacion-sesion-57).
 
 6. Retira el Jenkins y el volumen de prueba y escribe en pareja o en grupo de tres, en 10 minutos, `retrospectiva.md` con el formato de [la retrospectiva](#bucles-de-retroalimentacion-y-retrospectivas): hechos de las A5.17 y A5.18, acciones con rol responsable y fecha, y una línea con las cuatro métricas de despliegue tal como se han vivido (el tiempo de recuperación, el del paso 4). Sube la carpeta sin el `.tar.gz`.
 
 <span class="et et-com">Comprobación</span> El Jenkins restaurado muestra el trabajo de `pps-app` y sus credenciales, no muestra `posterior-a-la-copia`, y `docker ps` ya no lista `jenkins-restaurado`. `git status` en `pps-entregas` no muestra ningún `.tar.gz`. El `ls -t` elige la copia más reciente: con dos copias de días distintos, `tar` no admite el comodín. Si el contenedor restaurado no arranca o pide la clave inicial de instalación, el volumen quedó vacío: revisa el nombre de la copia del paso 2 y repite el paso 4 con un volumen nuevo.
 
-<span class="et et-ent">Entrega</span> En `ut5/a518/` de `pps-entregas`: `plan-recuperacion.md`, `copia.sha256`, `retrospectiva.md` y la captura del Jenkins restaurado. Forma parte de la entrega ACT_UT5_5 (con la hoja A5.17), plazo el 24 de mayo a las 23:59; el documento se prepara con el formato de la Normativa de entrega y su plantilla `Plantilla_memoria_tarea`.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/a518/` de `pps-entregas` `plan-recuperacion.md`, `copia.sha256`, `retrospectiva.md` y la captura del Jenkins restaurado. Lo recoge, con la A5.17, la entrega ACT_UT5_5 (plazo, el 24 de mayo a las 23:59), cuyo documento se prepara con el formato de la Normativa de entrega y su plantilla `Plantilla_memoria_tarea`.
 
 <span class="et et-ext">Si te sobra tiempo</span> Copia el `.tar.gz` a otra VM con `scp` (`destino01`) y calcula allí su `sha256sum` para comprobar que coincide: es la tercera "pata" de la regla 3-2-1. O convierte el paso 2 en una tarea de `cron` diaria y comprueba que se genera con el nombre del día.
 
@@ -2238,7 +2238,7 @@ Los números alimentan la conversación. Cuatro métricas de despliegue, usadas 
 
 <p class="ut-meta" markdown>24 de mayo · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Presentación del proyecto y criterios · 10 min&#10;A5.19 Proyecto: construcción y pipeline · 100 min" data-dur="Presentación del proyecto y criterios · 10 min&#10;A5.19 Proyecto: construcción y pipeline · 100 min">:material-school:<i class="dur-barra" style="--teoria:9%"></i>:material-flask:</span></p>
 
-El proyecto integrador no introduce herramientas nuevas: recorre de una vez, sobre la misma aplicación `pps-app`, lo que la unidad ha construido por piezas. Al acabar esta sesión existe la primera mitad del recorrido, un pipeline de Jenkins que construye, prueba, analiza las dependencias y publica la imagen en Docker Hub cada vez que cambia la rama principal; la segunda mitad (despliegue, monitorización y plan de recuperación) es la sesión siguiente. Antes de la hoja se presenta qué se entrega y con qué criterios se califica.
+El proyecto integrador no introduce herramientas nuevas: recorre de una vez, sobre la misma aplicación `pps-app`, lo que la unidad ha construido por piezas. Al acabar esta sesión existe la primera mitad del recorrido, un pipeline de Jenkins que construye, prueba, analiza las dependencias y publica la imagen en Docker Hub cada vez que cambia la rama principal. Antes de la hoja se presenta qué se entrega y con qué criterios se califica. La segunda mitad, con el despliegue, la monitorización y el plan de recuperación, se hace el 27 de mayo.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -2252,10 +2252,10 @@ El objetivo es entregar un sistema que se pueda seguir de punta a punta: un camb
 
 **Qué se construye**, con los nombres fijos del laboratorio:
 
-1. **Pipeline** (sesión 56): `Jenkinsfile` en la raíz de `pps-app` con las etapas de construcción y pruebas con Maven (el código lo obtiene Jenkins al leer el `Jenkinsfile` del repositorio), análisis de dependencias con OWASP Dependency-Check, suma `sha256` del jar y publicación de la imagen `pps<NIA>/pps-app:<número de build>` en Docker Hub con las credenciales `github-token`, `dockerhub` y `nvd-api-key` de Jenkins.
-2. **Despliegue** (sesión 57): un playbook de Ansible en `~/pps-iac/ansible/` que despliega esa imagen en el clúster K3s (`k3s-1`, `k3s-2`, `k3s-3`) con `k8s/pps-app.yaml`, con dos réplicas, y que se puede ejecutar dos veces sin cambios en la segunda.
-3. **Monitorización** (sesión 57): los nodos del clúster aparecen en el Prometheus de `pps01` y en un panel de Grafana.
-4. **Plan de recuperación** (sesión 57): el de la hoja A5.18 ajustado al proyecto, con RTO y RPO, y la evidencia de una restauración.
+1. **Pipeline**: `Jenkinsfile` en la raíz de `pps-app` con las etapas de construcción y pruebas con Maven (el código lo obtiene Jenkins al leer el `Jenkinsfile` del repositorio), análisis de dependencias con OWASP Dependency-Check, suma `sha256` del jar y publicación de la imagen `pps<NIA>/pps-app:<número de build>` en Docker Hub con las credenciales `github-token`, `dockerhub` y `nvd-api-key` de Jenkins.
+2. **Despliegue**: un playbook de Ansible en `~/pps-iac/ansible/` que despliega esa imagen en el clúster K3s (`k3s-1`, `k3s-2`, `k3s-3`) con `k8s/pps-app.yaml`, con dos réplicas, y que se puede ejecutar dos veces sin cambios en la segunda.
+3. **Monitorización**: los nodos del clúster aparecen en el Prometheus de `pps01` y en un panel de Grafana.
+4. **Plan de recuperación**: el de la hoja A5.18 ajustado al proyecto, con RTO y RPO, y la evidencia de una restauración.
 
 El plazo es el lunes 31 de mayo a las 23:59. Se cubren los criterios c, d, e y f de RA5. La calificación reparte cien puntos así:
 
@@ -2277,7 +2277,7 @@ Un proyecto que no llega a una parte se califica por las que sí entrega: es mej
 
 <span class="et et-obj">Objetivo</span> Tener en `pps-app` un `Jenkinsfile` completo que, en cada cambio de la rama principal, construye y prueba con Maven, analiza las dependencias, calcula la suma del jar y publica `pps<NIA>/pps-app:<build>` en Docker Hub, y comprobar que esa imagen arranca. Es la parte de pipeline del proyecto y aporta a los criterios c y d de RA5.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` con Jenkins en `http://192.168.56.10:8090`, las credenciales `github-token`, `dockerhub` y `nvd-api-key` y el volumen `dc-data` con la base de la NVD de la [sesión 43](#a57-pipeline-seguro-sesion-43); `pps-app` con su `Dockerfile` y la rama principal protegida de la [sesión 38](#a52-git-en-equipo-sesion-38), y el contenedor `jenkins` (imagen `pps-jenkins:2`) capaz de ejecutar `docker` como en la [sesión 42](#a56-jenkins-con-docker-sesion-42). El repositorio `pps<NIA>/pps-app` de Docker Hub es público, para que K3s lo descargue sin credenciales en la sesión 57. Se han presentado el [enunciado y los criterios](#enunciado-del-proyecto-integrador). Lo que el `Jenkinsfile` ya tenga se conserva: la hoja completa lo que falte, no lo reescribe.
+<span class="et et-pre">Antes de empezar</span> `pps01` con Jenkins en `http://192.168.56.10:8090`, las credenciales `github-token`, `dockerhub` y `nvd-api-key` y el volumen `dc-data` con la base de la NVD de la [sesión 43](#a57-pipeline-seguro-sesion-43); `pps-app` con su `Dockerfile` y la rama principal protegida de la [sesión 38](#a52-git-en-equipo-sesion-38), y el contenedor `jenkins` (imagen `pps-jenkins:2`) capaz de ejecutar `docker` como en la [sesión 42](#a56-jenkins-con-docker-sesion-42). El repositorio `pps<NIA>/pps-app` de Docker Hub es público, para que K3s lo descargue sin credenciales en el despliegue del 27 de mayo. Se han presentado el [enunciado y los criterios](#enunciado-del-proyecto-integrador). Lo que el `Jenkinsfile` ya tenga se conserva: la hoja completa lo que falte, no lo reescribe.
 
 <span class="et et-pas">Pasos</span>
 
@@ -2308,7 +2308,7 @@ Un proyecto que no llega a una parte se califica por las que sí entrega: es mej
 
 <span class="et et-com">Comprobación</span> El build queda verde con las cuatro etapas, la etiqueta `N` existe en `pps<NIA>/pps-app`, el contenedor responde `{"estado":"ok"}` en `/salud` y `sha256sum -c` dice `OK`. El historial del `Jenkinsfile` en `main` muestra un commit que vino de un pull request aprobado. Ni el repositorio ni las capturas muestran la contraseña de Docker Hub.
 
-<span class="et et-ent">Entrega</span> En `ut5/proyecto/` de `pps-entregas`: `README.md` de esta parte con capturas y la URL de `pps-app` con el `Jenkinsfile` en `main`. Forma parte del proyecto integrador, plazo el 31 de mayo a las 23:59; la parte de despliegue y monitorización se añade en la hoja siguiente al mismo `README.md`.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/proyecto/` de `pps-entregas` el `README.md` de esta parte, con capturas y la URL de `pps-app` con el `Jenkinsfile` en `main`. Lo recoge el proyecto integrador (plazo, el 31 de mayo a las 23:59).
 
 <span class="et et-ext">Si te sobra tiempo</span> Demuestra que la puerta de seguridad funciona: en una rama, añade una dependencia con una vulnerabilidad crítica conocida (por ejemplo una versión antigua de `log4j-core`) y comprueba que la etapa de análisis falla y que la etapa de publicación no llega a ejecutarse. Guarda la captura en el README y descarta la rama. Con más tiempo, convierte el trabajo en un multibranch para que cada rama tenga su propio pipeline.
 
@@ -2398,7 +2398,7 @@ Dos criterios de diseño se defienden en el informe. El primero: **la etiqueta d
 
 <span class="et et-com">Comprobación</span> El playbook termina sin errores y su segunda pasada da `changed=0` en `k3s-1`; hay dos pods `pps-app` en `Running` y el `curl` responde `Hola PPS` en los tres nodos; los tres objetivos de Prometheus están `UP` y el panel de Grafana muestra datos de un nodo; el RTO medido de `pps-app` está escrito en el plan. Ningún fichero del repositorio contiene contraseñas.
 
-<span class="et et-ent">Entrega</span> En `ut5/proyecto/` de `pps-entregas`: `README.md` completo (pipeline de la hoja anterior, despliegue y monitorización, con capturas), `plan-recuperacion.md`, `despliegue-k3s.yml` y el enlace a los repositorios `pps-app` y `pps-iac`. Cierra el proyecto integrador, plazo el 31 de mayo a las 23:59, con los criterios y pesos del [enunciado](#enunciado-del-proyecto-integrador). Se sube a la tarea de Aules la URL de `pps-entregas` y el PDF con el informe en el formato de la Normativa de entrega.
+<span class="et et-ent">Para practicar</span> Guarda en `ut5/proyecto/` de `pps-entregas` el `README.md` completo (pipeline de la hoja anterior, despliegue y monitorización, con capturas), `plan-recuperacion.md`, `despliegue-k3s.yml` y el enlace a `pps-app` y `pps-iac`. Lo recoge el proyecto integrador (plazo, el 31 de mayo a las 23:59), que se califica con los criterios y pesos del [enunciado](#enunciado-del-proyecto-integrador) y se sube a Aules con la URL de `pps-entregas` y el PDF del informe en el formato de la Normativa de entrega.
 
 <span class="et et-ext">Si te sobra tiempo</span> Despliega otra versión: modifica el mensaje de `App`, deja que el pipeline publique el build `N+1` y lanza el playbook con `-e build=N+1`; comprueba con `kubectl rollout status` que el cambio se hace por sustitución gradual de los pods y con `curl` que responde la versión nueva. Después vuelve al build `N` y anota cuánto se tarda: es el "volver atrás" de la etiqueta por número.
 
@@ -2411,7 +2411,7 @@ Sesión de margen, sin teoría nueva y sin hoja. Es el último día para entrega
 **Si se ha perdido alguna clase.** Se recupera aquí, por este orden de prioridad:
 
 - Primero lo que tiene plazo hoy: el `README.md` y el playbook del proyecto ([A5.19](#a519-proyecto-construccion-y-pipeline-sesion-56) y [A5.20](#a520-proyecto-despliegue-y-monitorizacion-sesion-57)) y los retos de Atenea que falten.
-- Después las hojas de la unidad que falten con entrega vencida (ACT_UT5_5 con las hojas [A5.17](#a517-reaccion-a-fallos-sesion-54) y [A5.18](#a518-plan-de-recuperacion-sesion-55)), que se corrigen sobre el 50 % si no hay causa justificada.
+- Después, las hojas que falten de una entrega ya vencida: las [A5.17](#a517-reaccion-a-fallos-sesion-54) y [A5.18](#a518-plan-de-recuperacion-sesion-55), que recoge ACT_UT5_5. Esa entrega se corrige sobre el 50 % si no hay causa justificada.
 - Al final, las hojas de la unidad 4 que queden, porque también entran en el examen.
 
 **Si no se ha perdido ninguna.** Se dedica la sesión a repasar para el examen, con este reparto orientativo:
@@ -2502,7 +2502,7 @@ Entrega en las carpetas `ut5/a512`, `ut5/a513` y `ut5/a514` de `pps-entregas`, c
 
 1. **Un nodo (A5.12)**: comandos de instalación, `kubectl get nodes` y `kubectl get pods` con las dos réplicas de nginx en `Running`, acceso por el NodePort `30080`, y una captura de K9s con el despliegue.
 2. **Alta disponibilidad (A5.13)**: los tres nodos `k3s-1`, `k3s-2` y `k3s-3` en `Ready` con el rol `control-plane`, el mismo despliegue de nginx repartido entre nodos y K9s conectado al clúster. Si el equipo no permite tres VM, se documenta la alternativa usada y por qué.
-3. **Balanceo (A5.14)**: los manifiestos YAML que sustituyen al compose (nginx delante de dos réplicas), la prueba de que las peticiones se reparten y la vista de K9s (pods, logs y servicio).
+3. **Balanceo (A5.14)**: los manifiestos YAML que sustituyen al compose de balanceo (en K3s, la regla de entrada de Traefik hace el papel del nginx que repartía entre las réplicas), la prueba de que las peticiones se reparten y la vista de K9s (pods, logs y servicio).
 
 | Criterio | CE | Sale de | Peso |
 |---|---|---|---|

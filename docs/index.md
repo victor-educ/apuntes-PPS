@@ -110,9 +110,9 @@ Las **prácticas evaluables no tienen sesión propia**. Cada entrega se construy
 ## Cómo usar estos apuntes
 
 - Conviene leer la sesión antes de clase. Cada unidad está ordenada por sesiones, con la teoría de ese día seguida de su hoja de práctica. En clase la explicación es corta y el laboratorio largo.
-- Cada sesión empieza con un recuadro "Recursos de la sesión" que reúne, con lo esencial separado de lo opcional, los enlaces y la documentación que esa sesión necesita. El enunciado de cada entrega está en el aula; la hoja guía la práctica y dice qué se sube.
+- Cada sesión empieza con un recuadro "Recursos de la sesión" que reúne, con lo esencial separado de lo opcional, los enlaces y la documentación que esa sesión necesita. El enunciado de cada entrega está en el aula. La hoja guía la práctica y no se entrega: su último apartado, «Para practicar», dice qué guardar y qué entrega evaluable lo recoge.
 - Los comandos están pensados para copiarlos en la máquina `pps01`. Si algo no funciona igual en la versión instalada, el primer sitio donde mirar es "Errores frecuentes" de la unidad y, para lo general, [Si algo se rompe](laboratorio.md#si-algo-se-rompe).
-- Conviene documentar sobre la marcha: una captura, la salida de un comando, el fichero corregido. Al terminar cada hoja se sube al repositorio de entregas, y al final de la unidad eso es la práctica.
+- Conviene documentar sobre la marcha: una captura, la salida de un comando, el fichero corregido. Al terminar cada hoja se guarda en el repositorio de entregas, y eso es lo que recoge cada práctica evaluable.
 - Las plataformas de aprendizaje a ritmo propio (CryptoZombies, Learn Git Branching, PortSwigger Academy y Atenea) se empiezan en clase y se completan en casa antes del plazo de la entrega correspondiente.
 
 ## Antes de empezar

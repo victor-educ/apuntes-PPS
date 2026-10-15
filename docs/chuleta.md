@@ -13,7 +13,7 @@ git branch -M main                                # renombra la rama actual a ma
 git remote -v                                     # a qué URL apunta el remoto
 git status                                        # qué ha cambiado y qué está preparado
 
-# Ciclo diario de entrega (todas las hojas)
+# Ciclo diario de trabajo (todas las hojas)
 git add .                                         # prepara los cambios
 git commit -m "A1.1 puesto de trabajo"            # los confirma con un mensaje
 git push -u origin main                           # los sube (-u solo la primera vez)

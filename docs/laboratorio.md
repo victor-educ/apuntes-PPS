@@ -280,11 +280,11 @@ pps-entregas/
 └── ut5/a510/              A5.10
 ```
 
-Cada hoja tiene su carpeta con este nombre (`ut1/a12/` para la A1.2, `ut5/a510/` para la A5.10, `ut5/a516/` para la A5.16) y dentro su `README.md` y sus evidencias. El `README.md` lleva, en este orden: qué se ha hecho, los comandos usados, la validación (la salida que demuestra que funciona) y las capturas, con nombre descriptivo, en la misma carpeta. Al terminar cada hoja se hace `git add`, `git commit` y `git push`; lo que no está en el repositorio no se ha entregado.
+Cada hoja tiene su carpeta con este nombre (`ut1/a12/` para la A1.2, `ut5/a510/` para la A5.10, `ut5/a516/` para la A5.16) y dentro su `README.md` y sus evidencias. El `README.md` lleva, en este orden: qué se ha hecho, los comandos usados, la validación (la salida que demuestra que funciona) y las capturas, con nombre descriptivo, en la misma carpeta. Al terminar cada hoja se hace `git add`, `git commit` y `git push`; lo que no está en el repositorio no lo puede recoger la entrega evaluable.
 
 Hay dos casos que no siguen esa regla:
 
-- **Las entregas que son documento** (PDF con el formato de la *Normativa de entrega* del aula y su plantilla `Plantilla_memoria_tarea`) se suben a la tarea de Aules. Las que son repositorio llevan la URL en la tarea. Cada hoja dice cuál.
+- **Las entregas que son documento** (PDF con el formato de la *Normativa de entrega* del aula y su plantilla `Plantilla_memoria_tarea`) se suben a la tarea de Aules. Las que son repositorio llevan la URL en la tarea. La sección de prácticas evaluables de cada unidad dice cuál es cuál.
 - **Otros repositorios de la UT5.** Además de `pps-entregas`, la UT5 usa `pps-app` (privado: la aplicación Java, su `Jenkinsfile`, el `compose.yml` y los manifiestos de `k8s/`; Jenkins lo descarga con la credencial `github-token`) y `pps-iac` (Terraform en `terraform/`, que se lanza desde el anfitrión, y Ansible en `ansible/`, que se lanza desde `pps01`; el mismo repositorio se clona en las dos máquinas). Sus carpetas de entrega en `pps-entregas` enlazan a ellos en el `README.md`. Todos llevan `.gitignore` con `.terraform/`, `*.tfstate` y los ficheros de valores desde el primer commit.
 
 La práctica de roles y permisos de la UT5 (A5.2) usa una organización gratuita de GitHub con un repositorio **público**, `equipo-demo`, sin ningún dato real, porque las reglas de rama no funcionan en repositorios privados con el plan gratuito.

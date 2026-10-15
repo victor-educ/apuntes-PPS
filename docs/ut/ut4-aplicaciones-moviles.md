@@ -64,7 +64,7 @@ Un APK (paquete de aplicación Android, del inglés *Android Application Package
 - `lib/`: librerías nativas (código en C o C++ compilado para cada arquitectura), cuando la aplicación las usa.
 - `META-INF/`: el certificado y la firma de la aplicación.
 
-El proceso de creación es el inverso al del análisis de esta unidad: el código fuente en Java o Kotlin se compila a `.class`, se transforma a bytecode `.dex`, y ese `.dex` junto con los recursos y el manifiesto se empaqueta y se firma. Deshacer ese camino (de `.dex` a código legible) es la ingeniería inversa de la sesión 31.
+El proceso de creación es el inverso al del análisis de esta unidad: el código fuente en Java o Kotlin se compila a `.class`, se transforma a bytecode `.dex`, y ese `.dex` junto con los recursos y el manifiesto se empaqueta y se firma. Deshacer ese camino, de `.dex` a código legible, es la ingeniería inversa: se practica en la sesión 31, el 8 de febrero, sobre una aplicación vulnerable.
 
 El [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) agrupa los fallos más comunes en diez categorías. La unidad usa la numeración de la edición de 2016, que es la que sigue reflejando el reparto de los criterios de evaluación. La web de OWASP publica hoy la edición de 2024, que reordena y renombra las categorías; la última columna da la correspondencia para poder leerla. No se explican todas con el mismo detalle: esta unidad trabaja a fondo M2, M3 y M9, toca M1 y M8 de pasada y deja enunciadas las demás para reconocerlas si aparecen.
 
@@ -131,7 +131,7 @@ El [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) agrupa lo
 
 <span class="et et-com">Comprobación</span> `adb devices` muestra la IP de `movil01` como `device` (no como `unauthorized`), las dos aplicaciones abren en el emulador sin cerrarse, y `~/laboratorio-movil/diva/` contiene el árbol `smali` y el árbol `java` con ficheros dentro.
 
-<span class="et et-ent">Entrega</span> Un `README.md` en `ut4/a41/` de `pps-entregas` con la captura de `adb devices`, la captura de las dos aplicaciones abiertas en `movil01` y el listado de `~/laboratorio-movil/` (`ls -R | head -40`). Forma parte de la entrega ACT_UT4_1, plazo el 15 de febrero. El laboratorio montado aquí es además el que usan el resto de hojas de la unidad.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a41/` de `pps-entregas` un `README.md` con la captura de `adb devices`, la de las dos aplicaciones abiertas en `movil01` y el listado de `~/laboratorio-movil/` (`ls -R | head -40`). Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero). El laboratorio que montas aquí es el que usan el resto de hojas de la unidad.
 
 <span class="et et-ext">Si te sobra tiempo</span> Abre `diva-beta.apk` con `~/jadx/bin/jadx-gui` y localiza `AndroidManifest.xml`, el paquete `jakhar.aseem.diva` y los recursos: es la estructura del apartado de teoría sobre una aplicación real. Descompila también `InsecureBankv2.apk` con `jadx` (`-d ~/laboratorio-movil/insecurebank/java`) y compara el tamaño y la legibilidad de su código con el de DIVA: la cantidad de clases indica cuánto habrá que leer en las sesiones siguientes.
 
@@ -159,7 +159,7 @@ iOS no clasifica los permisos en normal o peligroso: casi todo acceso a un recur
 | Aislamiento | Máquina virtual por aplicación, con user ID propio, sobre SELinux | Directorio propio por aplicación, usuario del sistema de bajos privilegios |
 | Comunicación entre aplicaciones | Intents, content providers | Esquemas de URL, extensiones de aplicación, AirDrop |
 
-Los componentes de una aplicación Android (actividades, servicios, receptores de emisiones y proveedores de contenido) pueden declararse `exported`, lo que los hace visibles para otras aplicaciones del dispositivo. Un componente exportado sin permiso propio es una puerta abierta: cualquier aplicación instalada puede llamarlo. Localizarlos en el manifiesto es el primer paso del análisis de PIVAA en la sesión 34.
+Los componentes de una aplicación Android (actividades, servicios, receptores de emisiones y proveedores de contenido) pueden declararse `exported`, lo que los hace visibles para otras aplicaciones del dispositivo. Un componente exportado sin permiso propio es una puerta abierta: cualquier aplicación instalada puede llamarlo. Localizarlos en el manifiesto es el primer paso del taller de PIVAA, el 18 de febrero.
 
 ### Firma y verificación de aplicaciones
 
@@ -209,7 +209,7 @@ Verificar la firma de una APK dice dos cosas: que el fichero no se ha modificado
 
 <span class="et et-com">Comprobación</span> `apksigner verify` responde `Verifies` y `Verified using v1 scheme (JAR signing): true` en las dos APK, y la tabla de permisos tiene al menos un permiso peligroso y un componente exportado por aplicación.
 
-<span class="et et-ent">Entrega</span> La tabla de permisos y componentes exportados, la comparación Android/iOS rellenada y la salida de `apksigner` de las dos APK, en `ut4/a42/` de `pps-entregas`. Forma parte de la entrega ACT_UT4_1, plazo el 15 de febrero.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a42/` de `pps-entregas` la tabla de permisos y componentes exportados, la comparación Android/iOS rellenada y la salida de `apksigner` de las dos APK. Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero).
 
 ## Sesión 31 · Análisis estático de una aplicación vulnerable
 
@@ -293,7 +293,7 @@ Dos límites: el código puede venir ofuscado (nombres sustituidos por letras su
 
 <span class="et et-com">Comprobación</span> Los tres fallos tienen su captura de código, su prueba en el emulador (el reto aceptando la clave y la actividad de credenciales abierta desde `adb`) y su corrección concreta. `apksigner verify --print-certs diva-mod.apk` muestra un firmante distinto del de `diva-beta.apk`, y la pantalla de bienvenida de `movil01` muestra el texto nuevo.
 
-<span class="et et-ent">Entrega</span> El informe con los tres fallos (código, captura, corrección) y la captura de la aplicación modificada junto con la salida de `apksigner verify`, en `ut4/a43/` de `pps-entregas`, sin el fichero `.jks`. Forma parte de la entrega ACT_UT4_1, plazo el 15 de febrero.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a43/` de `pps-entregas` el informe con los tres fallos (código, captura, corrección) y la captura de la aplicación modificada junto con la salida de `apksigner verify`, sin el fichero `.jks`. Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero).
 
 <span class="et et-ext">Si te sobra tiempo</span> Reto «Hardcoding Issues - Part 2»: en `jadx` la comprobación no está en Java, sino en una librería nativa (`DivaJni`). Extrae la librería de la APK y busca en sus cadenas de texto:
 
@@ -394,7 +394,7 @@ Las copias de seguridad automáticas de Android (activadas por defecto salvo que
 
 <span class="et et-com">Comprobación</span> La tabla tiene las seis filas con datos reales de tu ejecución (no valores inventados), y hay una captura de la salida de cada uno de los pasos 1 a 6.
 
-<span class="et et-ent">Entrega</span> La tabla de almacenamiento inseguro, las capturas de los pasos 1 a 6 y la corrección propuesta para cada fila, en `ut4/a44/` de `pps-entregas`. Forma parte de la entrega ACT_UT4_1, plazo el 15 de febrero.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a44/` de `pps-entregas` la tabla de almacenamiento inseguro, las capturas de los pasos 1 a 6 y la corrección propuesta para cada fila. Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero).
 
 ## Sesión 33 · Análisis del tráfico de una aplicación
 
@@ -462,7 +462,7 @@ Detectar un protocolo inseguro en una captura de proxy es, en la mayoría de los
 
 <span class="et et-com">Comprobación</span> `HTTP history` de Burp muestra la petición de login de InsecureBankv2 con el esquema `http://` y la contraseña de prueba en texto plano dentro del cuerpo de la petición. Si has hecho el paso 6, una página `https://` aparece descifrada.
 
-<span class="et et-ent">Entrega</span> La captura de la petición interceptada, con el usuario y la contraseña visibles, y la frase de corrección del paso 7, en `ut4/a45/` de `pps-entregas`. Forma parte de la entrega ACT_UT4_2, plazo el 25 de febrero.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a45/` de `pps-entregas` la captura de la petición interceptada, con el usuario y la contraseña visibles, y la frase de corrección del paso 7. Lo recoge la entrega ACT_UT4_2 (plazo, el 25 de febrero).
 
 ## Sesión 34 · Taller PIVAA
 
@@ -532,7 +532,7 @@ El taller sigue siempre el mismo patrón: primero un análisis automatizado con 
 
 <span class="et et-com">Comprobación</span> Los dos fallos del login (paso 5) se ven en el registro y en `credentials.dat`, y los tres módulos de Drozer del paso 6 al 8 devuelven un resultado (datos del proveedor, confirmación de arranque del servicio, fichero creado por el receptor), y cada uno tiene su pregunta del taller respondida con el comando exacto usado.
 
-<span class="et et-ent">Entrega</span> El informe con los dos fallos del login y las tres explotaciones (comando, captura, respuesta a las preguntas del taller y corrección), en `ut4/a46/` de `pps-entregas`. Forma parte de la entrega ACT_UT4_2, plazo el 25 de febrero.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a46/` de `pps-entregas` el informe con los dos fallos del login y las tres explotaciones (comando, captura, respuesta a las preguntas del taller y corrección). Lo recoge la entrega ACT_UT4_2 (plazo, el 25 de febrero).
 
 ## Sesión 35 · Compras integradas y CASB
 
@@ -571,7 +571,7 @@ flowchart TB
 
 <p class="pie" markdown>El recibo pasa por la aplicación, pero quien decide si vale es siempre el servidor propio, no el cliente.</p>
 
-Una compra integrada (una moneda de un juego, una suscripción, quitar anuncios) se resuelve técnicamente entre la aplicación y la tienda (Google Play o App Store), que devuelve un recibo firmado como prueba de que el pago se ha completado. El error, frecuente en aplicaciones mal construidas, es que sea la propia aplicación la que decida desbloquear el producto en cuanto recibe ese recibo: como toda la lógica corre en un dispositivo que el usuario controla, basta con modificar el código (con las mismas herramientas de la sesión 31) o interceptar y reproducir la respuesta (con las mismas técnicas de la sesión 33) para desbloquear el producto sin pagar. La única forma de que esa decisión sea de fiar es que la tome un sistema que el usuario no controla: el recibo viaja de la aplicación a un servidor propio, y es ese servidor, hablando directamente con la API de la tienda (o comprobando la firma del recibo con la clave pública que publica), el que decide si el producto se concede. En producción esa comprobación llama a la API de verificación de recibos de Google Play o de App Store; en el laboratorio de esta unidad se simula con un recibo propio firmado con una clave compartida, porque las dos plataformas exigen una cuenta de desarrollador de pago para emitir recibos reales.
+Una compra integrada (una moneda de un juego, una suscripción, quitar anuncios) se resuelve técnicamente entre la aplicación y la tienda (Google Play o App Store), que devuelve un recibo firmado como prueba de que el pago se ha completado. El error, frecuente en aplicaciones mal construidas, es que sea la propia aplicación la que decida desbloquear el producto en cuanto recibe ese recibo: como toda la lógica corre en un dispositivo que el usuario controla, basta con modificar el código con la ingeniería inversa del análisis estático, o interceptar y reproducir la respuesta con el proxy de interceptación, para desbloquear el producto sin pagar. La única forma de que esa decisión sea de fiar es que la tome un sistema que el usuario no controla: el recibo viaja de la aplicación a un servidor propio, y es ese servidor, hablando directamente con la API de la tienda (o comprobando la firma del recibo con la clave pública que publica), el que decide si el producto se concede. En producción esa comprobación llama a la API de verificación de recibos de Google Play o de App Store; en el laboratorio de esta unidad se simula con un recibo propio firmado con una clave compartida, porque las dos plataformas exigen una cuenta de desarrollador de pago para emitir recibos reales.
 
 ### CASB
 
@@ -669,7 +669,7 @@ Un CASB (intermediario de seguridad de acceso a la nube, del inglés *Cloud Acce
 
 <span class="et et-com">Comprobación</span> El paso 4 responde `concedido: true`, el paso 5 responde `403` con `firma inválida`, y el paso 6 responde `409` con `recibo ya canjeado`.
 
-<span class="et et-ent">Entrega</span> `servidor.py`, la salida de los tres `curl` del paso 4 al 6 y la explicación del paso 7, en `ut4/a47/` de `pps-entregas`. Forma parte de la entrega ACT_UT4_2, plazo el 25 de febrero.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a47/` de `pps-entregas` `servidor.py`, la salida de los tres `curl` del paso 4 al 6 y la explicación del paso 7. Lo recoge la entrega ACT_UT4_2 (plazo, el 25 de febrero).
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade al servidor un límite de tiempo: que un recibo emitido hace más de cinco minutos también se rechace, aunque la firma sea correcta y no se haya usado.
 
@@ -691,7 +691,7 @@ Esta sesión no trae teoría nueva: cierra la unidad. Es también el plazo de en
 
 ## Prácticas evaluables de la unidad
 
-En esta asignatura no hay sesiones de práctica evaluable: cada entrega se construye con varias hojas y se cierra por su plazo, como en la [UT8 de Mantenimiento](https://victor-educ.github.io/apuntes-5169/ut/ut8-terminacion-segura/).
+En esta asignatura no hay sesiones de práctica evaluable: cada entrega se construye con varias hojas y se cierra por su plazo.
 
 ### ACT_UT4_1 · Android App Vulnerable
 

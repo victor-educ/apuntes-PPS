@@ -31,14 +31,14 @@ Puesta en producción segura (módulo 5023) responde a una pregunta: qué hay qu
 
 **Cómo se evalúa.** Hay tres tipos de evidencia: las entregas evaluables (las actividades de cada unidad, corregidas con rúbrica en Aules), los retos de Atenea (la plataforma de retos del CCN-CERT, con una captura del nivel de logro como entregable) y dos exámenes, el 28 de enero (RA1, RA2 y RA3) y el 3 de junio (RA4 y RA5). La ponderación entre ellos está en [Presentación y evaluación](../modulo.md). Nunca se recorta un criterio de evaluación: cada uno sale de alguna hoja o entrega.
 
-**Cómo se entrega.** Cada hoja de práctica termina con `git add`, `git commit` y `git push` a `pps-entregas`, en su carpeta (`ut1/a12/`, `ut1/a13/`...), con un `README.md` que cuenta qué se ha hecho, los comandos usados, la comprobación y las capturas. Cuando la entrega es un documento, se sube a la tarea de Aules en PDF, con la estructura de la *Normativa de entrega*: portada, índice, introducción, desarrollo, bibliografía y conclusión; márgenes de 3 cm a los lados y 2,5 cm arriba y abajo, letra de 12 puntos e interlineado de 1,5, y figuras con su pie. Una entrega que no cumple la normativa se corrige como no evaluada.
+**Cómo se entrega.** Las hojas de cada sesión son para practicar y no se entregan. El trabajo de cada una se guarda en `pps-entregas`, en su carpeta (`ut1/a12/`, `ut1/a13/`...), con `git add`, `git commit` y `git push` y un `README.md` que cuenta qué se ha hecho, los comandos usados, la comprobación y las capturas. Lo que se entrega en Aules son las prácticas evaluables de cada unidad, que recogen esas carpetas y tienen su propio plazo. Cuando la entrega es un documento, se sube a la tarea de Aules en PDF, con la estructura de la *Normativa de entrega*: portada, índice, introducción, desarrollo, bibliografía y conclusión; márgenes de 3 cm a los lados y 2,5 cm arriba y abajo, letra de 12 puntos e interlineado de 1,5, y figuras con su pie. Una entrega que no cumple la normativa se corrige como no evaluada.
 
 **Plazos.** Todos vencen a las 23:59 (hora de Madrid) del día indicado. El plazo no se mueve aunque se pierda una clase: lo que se mueve es el contenido, que se recupera en el margen siguiente. Fuera de plazo y sin causa justificada, la entrega se corrige sobre el 50 %.
 
 **Márgenes.** El calendario reserva seis sesiones sin teoría nueva, una al final de cada bloque. Si no se ha perdido ninguna clase se dedican a repaso y ampliación; si se ha perdido alguna, se recupera en ellas lo pendiente (las reglas exactas están en [Calendario](../calendario.md#los-margenes-del-calendario)).
 
 !!! ojo "Solo sobre lo propio o lo autorizado"
-    A partir de la UT2 hay prácticas ofensivas (explotar una vulnerabilidad para entenderla y corregirla). Se hacen únicamente contra aplicaciones y máquinas deliberadamente vulnerables del propio laboratorio, en una red aislada, o en los laboratorios de las plataformas que lo autorizan (PortSwigger, DVWA, Atenea). Acceder sin autorización a un sistema ajeno es delito, aunque sea "solo para probar". El criterio es único: solo sobre lo propio o lo autorizado por escrito. Las reglas del laboratorio están en [Red aislada y buenas prácticas](../laboratorio.md#red-aislada-y-buenas-practicas).
+    Las prácticas ofensivas del curso (explotar una vulnerabilidad para entenderla y corregirla) se hacen únicamente contra aplicaciones y máquinas deliberadamente vulnerables del propio laboratorio, en una red aislada, o en los laboratorios de las plataformas que lo autorizan (PortSwigger, Atenea). Acceder sin autorización a un sistema ajeno es delito, aunque sea "solo para probar". El criterio es único: solo sobre lo propio o lo autorizado por escrito. Las reglas del laboratorio están en [Red aislada y buenas prácticas](../laboratorio.md#red-aislada-y-buenas-practicas). Las primeras prácticas ofensivas llegan en noviembre, con la unidad sobre el nivel de seguridad requerido.
 
 ### Puesto de trabajo reproducible
 
@@ -67,10 +67,10 @@ flowchart TB
 | Pieza | Qué aporta | Cuándo se usa |
 |---|---|---|
 | Máquina virtual (`pps01`) | Mismo sistema y mismas versiones para todos, aislamiento del equipo y instantáneas para deshacer | Siempre; las aplicaciones vulnerables no salen de ella |
-| Docker | Arranca una aplicación ya preparada (una imagen) con una orden, sin instalarla a mano | Desde la UT2 (Log4Shell) y en la UT3 (DVWA, Apache) |
-| Git y GitHub | Historial de cada cambio y un sitio donde dejar las entregas | Al terminar cada hoja |
-| VS Code | Editor con depurador para Python y Go | A1.4 y A1.5 y el resto del curso |
-| Cuentas del curso | GitHub (repositorio), Docker Hub (imágenes), PortSwigger Academy (laboratorios web) y Atenea (retos) | UT1 a UT5 |
+| Docker | Arranca una aplicación ya preparada (una imagen) con una orden, sin instalarla a mano | Desde mediados de noviembre, para las aplicaciones vulnerables y los servidores web de las prácticas |
+| Git y GitHub | Historial de cada cambio y el sitio donde se guarda el trabajo de las hojas | Al terminar cada hoja |
+| VS Code | Editor con depurador para Python y Go | Desde el 19 de octubre y el resto del curso |
+| Cuentas del curso | GitHub (repositorio), Docker Hub (imágenes), PortSwigger Academy (laboratorios web) y Atenea (retos) | Todo el curso |
 
 Las cuentas usan el usuario `pps<NIA>` (las letras `pps` y el número de identificación del alumno, sin más caracteres) y el correo corporativo. Las contraseñas y los tokens no se guardan nunca en el repositorio ni salen en una captura.
 
@@ -113,7 +113,7 @@ La segunda orden se lanza con la máquina apagada. El mismo resultado se consigu
 
 <span class="et et-com">Comprobación</span> `ip -br a` muestra `192.168.56.10/24` y `ping -c 2 192.168.56.1` responde; `docker run --rm hello-world` responde sin `sudo`; `git --version` y `code --version` dan una versión; `ssh -T git@github.com` te saluda por tu usuario; `git status` en `~/pps-entregas` dice `nothing to commit` y en la página del repositorio en GitHub se ven `README.md` y `ut1/README.md`. Si algo falla, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Entrega</span> La A1.1 no se califica. Desde la primera entrega evaluable (ACT_UT1_1, plazo el 22 de octubre) la URL de `pps-entregas` se indica en la tarea de Aules; comprueba que quien corrige tiene acceso.
+<span class="et et-ent">Para practicar</span> Comprueba que quien corrige tiene acceso a `pps-entregas`: ninguna entrega recoge esta hoja, pero desde ACT_UT1_1 (plazo, el 22 de octubre) cada tarea de Aules pide la URL del repositorio.
 
 <span class="et et-ext">Si te sobra tiempo</span> Activa la verificación en dos pasos en tu cuenta de GitHub y anota en `ut1/README.md` que lo has hecho. Después practica la instantánea: crea un fichero de prueba en `/opt`, apaga la máquina, restaura `a11-base` y comprueba que ha desaparecido.
 
@@ -229,7 +229,7 @@ En la sintaxis AT&T, la de la guía de Stanford y la que muestra `gdb` por defec
 
 <span class="et et-obj">Objetivo</span> Ensamblar, enlazar y ejecutar el programa del enunciado, encontrar por qué no se comporta como se explica, corregirlo, localizar sus secciones y compararlo con el mismo programa en C y en Python, con una tabla de mediciones y el resumen de las dos lecturas. Cubre los puntos 3.1, 3.2, 3.3.1 y 3.3.2 del enunciado de ACT_UT1_1.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` con `build-essential` (de la [A1.1](#a11-puesto-de-trabajo-sesion-1)) y el repositorio `~/pps-entregas`. Se han explicado los [niveles de los lenguajes](#niveles-de-los-lenguajes), los [tres modelos de ejecución](#compilados-interpretados-y-con-maquina-virtual) y [cómo llega un programa de la CPU al proceso](#de-la-cpu-al-programa-en-marcha), incluida la forma de una llamada al sistema. El enunciado de la entrega, en el aula, trae el programa del punto 3.3 y sigue siendo la referencia de lo que se entrega.
+<span class="et et-pre">Antes de empezar</span> `pps01` con `build-essential` (de la [A1.1](#a11-puesto-de-trabajo-sesion-1)) y el repositorio `~/pps-entregas`. Se han explicado los [niveles de los lenguajes](#niveles-de-los-lenguajes), los [tres modelos de ejecución](#compilados-interpretados-y-con-maquina-virtual) y [cómo llega un programa de la CPU al proceso](#de-la-cpu-al-programa-en-marcha), incluida la forma de una llamada al sistema. El enunciado de ACT_UT1_1, en el aula, trae el programa del punto 3.3 y sigue siendo la referencia de lo que pide esa entrega.
 
 <span class="et et-pas">Pasos</span>
 
@@ -253,7 +253,7 @@ En la sintaxis AT&T, la de la guía de Stanford y la que muestra `gdb` por defec
 
 <span class="et et-com">Comprobación</span> `./hola` imprime `Hello World!` y termina con código 0; `./hola | wc -c` da 13; `./hola_enunciado` termina con `Segmentation fault` y código 139. En la tabla, los tres programas muestran `write(1, "Hello World!\n", 13)` como llamada de escritura, y el número de llamadas al sistema crece del ensamblador (unas pocas) al C (decenas) y a Python (centenares). Si `nasm` da un error en la primera línea, has copiado `x86_64`; si `ld` avisa de que no encuentra `_start`, falta `global _start`.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a12/` de `pps-entregas` con `hola_enunciado.asm`, `hola.asm`, `hola.c`, `hola.py` y el `README.md`. Forma parte de la entrega ACT_UT1_1 (plazo el jueves 22 de octubre, 23:59), cuyo PDF se compone con esta hoja y la A1.3: los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
+<span class="et et-ent">Para practicar</span> Guarda en `ut1/a12/` de `pps-entregas` `hola_enunciado.asm`, `hola.asm`, `hola.c`, `hola.py` y el `README.md`. Lo recoge la entrega ACT_UT1_1 (plazo, el 22 de octubre), junto con la A1.3; los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
 ## Sesión 3 · Ensamblador y depurador
 
@@ -315,7 +315,7 @@ El depurador web y `gdb` son cosas distintas: `gdb` controla un proceso real (ll
 
 <span class="et et-com">Comprobación</span> La tabla del paso 2 tiene una fila por instrucción y dice que, con el programa del enunciado, `rax` vale 14 tras `write`, y que con el corregido vale 13. `gdb` se detuvo con `SIGSEGV` con `rax` a 60 (0x3c). En el depurador web, `eax` acaba en 15 y `zf` pasa a 1 cuando `ecx` llega a 0. Si `gdb` muestra las instrucciones al revés (`mov $0x1,%eax`), falta el `.gdbinit` del paso 1.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a13/` de `pps-entregas` con los dos `.asm` y el `README.md` (con las dos capturas). Forma parte de la entrega ACT_UT1_1 (plazo el jueves 22 de octubre, 23:59): con esta hoja y la A1.2 se compone el PDF que se sube a Aules, con la estructura de la normativa (portada, índice, introducción, desarrollo, bibliografía y conclusión). Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
+<span class="et et-ent">Para practicar</span> Guarda en `ut1/a13/` de `pps-entregas` los dos `.asm` y el `README.md` con las dos capturas. Lo recoge la entrega ACT_UT1_1 (plazo, el 22 de octubre): con esta hoja y la A1.2 compón el PDF que se sube a Aules, con la estructura de la normativa (portada, índice, introducción, desarrollo, bibliografía y conclusión). Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
 <span class="et et-ext">Si te sobra tiempo</span> Pon un punto de captura sobre la llamada al sistema con `catch syscall write` en `gdb` y da `continue`: se detiene antes y después de la llamada y enseña su nombre. Compara con lo que mostraba `strace` en la A1.2. Prueba también `layout regs` para ver los registros y el código en una sola pantalla. Mira la pila al arrancar: en `gdb -q ./hola`, con `break _start` y `run`, ejecuta `x/gx $rsp` (el número de argumentos, 1) y `x/s *(char**)($rsp+8)` (el nombre del programa); repite con `run uno dos` y verás cómo el núcleo deja los argumentos en la pila.
 
@@ -449,7 +449,7 @@ Se ejecutan con `python3 -m unittest -v` desde la carpeta del proyecto. El resul
 
 <span class="et et-com">Comprobación</span> `python3 puertos.py 22 8080 50000 abc 70000` da cinco líneas coherentes; `python3 -m unittest -v` muestra dos `ok` y un `FAIL`; el depurador se detiene en tu punto de interrupción con `numero` visible. Si VS Code dice `ModuleNotFoundError: No module named 'puertos'` al probar, has abierto una carpeta distinta de `a14`.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a14/` con `puertos.py`, `test_puertos.py`, `.vscode/launch.json`, el `README.md` y las capturas. Forma parte de la entrega ACT_UT1_2 (plazo el jueves 29 de octubre, 23:59), junto con la A1.5: los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
+<span class="et et-ent">Para practicar</span> Guarda en `ut1/a14/` de `pps-entregas` `puertos.py`, `test_puertos.py`, `.vscode/launch.json`, el `README.md` y las capturas. Lo recoge la entrega ACT_UT1_2 (plazo, el 29 de octubre), junto con la A1.5; los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
 <span class="et et-ext">Si te sobra tiempo</span> Depura una prueba: en la vista de Pruebas (icono del matraz) configura `unittest` con el patrón `test_*.py`, pon el punto de interrupción dentro de `clasificar_puerto` y usa «Depurar prueba». Prueba también un punto de interrupción condicional (clic derecho sobre el margen, `numero > 1023`). Añade un test con los ocho valores límite de la tabla usando `self.subTest(puerto=...)`, y mide su cobertura: `sudo apt install -y python3-coverage`, `python3-coverage run -m unittest` y `python3-coverage report -m` (en Ubuntu el ejecutable se llama `python3-coverage`). Anota qué líneas no cubre.
 
@@ -605,7 +605,7 @@ Las órdenes de cada día son `go run . 22 8080 abc`, `go test -v` (cada prueba 
 
 <span class="et et-com">Comprobación</span> `go run . 22 8080 50000 abc 70000` da cinco líneas; `go test -v` termina con `FAIL` y marca solo `TestEsPrivilegiadoFallaAProposito`; `gofmt -l .` no imprime nada; el depurador se detiene en tu punto de interrupción con `numero` visible. Si aparece `go: go.mod file not found`, falta el `go mod init`; si `go test` responde `no test files`, el fichero no acaba en `_test.go`.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a15/` con `main.go`, `main_test.go`, `go.mod`, `.vscode/launch.json`, el `README.md` y las capturas. Forma parte de la entrega ACT_UT1_2 (plazo el jueves 29 de octubre, 23:59), junto con la A1.4. Hoy vence el plazo de ACT_UT1_1, cuyo PDF ya tiene que estar en Aules.
+<span class="et et-ent">Para practicar</span> Guarda en `ut1/a15/` de `pps-entregas` `main.go`, `main_test.go`, `go.mod`, `.vscode/launch.json`, el `README.md` y las capturas. Lo recoge la entrega ACT_UT1_2 (plazo, el 29 de octubre), junto con la A1.4. Hoy vence el plazo de ACT_UT1_1, cuyo PDF ya tiene que estar en Aules.
 
 <span class="et et-ext">Si te sobra tiempo</span> Depura una prueba: pon el punto de interrupción dentro de `Clasificar` y pulsa «debug test» sobre `TestClasificarPorRango`; se detiene una vez por caso de la tabla. Mide la cobertura con `go test -cover` y con `go test -coverprofile=c.out && go tool cover -html=c.out`, y añade una prueba para cubrir lo que falte. Convierte `TestClasificarPorRango` en subpruebas con `t.Run` para que cada caso salga con su nombre en `go test -v`.
 
@@ -661,7 +661,7 @@ Las expansiones se hacen siempre en el mismo orden, y el orden importa:
 
 De ahí sale la regla de oro de Bash: **una variable con datos externos va siempre entre comillas** (`"$f"`), y nunca dentro de `eval`. El código de salida de cada orden queda en `$?`: 0 es correcto y cualquier otro valor es un fallo (1 y 2 son errores genéricos, 126 «no es ejecutable», 127 «no existe la orden», y 128 más el número de la señal cuando el proceso muere por una: 139 es 128 más 11, `SIGSEGV`). Con `&&` se encadena «si la anterior fue bien» y con `||` «si fue mal».
 
-El script que se usa en la unidad es el mismo programa de puertos de las sesiones 4 y 5, y muestra los elementos de Bash de la tabla de la sesión 4:
+El script que se usa en la unidad es el mismo programa de puertos ya escrito en Python y en Go, y muestra los elementos de Bash de la tabla de [Elementos de un programa](#elementos-de-un-programa):
 
 ```bash
 #!/usr/bin/env bash
@@ -727,7 +727,7 @@ El aislamiento se pone fuera, y hay varios niveles, de más a menos completo:
 | Sandbox del lenguaje | El intérprete restringe lo que el código puede hacer | El `SecurityManager` de Java, hoy retirado (deprecado en la 17 y desactivado en la 24); el navegador con JavaScript | Historial de escapes: no se confía en él como única barrera |
 | Entorno de pruebas del proveedor | Datos y servicios de mentira | El *sandbox* de una pasarela de pago | No protege nada: evita tocar datos reales |
 
-El criterio habitual: el lenguaje reduce la probabilidad de un fallo y el aislamiento limita su daño, y se combinan. Para procesar entradas de usuarios se prefiere un lenguaje con tipado o comprobación de límites (Go o Python) antes que C o Bash; Bash se reserva para unir órdenes del sistema con datos de confianza. Un binario estático de Go cabe en un contenedor casi vacío, lo que deja poco que encontrar dentro; Python arrastra el intérprete y sus librerías; Bash, las utilidades del sistema. El filtrado de llamadas al sistema que hace un contenedor (seccomp) se ve en la unidad 2.
+El criterio habitual: el lenguaje reduce la probabilidad de un fallo y el aislamiento limita su daño, y se combinan. Para procesar entradas de usuarios se prefiere un lenguaje con tipado o comprobación de límites (Go o Python) antes que C o Bash; Bash se reserva para unir órdenes del sistema con datos de confianza. Un binario estático de Go cabe en un contenedor casi vacío, lo que deja poco que encontrar dentro; Python arrastra el intérprete y sus librerías; Bash, las utilidades del sistema.
 
 ### A1.6 Bash y seguridad de los lenguajes (sesión 6)
 
@@ -757,7 +757,7 @@ El criterio habitual: el lenguaje reduce la probabilidad de un fallo y el aislam
 
 <span class="et et-com">Comprobación</span> `./puertos.sh` termina con 1 con esos argumentos y con 0 si solo se pasa `22`; el tramo 1 de `LearnBash.sh` reproduce sus comentarios salvo la línea de `{$from..$to}`, que imprime `{1..10}`; los cuatro experimentos tienen su salida en el README (en Python, `TypeError` y `IndexError` y el entero sin desbordar; en Bash, `8`, `[]` y `-9223372036854775808`; en Go, un error de compilación, un `panic: runtime error: index out of range [10] with length 3` y `-9223372036854775808`), y en la inyección Bash y Python ejecutan dos órdenes con la cadena pegada y una con el argumento separado (Go, con `exec`, imprime la cadena entera como un solo argumento). Si `./puertos.sh` da `Permission denied`, falta el `chmod +x`; si sale `$'\r': command not found`, el fichero se creó en Windows con finales de línea `CRLF` y se arregla con `sed -i 's/\r$//' puertos.sh`.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a16/` con `puertos.sh`, las trazas, `LearnBash.sh`, `experimentos/` y el `README.md`. Forma parte de la entrega ACT_UT1_3 (plazo el lunes 2 de noviembre, 23:59). El tutorial de `krother` es a ritmo propio: la hoja fija el capítulo 1 en clase y el resto se completa **en casa antes del plazo**, igual que la conclusión del paso 5 y los resúmenes del paso 6. Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
+<span class="et et-ent">Para practicar</span> Guarda en `ut1/a16/` de `pps-entregas` `puertos.sh`, las trazas, `LearnBash.sh`, `experimentos/` y el `README.md`. Lo recoge la entrega ACT_UT1_3 (plazo, el 2 de noviembre). El tutorial de `krother` es a ritmo propio: en clase haces el capítulo 1 y el resto lo completas **en casa antes del plazo**, igual que la conclusión del paso 5 y los resúmenes del paso 6. Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
 <span class="et et-ext">Si te sobra tiempo</span> Instala `shellcheck` (`sudo apt install -y shellcheck`), pásalo por `puertos.sh` y por `LearnBash.sh` y anota qué avisos da y cuáles corresponden a los riesgos de la tabla de teoría (variables sin comillas, `read` sin `-r`). Añade `set -euo pipefail` al principio de `puertos.sh` y comprueba qué cambia con `abc`.
 
@@ -765,7 +765,7 @@ El criterio habitual: el lenguaje reduce la probabilidad de un fallo y el aislam
 
 <p class="ut-meta" markdown>29 de octubre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="La máquina virtual de Ethereum · 10 min&#10;Contratos inteligentes y sus riesgos · 5 min&#10;Git: ramas, fusiones y remotos · 10 min&#10;A1.7 Solidity y Git · 85 min" data-dur="La máquina virtual de Ethereum · 10 min&#10;Contratos inteligentes y sus riesgos · 5 min&#10;Git: ramas, fusiones y remotos · 10 min&#10;A1.7 Solidity y Git · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión hay una primera lección de CryptoZombies y los cuatro primeros niveles de Learn Git Branching hechos, una rama fusionada de verdad en `pps-entregas`, y el plan para terminar en casa lo que queda antes del plazo. La teoría añade una variante del modelo de máquina virtual (la de Ethereum, que ejecutan a la vez miles de nodos), los riesgos propios de un contrato inteligente y lo justo de Git para entregar y para entender ramas, fusiones y remotos.
+Al acabar esta sesión hay una primera lección de CryptoZombies y los cuatro primeros niveles de Learn Git Branching hechos, una rama fusionada de verdad en `pps-entregas`, y el plan para terminar en casa lo que queda antes del plazo. La teoría añade una variante del modelo de máquina virtual (la de Ethereum, que ejecutan a la vez miles de nodos), los riesgos propios de un contrato inteligente y lo justo de Git para guardar el trabajo y para entender ramas, fusiones y remotos.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -780,7 +780,7 @@ Al acabar esta sesión hay una primera lección de CryptoZombies y los cuatro pr
 
 ### La máquina virtual de Ethereum
 
-Ethereum es una red de nodos que mantienen a la vez el mismo registro de bloques enlazados por huellas criptográficas (una blockchain), sin una autoridad central. Además de apuntar transferencias, guarda programas, los contratos inteligentes, que se ejecutan cuando alguien los llama con una transacción. Cada nodo ejecuta el mismo contrato con los mismos datos y tiene que obtener exactamente el mismo resultado: por eso el programa no corre sobre el sistema de cada nodo, sino sobre una máquina virtual con reglas propias, la EVM (*Ethereum Virtual Machine*), que es el tercer modelo de la sesión 2 llevado al extremo.
+Ethereum es una red de nodos que mantienen a la vez el mismo registro de bloques enlazados por huellas criptográficas (una blockchain), sin una autoridad central. Además de apuntar transferencias, guarda programas, los contratos inteligentes, que se ejecutan cuando alguien los llama con una transacción. Cada nodo ejecuta el mismo contrato con los mismos datos y tiene que obtener exactamente el mismo resultado: por eso el programa no corre sobre el sistema de cada nodo, sino sobre una máquina virtual con reglas propias, la EVM (*Ethereum Virtual Machine*), que lleva al extremo el modelo de ejecución [con máquina virtual](#compilados-interpretados-y-con-maquina-virtual).
 
 | Característica de la EVM | Qué significa |
 |---|---|
@@ -908,7 +908,7 @@ Si dos ramas tocan las mismas líneas, la fusión se detiene con un conflicto: G
 
 <span class="et et-com">Comprobación</span> `git log --oneline --graph` muestra un desvío y una confirmación de fusión; en GitHub aparecen `ut1/a17/rama.txt` y el README; la lección 1 aparece completada en CryptoZombies y los cuatro niveles de *Introduction Sequence* marcados en Learn Git Branching. Antes del plazo, las seis lecciones a 100 %, los 17 niveles de *Main* y los 8 de *Remote*, cada bloque con su captura.
 
-<span class="et et-ent">Entrega</span> La carpeta `ut1/a17/` de `pps-entregas` (README y capturas) y, con ellas, el PDF `ACT_UT1_4_pps<NIA>.pdf` con la estructura de la normativa (portada, índice, introducción, desarrollo con las capturas y su documentación, bibliografía y conclusión), que se sube a Aules. Forma parte de la entrega ACT_UT1_4 (plazo el jueves 5 de noviembre, 23:59). CryptoZombies y Learn Git Branching son plataformas a ritmo propio: la hoja fija lo que se hace en clase y la entrega exige completar el resto **en casa antes del plazo**. Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
+<span class="et et-ent">Para practicar</span> Guarda en `ut1/a17/` de `pps-entregas` el README y las capturas. Lo recoge la entrega ACT_UT1_4 (plazo, el 5 de noviembre), que pide además el PDF `ACT_UT1_4_pps<NIA>.pdf` en Aules, con la estructura de la normativa (portada, índice, introducción, desarrollo con las capturas y su documentación, bibliografía y conclusión). CryptoZombies y Learn Git Branching son plataformas a ritmo propio: en clase haces lo que fija la hoja y la entrega exige completar el resto **en casa antes del plazo**. Los criterios están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad).
 
 <span class="et et-ext">Si te sobra tiempo</span> Provoca un conflicto en `pps-entregas`: crea la rama `conflicto`, cambia la misma línea de `ut1/README.md` en `main` y en `conflicto`, fusiona, resuelve los marcadores a mano y anota los pasos. Avanza en la lección 2 de CryptoZombies.
 
@@ -916,7 +916,7 @@ Si dos ramas tocan las mismas líneas, la fusión se detiene con un conflicto: G
 
 <p class="ut-meta" markdown>2 de noviembre · Margen · <span class="dur" tabindex="0" aria-label="Repaso y recuperación · 110 min" data-dur="Repaso y recuperación · 110 min">:material-school:<i class="dur-barra" style="--teoria:0%"></i>:material-flask:</span></p>
 
-Esta sesión no trae contenido nuevo: absorbe el retraso de las clases que se hayan perdido en las sesiones 1 a 7 y, si no se ha perdido ninguna, sirve para repasar y ampliar. Hoy vence el plazo de ACT_UT1_3 y el de ACT_UT1_4 vence el jueves 5 de noviembre; los plazos no se mueven aunque se haya perdido una clase.
+Esta sesión no trae contenido nuevo: absorbe el retraso de las clases de la unidad que se hayan perdido y, si no se ha perdido ninguna, sirve para repasar y ampliar. Hoy vence el plazo de ACT_UT1_3 y el de ACT_UT1_4 vence el jueves 5 de noviembre; los plazos no se mueven aunque se haya perdido una clase.
 
 !!! consulta "Recursos de la sesión"
     No hay material nuevo: se repasa la unidad y, si queda tiempo, se completan [CryptoZombies avanzado](https://cryptozombies.io/en/solidity_advanced) y los temas avanzados de [Learn Git Branching](https://learngitbranching.js.org/).
