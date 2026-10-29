@@ -2,7 +2,7 @@
 
 <p class="ut-meta">16 h · Sesiones 29 a 36 · RA4 CE a, b, c, d, e</p>
 
-Una aplicación de móvil no vive en un servidor controlado: vive en el dispositivo de quien la instala, con el código dentro del alcance de quien quiera abrirlo. Lo que en una aplicación web es un servidor que nadie más toca es aquí un archivo `.apk` que cualquiera puede descomprimir, descompilar y leer. Esta unidad trabaja con esa idea de fondo: qué modelo de permisos y de firma tienen Android e iOS, qué acaba guardado sin cifrar en el dispositivo, qué protocolo usa la aplicación para hablar con su servidor y qué queda expuesto dentro del binario. Las herramientas son las del análisis de aplicaciones móviles: un emulador Android, `adb` para hablar con él, `jadx` y `apktool` para leer y modificar el código, Burp Suite como proxy de interceptación y Drozer para probar los componentes que una aplicación expone a las demás.
+Una aplicación de móvil no vive en un servidor controlado: vive en el dispositivo de quien la instala, con el código dentro del alcance de quien quiera abrirlo. Lo que en una aplicación web es un servidor que nadie más toca es aquí un archivo `.apk` que cualquiera puede descomprimir, descompilar y leer. Esta unidad trabaja con esa idea de fondo: qué modelo de permisos y de firma tienen Android e iOS, qué acaba guardado sin cifrar en el dispositivo, qué protocolo usa la aplicación para hablar con su servidor y qué queda expuesto dentro del binario. Las herramientas son las del análisis de aplicaciones móviles: un emulador Android, `adb` para hablar con él, `jadx` y `apktool` para leer y modificar el código, Burp Suite como proxy de interceptación y Drozer para probar los componentes que una aplicación expone a las demás. Son ocho sesiones (siete de trabajo y una de margen) y dos entregas evaluables, ACT_UT4_1 y ACT_UT4_2, con plazo el 15 y el 25 de febrero. Cada entrega tiene en el aula su enunciado en PDF: «ACT_RA4_1. Android App Vulnerable», cuyo único punto (3.1, ingeniería inversa) remite a una guía en línea sobre DIVA, y «ACT_RA4_2. Purposefully Insecure and Vulnerable Android Application», que remite al «Taller de ejercicios de vulnerabilidades en aplicaciones móviles» (`Lab_Movil.pdf`, adjunto en la misma tarea). **El PDF es el que manda**: las hojas que alimentan una entrega siguen su numeración y dicen en cada paso a qué punto responden, y lo que una hoja añade por su cuenta va en «Si te sobra tiempo», que en el PDF solo cuenta como «Extra». Las hojas A4.2, A4.4, A4.5 y A4.7 no las pide ningún enunciado: son la práctica de los CE a, b, d y c, que entran en el examen del 3 de junio.
 
 !!! ojo "Solo sobre las aplicaciones del laboratorio"
     Todo lo que se hace en esta unidad (descompilar, extraer credenciales, interceptar tráfico, explotar un componente exportado) se hace únicamente sobre las aplicaciones deliberadamente vulnerables del laboratorio (DIVA, PIVAA, InsecureBankv2), instaladas en el emulador propio y en una red aislada del resto del aula. Hacer lo mismo sobre una aplicación real sin autorización escrita de quien la publica es acceso sin autorización a un sistema ajeno, delito tipificado en el artículo 197 bis del Código Penal. El criterio es siempre el mismo: solo sobre lo propio o sobre lo que autoriza por escrito quien lo posee.
@@ -20,6 +20,7 @@ Al acabar esta sesión existe `movil01`, el dispositivo Android del laboratorio,
 
     - [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) y [OWASP MAS](https://mas.owasp.org/): los riesgos y el estándar de verificación móvil.
     - [Genymotion](https://www.genymotion.com/download/): el emulador de Android del laboratorio.
+    - El capítulo 1, «Instalación del entorno», del taller `Lab_Movil.pdf` (adjunto a la tarea ACT_UT4_2): es el montaje que hace esta hoja.
 
 ### Arquitectura de Android e iOS
 
@@ -83,47 +84,31 @@ El [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) agrupa lo
 
 ### A4.1 Laboratorio móvil (sesión 29)
 
-<span class="et et-obj">Objetivo</span> El emulador `movil01` (Genymotion, Android 6.0, Google Nexus 5X) arrancado y visible desde `pps01`, con DIVA e InsecureBankv2 instaladas: al terminar existe una carpeta por aplicación con su código Smali editable (apktool) y, para DIVA, su código Java aproximado (jadx).
+<span class="et et-obj">Objetivo</span> El emulador `movil01` (Genymotion, Android 6.0, Google Nexus 5X) arrancado y visible desde `pps01`, con DIVA e InsecureBankv2 instaladas y desempaquetadas: una carpeta por aplicación con su código Smali editable (apktool) y, para DIVA, su código Java aproximado (jadx). Es el capítulo 1 del taller `Lab_Movil.pdf` («Instalación del entorno»), que es el punto 1 del PDF de ACT_UT4_2, y la primera parte del punto 3.1 de ACT_UT4_1 (instalar DIVA y descompilarla). El resto de hojas de la unidad trabaja sobre este laboratorio.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` encendida y con Internet. Cuenta personal gratuita de Genymotion, creada y verificada antes de esta sesión (el correo de activación puede tardar hasta una hora): créala en casa el día anterior. Los dos paquetes de APK descargados de Aules en `pps01` y descomprimidos en `~/laboratorio-movil/apk/`: `APK_1.zip` (`diva-beta.apk` e `InsecureBankv2.apk`) y `APK_2.zip` (`pivaa.apk` y `drozer-agent-2.3.4.apk`, que no se usan hasta la sesión 34). Se ha explicado [la arquitectura de Android e iOS](#arquitectura-de-android-e-ios) y [la estructura de un APK](#estructura-de-un-apk-y-owasp-mobile-top-10).
+<span class="et et-pre">Antes de empezar</span> `pps01` encendida, con Docker y con Internet. Cuenta personal gratuita de Genymotion, creada y verificada antes de esta sesión (el correo de activación puede tardar hasta una hora): créala en casa el día anterior. Los dos paquetes de APK descargados de Aules en `pps01` y descomprimidos en `~/laboratorio-movil/apk/`: `APK_1.zip` (`diva-beta.apk` e `InsecureBankv2.apk`) y `APK_2.zip` (`pivaa.apk` y `drozer-agent-2.3.4.apk`, que no se usan hasta la sesión 34). Se ha explicado [la arquitectura de Android e iOS](#arquitectura-de-android-e-ios) y [la estructura de un APK](#estructura-de-un-apk-y-owasp-mobile-top-10).
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala Genymotion en el equipo del aula, no dentro de `pps01`: usa la misma instalación de VirtualBox que aloja `pps01`, como una máquina más. Descarga el instalador de la [página de Genymotion](https://www.genymotion.com/download/), inicia sesión con la cuenta y elige la licencia de uso personal.
-2. Crea el dispositivo virtual con API 23 (Android 6.0) y modelo Google Nexus 5X, que es con el que está probado el material. Nómbralo `movil01` y deja su red por defecto: el adaptador solo anfitrión de VirtualBox que ya usa `pps01`, para que las dos máquinas se vean. La descarga de la imagen es lo más lento de la hoja; arranca `movil01` cuando termine.
-3. En `pps01`, instala las herramientas de análisis (todas están en los repositorios de Ubuntu 24.04):
+El recorrido es el del capítulo 1 del taller: primero el emulador (lo más lento, por la descarga de la imagen), mientras tanto las herramientas de `pps01`, y al final la conexión entre las dos máquinas y las aplicaciones. Donde el taller dice «Kali Linux», en este laboratorio es `pps01`: cumple el mismo papel de máquina de análisis.
+
+1. **Genymotion (Lab_Movil, 1.2).** Instálalo en el equipo del aula, no dentro de `pps01`: usa la misma instalación de VirtualBox que aloja `pps01`, como una máquina más. Inicia sesión con tu cuenta y elige la licencia de uso personal. El taller da los pasos para Linux y para Windows; sigue los de tu anfitrión.
+
+2. **Dispositivo virtual (Lab_Movil, 1.3).** Crea el dispositivo con la API y el modelo que fija el taller (API 23, Google Nexus 5X), nómbralo `movil01` y arráncalo cuando termine la descarga. El taller pide elegir la red para que todas las máquinas se vean entre sí; en este laboratorio es el adaptador solo anfitrión que ya usa `pps01`.
+
+3. **Herramientas de análisis (Lab_Movil, 1.1).** Mientras descarga la imagen, deja en `pps01` ADB y Docker (que ya tienes) y añade lo que usan las hojas siguientes: `apktool`, `apksigner` y `sqlite3`, de los repositorios de Ubuntu, y `jadx`, que no está en ellos.
+
+    *Pista:* `jadx` se descarga de su página de publicaciones en GitHub como un `.zip` con `bin/jadx` y `bin/jadx-gui` dentro; descomprímelo en `~/jadx` y comprueba que `~/jadx/bin/jadx --version` responde.
+
+4. **Conexión con ADB (Lab_Movil, nota de 2.2.1).** Anota la IP de `movil01` y conecta desde `pps01` por TCP/IP hasta que `adb devices` lo muestre como `device`.
+
+    *Pista:* la IP se ve en el emulador en Ajustes, Wi-Fi, menú de los tres puntos, Avanzado. Genymotion la asigna por DHCP en `192.168.56.0/24`, así que puede no ser la `.60` de las [convenciones](../laboratorio.md#maquinas-virtuales); el puerto de ADB es el `5555`.
+
+5. **Aplicaciones (Lab_Movil, 1.3, y ACT_RA4_1, 3.1).** Instala DIVA e InsecureBankv2 en `movil01` y abre cada una una vez para comprobar que arrancan. El taller las instala arrastrando la APK a la pantalla del emulador y la guía de DIVA con `adb install`: vale cualquiera de los dos caminos.
+
+6. **Desempaquetado (ACT_RA4_1, 3.1).** Desempaqueta las dos APK con `apktool` (Smali y recursos, editable) y DIVA además con `jadx` (Java aproximado, solo lectura). Las rutas son las que usan las hojas siguientes:
 
     ```bash
-    sudo apt update && sudo apt install -y adb apktool apksigner sqlite3 unzip
-    ```
-
-4. Descarga `jadx` (no está en los repositorios de Ubuntu) tomando la versión estable actual de su página de publicaciones, y comprueba que arranca:
-
-    ```bash
-    V=$(curl -s https://api.github.com/repos/skylot/jadx/releases/latest | grep -Po '"tag_name": "v\K[^"]+')
-    curl -fsSLo ~/jadx.zip "https://github.com/skylot/jadx/releases/download/v$V/jadx-$V.zip"
-    unzip -q ~/jadx.zip -d ~/jadx && ~/jadx/bin/jadx --version
-    ```
-
-5. Anota la IP de `movil01` (en el emulador: Ajustes, Wi-Fi, icono de los tres puntos, Avanzado; Genymotion la asigna por DHCP en `192.168.56.0/24`, así que puede no coincidir con la `.60` de las [convenciones](../laboratorio.md#maquinas-virtuales)) y conecta desde `pps01`:
-
-    ```bash
-    adb connect <IP de movil01>:5555
-    adb devices
-    ```
-
-6. Instala las dos aplicaciones y abre cada una una vez en el emulador para comprobar que arrancan:
-
-    ```bash
-    cd ~/laboratorio-movil/apk/APK_1/APKs
-    adb install diva-beta.apk
-    adb install InsecureBankv2.apk
-    ```
-
-7. Desempaqueta las dos APK con `apktool` (Smali y recursos, editable) y DIVA además con `jadx` (Java aproximado, solo lectura). Cada resultado va a su propia carpeta:
-
-    ```bash
-    mkdir -p ~/laboratorio-movil/{diva,insecurebank}
     apktool d diva-beta.apk -o ~/laboratorio-movil/diva/smali
     apktool d InsecureBankv2.apk -o ~/laboratorio-movil/insecurebank/smali
     ~/jadx/bin/jadx -d ~/laboratorio-movil/diva/java diva-beta.apk
@@ -131,7 +116,7 @@ El [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) agrupa lo
 
 <span class="et et-com">Comprobación</span> `adb devices` muestra la IP de `movil01` como `device` (no como `unauthorized`), las dos aplicaciones abren en el emulador sin cerrarse, y `~/laboratorio-movil/diva/` contiene el árbol `smali` y el árbol `java` con ficheros dentro.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a41/` de `pps-entregas` un `README.md` con la captura de `adb devices`, la de las dos aplicaciones abiertas en `movil01` y el listado de `~/laboratorio-movil/` (`ls -R | head -40`). Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero). El laboratorio que montas aquí es el que usan el resto de hojas de la unidad.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a41/` de `pps-entregas` un `README.md` con la captura de la configuración de `movil01` en Genymotion, la de `adb devices`, la de las dos aplicaciones abiertas y el listado de `~/laboratorio-movil/` (`ls -R | head -40`). Lo recogen las dos entregas: el capítulo 1 (entorno) del PDF de ACT_UT4_2 y la parte de instalación y descompilado del 3.1 de ACT_UT4_1.
 
 <span class="et et-ext">Si te sobra tiempo</span> Abre `diva-beta.apk` con `~/jadx/bin/jadx-gui` y localiza `AndroidManifest.xml`, el paquete `jakhar.aseem.diva` y los recursos: es la estructura del apartado de teoría sobre una aplicación real. Descompila también `InsecureBankv2.apk` con `jadx` (`-d ~/laboratorio-movil/insecurebank/java`) y compara el tamaño y la legibilidad de su código con el de DIVA: la cantidad de clases indica cuánto habrá que leer en las sesiones siguientes.
 
@@ -169,59 +154,40 @@ Verificar la firma de una APK dice dos cosas: que el fichero no se ha modificado
 
 ### A4.2 Permisos y firma (sesión 30)
 
-<span class="et et-obj">Objetivo</span> Una tabla propia con los permisos de DIVA y de InsecureBankv2 clasificados en normales y peligrosos, sus componentes exportados localizados con su riesgo, la comparación Android frente a iOS del apartado de teoría rellenada con ejemplos reales de las dos aplicaciones, y la firma de cada APK verificada con su emisor.
+<span class="et et-obj">Objetivo</span> Una tabla propia con los permisos de DIVA y de InsecureBankv2 clasificados en normales y peligrosos, sus componentes exportados localizados con su riesgo, la comparación Android frente a iOS del apartado de teoría rellenada con ejemplos reales de las dos aplicaciones, y la firma de cada APK verificada con su emisor. Ningún enunciado de la unidad lo pide: es la práctica del CE a (comparar los modelos de permisos), que el enunciado de ACT_UT4_1 lista entre sus objetivos y que entra en el examen del 3 de junio. Leer el manifiesto prepara además el taller de PIVAA de la sesión 34.
 
 <span class="et et-pre">Antes de empezar</span> `movil01` arrancado y `~/laboratorio-movil/` de la A4.1 con las dos aplicaciones desempaquetadas. Se ha explicado [el modelo de permisos](#modelo-de-permisos) y [la firma y verificación de aplicaciones](#firma-y-verificacion-de-aplicaciones).
 
 <span class="et et-pas">Pasos</span>
 
-1. Extrae los permisos declarados de cada manifiesto (el que ha dejado `apktool` en la A4.1, ya en XML legible):
+Todo sale de los dos `AndroidManifest.xml` que dejó `apktool` en la A4.1, ya en XML legible, y de las dos APK originales: primero lo que la aplicación pide (permisos), después lo que ofrece a las demás (componentes exportados), y al final quién la firmó.
 
-    ```bash
-    grep 'uses-permission' ~/laboratorio-movil/diva/smali/AndroidManifest.xml
-    grep 'uses-permission' ~/laboratorio-movil/insecurebank/smali/AndroidManifest.xml
-    ```
+1. **Permisos declarados.** Extrae los `uses-permission` de cada manifiesto.
+2. **Clasificación.** Para cada permiso, busca su nivel de protección (`normal` o `dangerous`) en la [documentación de Android](https://developer.android.com/guide/topics/permissions/overview) y monta una tabla: aplicación, permiso, nivel y para qué lo usa (a partir del código de `~/laboratorio-movil/diva/java` y de `insecurebank/smali`).
+3. **Componentes exportados.** Localiza los componentes con `exported="true"` de las dos aplicaciones y anota cuáles no declaran ningún `android:permission`: son los que cualquier aplicación instalada podría invocar sin pedir nada.
 
-2. Para cada permiso, busca su nivel de protección (`normal` o `dangerous`) en la [documentación de Android](https://developer.android.com/guide/topics/permissions/overview) y monta una tabla: Aplicación, permiso, nivel, para qué lo usa (a partir del código de `~/laboratorio-movil/diva/java` y de `insecurebank/smali`).
-3. Localiza los componentes exportados de las dos aplicaciones:
+    *Pista:* un componente con `<intent-filter>` y sin atributo `exported` también queda exportado en aplicaciones de esta época, así que mira también los filtros (`grep -B4 'intent-filter'`).
 
-    ```bash
-    grep -B2 'exported="true"' ~/laboratorio-movil/diva/smali/AndroidManifest.xml
-    grep -B2 'exported="true"' ~/laboratorio-movil/insecurebank/smali/AndroidManifest.xml
-    ```
+4. **Android frente a iOS.** Completa la tabla comparativa del apartado de teoría con dos ejemplos concretos sacados de las dos aplicaciones (un permiso peligroso y un componente exportado), y una frase propia de qué pasaría en iOS con ese mismo caso.
+5. **Firma.** Verifica la firma de las dos APK con `apksigner` y anota el emisor del certificado, los esquemas de firma verificados y si avisa de algoritmos débiles (SHA-1) o de un certificado de depuración: es un hallazgo que va a la tabla, porque la firma es tan fiable como la clave y el algoritmo que la respaldan.
 
-    Anota cuáles no declaran ningún `android:permission`: son los que cualquier aplicación instalada podría invocar sin pedir nada. Un componente con `<intent-filter>` y sin atributo `exported` también queda exportado en aplicaciones de esta época, así que conviene mirar además los filtros:
-
-    ```bash
-    grep -B4 'intent-filter' ~/laboratorio-movil/diva/smali/AndroidManifest.xml
-    ```
-
-4. Completa la tabla comparativa Android frente a iOS del apartado de teoría con dos ejemplos concretos sacados de las dos aplicaciones (un permiso peligroso y un componente exportado), y una frase propia de qué pasaría en iOS con ese mismo caso.
-5. Verifica la firma de las dos APK y anota el emisor del certificado (aparecerá como autofirmado, `CN=...`, sin cadena de confianza) y los esquemas de firma verificados:
-
-    ```bash
-    cd ~/laboratorio-movil/apk/APK_1/APKs
-    apksigner verify --verbose --print-certs diva-beta.apk
-    apksigner verify --verbose --print-certs InsecureBankv2.apk
-    ```
-
-    Anota también si el resultado avisa de algoritmos débiles (SHA-1) o de un certificado de depuración: es un hallazgo que va a la tabla, porque la firma es tan fiable como la clave y el algoritmo que la respaldan.
+    *Pista:* `apksigner verify --verbose --print-certs`; `jarsigner` no sirve con estas APK, como explica la teoría.
 
 <span class="et et-com">Comprobación</span> `apksigner verify` responde `Verifies` y `Verified using v1 scheme (JAR signing): true` en las dos APK, y la tabla de permisos tiene al menos un permiso peligroso y un componente exportado por aplicación.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a42/` de `pps-entregas` la tabla de permisos y componentes exportados, la comparación Android/iOS rellenada y la salida de `apksigner` de las dos APK. Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero).
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a42/` de `pps-entregas` la tabla de permisos y componentes exportados, la comparación Android/iOS rellenada y la salida de `apksigner` de las dos APK. No lo recoge ninguna entrega; si lo documentas, puede ir en el capítulo «Extra» del PDF de ACT_UT4_1.
 
 ## Sesión 31 · Análisis estático de una aplicación vulnerable
 
 <p class="ut-meta" markdown>8 de febrero · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Ingeniería inversa: de APK a código legible · 20 min&#10;A4.3 DIVA: análisis estático · 90 min" data-dur="Ingeniería inversa: de APK a código legible · 20 min&#10;A4.3 DIVA: análisis estático · 90 min">:material-school:<i class="dur-barra" style="--teoria:18%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión hay, para tres retos de DIVA, el fragmento de código donde está el fallo y su corrección, y una copia de DIVA con el texto de bienvenida modificado, firmada con una clave propia e instalada en `movil01`. Antes de entrar en DIVA se ve el método: cómo se pasa del bytecode `.dex` que trae la APK a algo que se puede leer, y las dos herramientas que hacen ese camino de forma distinta.
+Al acabar esta sesión está hecho el punto 3.1 de ACT_UT4_1, la ingeniería inversa de DIVA: su código leído en Java y una copia de la aplicación con el texto de bienvenida modificado en el Smali, reempaquetada, firmada con una clave propia e instalada en `movil01` en lugar de la original. Antes de entrar en DIVA se ve el método: cómo se pasa del bytecode `.dex` que trae la APK a algo que se puede leer, y las dos herramientas que hacen ese camino de forma distinta.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
     - [DIVA](https://github.com/payatu/diva-android): la aplicación vulnerable; su `README` lista los trece retos.
-    - El enunciado de la entrega ACT_UT4_1 está en el aula.
+    - El enunciado «ACT_RA4_1. Android App Vulnerable», en la tarea ACT_UT4_1 del aula. Su punto 3.1 remite a la guía [Ingeniería inversa en Android](https://psegarrac.github.io/Ciberseguridad-PePS/tema6/seguridad/m%C3%B3vil/2022/03/01/Ingenieria-inversa.html), que es la que sigue la hoja.
 
 ### Ingeniería inversa: de APK a código legible
 
@@ -246,63 +212,59 @@ flowchart TB
 
 `jadx` reconstruye código Java a partir del bytecode Dalvik: el resultado es aproximado (los nombres de variable pueden perderse, y el código no siempre recompila), pero es el más cómodo para leer y entender qué hace una aplicación, que es lo que hace falta en esta sesión. `apktool` va un paso más allá: desensambla a Smali, un lenguaje intermedio legible pero mucho más verboso que Java, pensado para poder modificarse y volver a empaquetarse en una APK nueva (con `apktool build`) que después hay que volver a firmar para poder instalarla. Cuando el objetivo es solo leer, `jadx` basta y sobra; cuando hace falta cambiar algo de la aplicación, como en la A4.3, `apktool` es la herramienta.
 
+La guía de ingeniería inversa del enunciado de ACT_UT4_1 hace la lectura en dos pasos, con herramientas más antiguas que dan el mismo resultado: `dex2jar` convierte el `.dex` en un `.jar` de clases Java y `jd-gui` lo muestra como código. `jadx` hace las dos cosas a la vez, y por eso es el que se usa en el laboratorio. Para firmar la APK modificada la guía usa `uber-apk-signer`, que alinea y firma con una clave de depuración en una sola orden; el laboratorio usa `keytool` y `apksigner`, del paquete de Ubuntu, con una clave propia. Cualquiera de las dos parejas vale para la entrega, siempre que el PDF diga cuál se ha usado.
+
 Dos límites: el código puede venir ofuscado (nombres sustituidos por letras sueltas, lo que dificulta la lectura sin impedirla), y las librerías nativas en C o C++ no pasan por `jadx` ni por `apktool` y exigen herramientas de análisis de binarios.
 
 ### A4.3 DIVA: análisis estático (sesión 31)
 
-<span class="et et-obj">Objetivo</span> Tres fallos de DIVA localizados leyendo su código (contraseña incrustada, dato sensible en el registro y credenciales de API en una actividad accesible desde fuera), cada uno con el fragmento de código, una captura y su corrección, y una APK de DIVA con el texto de bienvenida cambiado, firmada con una clave propia e instalada en `movil01`.
+<span class="et et-obj">Objetivo</span> El punto 3.1 del enunciado de ACT_UT4_1 completo: el código de DIVA leído en Java, su texto de bienvenida cambiado en los recursos que deja `apktool`, y la aplicación reempaquetada, firmada e instalada en `movil01` en lugar de la original. Demuestra lo que dice la teoría: una APK se puede abrir, leer, modificar y volver a distribuir, y lo único que delata el cambio es la firma.
 
-<span class="et et-pre">Antes de empezar</span> `~/laboratorio-movil/diva/` de la A4.1, con el árbol `java` (jadx) y el árbol `smali` (apktool), y `movil01` con DIVA instalada. Se ha explicado [el camino de APK a código legible](#ingenieria-inversa-de-apk-a-codigo-legible).
+<span class="et et-pre">Antes de empezar</span> `~/laboratorio-movil/diva/` de la A4.1, con el árbol `java` (jadx) y el árbol `smali` (apktool), y `movil01` con DIVA instalada. Se ha explicado [el camino de APK a código legible](#ingenieria-inversa-de-apk-a-codigo-legible), incluida la equivalencia entre las herramientas de la guía y las del laboratorio. Ten abierta la guía del punto 3.1 (enlazada en los recursos de esta sesión): la hoja sigue su orden.
 
 <span class="et et-pas">Pasos</span>
 
-1. Abre `~/laboratorio-movil/diva/java` en VS Code o `diva-beta.apk` en `jadx-gui`. En el paquete `jakhar.aseem.diva` cada reto de la aplicación es una actividad con un nombre que anticipa el fallo (`LogActivity`, `HardcodeActivity`, `InsecureDataStorage1Activity`...). DIVA tiene trece retos; esta hoja usa tres.
-2. **Contraseña incrustada.** Abre `HardcodeActivity` y localiza la comparación con una cadena fija. Captura la línea, y en `movil01` entra en el reto «Hardcoding Issues - Part 1» con esa clave para comprobar que la acepta.
-3. **Dato sensible en el registro.** Abre `LogActivity` y localiza la llamada a `Log` que escribe un dato que no debería. Captura la línea. La comprobación en vivo con `adb logcat` se hace en la [A4.4](#a44-diva-almacenamiento-sesion-32), con el resto de fugas del dispositivo.
-4. **Credenciales de API accesibles desde fuera.** Abre `APICredsActivity`, localiza las credenciales incrustadas y busca su actividad en `AndroidManifest.xml`: declara un `<intent-filter>` con una acción propia, por lo que otra aplicación (o `adb`) puede abrirla sin pasar por el reto. Lánzala tú desde `pps01` y captura lo que muestra:
+El recorrido es el de la guía: leer el código, cambiar los recursos, reconstruir la APK, firmarla e instalarla. Cada paso deja una evidencia del 3.1, así que captura según avanzas: el PDF de la entrega lleva una por paso.
 
-    ```bash
-    adb shell am start -a jakhar.aseem.diva.action.VIEW_CREDS
-    ```
+1. **Lectura del código (3.1, decompilado a Java).** Abre `~/laboratorio-movil/diva/java` en VS Code, o `diva-beta.apk` en `jadx-gui`. Localiza el paquete `jakhar.aseem.diva`, la actividad principal y una actividad de reto, y anota en el README qué se entiende y qué se ha perdido respecto a un código fuente (nombres, comentarios). Si sigues la guía con `dex2jar` y `jd-gui`, el resultado es el mismo y vale igual.
+2. **Modificación de los recursos (3.1, apktool).** Abre el árbol `smali` en VS Code y cambia en `res/values/strings.xml` el texto de la clave `dintro` por el que propone la guía o por uno propio.
 
-5. Para cada uno de los tres fallos, escribe la corrección con la precisión suficiente para que otra persona la aplique: qué se cambia en el código o en el manifiesto y con qué. «Cifrar mejor» no vale; sí vale, por ejemplo, «no llevar la clave en el cliente y validarla en un servidor» o «`android:exported="false"` y comprobar el permiso».
-6. **Modificar la aplicación.** Con el árbol `smali` de la A4.1, cambia el texto de la clave `dintro` en `res/values/strings.xml` por otro propio, reempaqueta y comprueba que el resultado es una APK:
+    *Pista:* la guía lo deja así: `<string name="dintro"><b>Hackeado por Ciberseguridad!</b></string>`.
 
-    ```bash
-    cd ~/laboratorio-movil
-    nano diva/smali/res/values/strings.xml
-    apktool b diva/smali -o diva-sin-firmar.apk
-    ```
+3. **Reempaquetado (3.1).** Reconstruye la APK desde el árbol `smali` con `apktool` y llámala `DivaModificada.apk`, como en la guía.
 
-7. Una APK sin firma no se instala. Crea una clave propia (`keytool` te pide una contraseña y unos datos: usa datos de laboratorio y no la subas al repositorio) y firma con ella:
+    *Pista:* `apktool b <carpeta> -o DivaModificada.apk`. Si falla en los recursos, es la versión de `apktool` (ver [Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
+
+4. **Firma (3.1).** Una APK sin firma no se instala. Crea una clave propia y firma con ella (`keytool` pide una contraseña y unos datos: usa datos de laboratorio y no subas el `.jks` al repositorio):
 
     ```bash
     keytool -genkeypair -keystore clave-lab.jks -alias lab -keyalg RSA -keysize 2048 -validity 365
-    apksigner sign --ks clave-lab.jks --out diva-mod.apk diva-sin-firmar.apk
+    apksigner sign --ks clave-lab.jks --out diva-mod.apk DivaModificada.apk
     apksigner verify --print-certs diva-mod.apk
     ```
 
-8. Android no deja actualizar una aplicación con otra firmada con una clave distinta, así que hay que desinstalar la original antes de instalar la modificada. Abre la aplicación y captura la pantalla de bienvenida con el texto nuevo:
+    Si sigues la guía con `uber-apk-signer`, el resultado es `DivaModificada-aligned-debugSigned.apk`, firmada con una clave de depuración.
 
-    ```bash
-    adb uninstall jakhar.aseem.diva
-    adb install diva-mod.apk
-    ```
+5. **Instalación (3.1).** Instala la APK firmada en `movil01`, abre DIVA y captura la pantalla de bienvenida con el texto nuevo.
 
-9. Anota en una frase qué categoría del OWASP Mobile Top 10 ilustra el paso 8 (M8, manipulación de código) y por qué una aplicación real puede defenderse comprobando su propia firma en un servidor.
+    *Pista:* Android no deja actualizar una aplicación con otra firmada con una clave distinta: antes hay que desinstalar la original (paquete `jakhar.aseem.diva`).
 
-<span class="et et-com">Comprobación</span> Los tres fallos tienen su captura de código, su prueba en el emulador (el reto aceptando la clave y la actividad de credenciales abierta desde `adb`) y su corrección concreta. `apksigner verify --print-certs diva-mod.apk` muestra un firmante distinto del de `diva-beta.apk`, y la pantalla de bienvenida de `movil01` muestra el texto nuevo.
+<span class="et et-com">Comprobación</span> `apksigner verify --print-certs` sobre la APK modificada muestra un firmante distinto del de `diva-beta.apk`, y la pantalla de bienvenida de `movil01` muestra el texto nuevo.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a43/` de `pps-entregas` el informe con los tres fallos (código, captura, corrección) y la captura de la aplicación modificada junto con la salida de `apksigner verify`, sin el fichero `.jks`. Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero).
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a43/` de `pps-entregas` el README con la captura de cada paso, `strings.xml` modificado y la salida de `apksigner verify`, sin el fichero `.jks`. Con la A4.1, es todo el punto 3.1 de ACT_UT4_1 (plazo, el 15 de febrero).
 
-<span class="et et-ext">Si te sobra tiempo</span> Reto «Hardcoding Issues - Part 2»: en `jadx` la comprobación no está en Java, sino en una librería nativa (`DivaJni`). Extrae la librería de la APK y busca en sus cadenas de texto:
+<span class="et et-ext">Si te sobra tiempo</span> Es el «Extra» de ACT_UT4_1: la guía dice que el código descompilado sirve para buscar fallos, y esto es buscarlos. Localiza tres fallos de DIVA leyendo su código, cada uno con la línea capturada, su prueba en `movil01` y una corrección concreta («cifrar mejor» no vale; sí «no llevar la clave en el cliente y validarla en un servidor» o «`android:exported="false"` y comprobar el permiso»):
+
+- **Contraseña incrustada.** En `HardcodeActivity`, la comparación con una cadena fija; pruébala en el reto «Hardcoding Issues - Part 1».
+- **Dato sensible en el registro.** En `LogActivity`, la llamada a `Log` que escribe un dato que no debería; la prueba en vivo es la de la [A4.4](#a44-diva-almacenamiento-sesion-32).
+- **Credenciales de API accesibles desde fuera.** En `APICredsActivity` y en su `<intent-filter>` del manifiesto: ábrela sin pasar por el reto con `adb shell am start -a jakhar.aseem.diva.action.VIEW_CREDS`.
+
+Añade una frase sobre qué categoría del OWASP Mobile Top 10 ilustra el reempaquetado de esta hoja (M8, manipulación de código) y por qué una aplicación real puede defenderse comprobando su propia firma en un servidor. Y si quieres ir más lejos, el reto «Hardcoding Issues - Part 2» tiene la comprobación en una librería nativa (`DivaJni`), fuera del alcance de `jadx`; sus cadenas siguen siendo legibles:
 
 ```bash
 unzip -o ~/laboratorio-movil/apk/APK_1/APKs/diva-beta.apk 'lib/x86/*' -d /tmp/diva-lib
 strings /tmp/diva-lib/lib/x86/libdivajni.so
 ```
-
-Es el límite de `jadx` y `apktool` que recoge la teoría: el código nativo no pasa por ellos, pero sus cadenas incrustadas siguen siendo legibles.
 
 ## Sesión 32 · Almacenamiento de datos y fugas de información
 
@@ -342,59 +304,30 @@ Las copias de seguridad automáticas de Android (activadas por defecto salvo que
 
 ### A4.4 DIVA: almacenamiento (sesión 32)
 
-<span class="et et-obj">Objetivo</span> Para cada uno de los cuatro mecanismos de almacenamiento inseguro de DIVA (SharedPreferences, SQLite, fichero temporal y almacenamiento externo), el dato encontrado en claro dentro de `movil01`, y la comprobación de la fuga por registro y de si la aplicación permite copias de seguridad, cada una con la alternativa segura de la tabla de teoría.
+<span class="et et-obj">Objetivo</span> Para cada uno de los cuatro mecanismos de almacenamiento inseguro de DIVA (SharedPreferences, SQLite, fichero temporal y almacenamiento externo), el dato encontrado en claro dentro de `movil01`, y la comprobación de la fuga por registro y de si la aplicación permite copias de seguridad, cada una con la alternativa segura de la tabla de teoría. Ningún enunciado de la unidad lo pide: es la práctica del CE b (técnicas de almacenamiento seguro), que el enunciado de ACT_UT4_1 lista entre sus objetivos y que entra en el examen del 3 de junio. Prepara además el punto 2.2.1 del taller de PIVAA (credenciales en el registro y en la tarjeta SD), que se hace en la sesión 34.
 
 <span class="et et-pre">Antes de empezar</span> `movil01` con DIVA instalada (la original o la modificada de la A4.3, que tiene el mismo código) y `adb devices` mostrándolo. En Genymotion el `adb shell` entra como `root`, a diferencia de un dispositivo físico, y por eso llega al directorio privado de la aplicación sin más pasos. Se ha explicado [el almacenamiento seguro en el dispositivo](#almacenamiento-seguro-en-el-dispositivo) y [las fugas por registros y copias de seguridad](#fugas-por-registros-y-copias-de-seguridad).
 
 <span class="et et-pas">Pasos</span>
 
-1. **Preferencias.** En `movil01`, abre el reto «Insecure Data Storage - Part 1», guarda un usuario y una contraseña de prueba (inventados) y localiza el dato desde `pps01`:
+Los cuatro retos de «Insecure Data Storage» de DIVA siguen el mismo ciclo: guardas en la aplicación un usuario y una contraseña inventados y los buscas desde `pps01` donde la aplicación los ha dejado. Van del sitio más protegido al menos protegido, y después vienen las dos fugas que nadie guarda a propósito.
 
-    ```bash
-    adb shell ls /data/data/jakhar.aseem.diva/shared_prefs/
-    adb shell cat /data/data/jakhar.aseem.diva/shared_prefs/jakhar.aseem.diva_preferences.xml
-    ```
+1. **Preferencias (Part 1).** Localiza el dato en el directorio `shared_prefs` de la aplicación, dentro de `/data/data/jakhar.aseem.diva/`.
+2. **Base de datos (Part 2).** Localiza la base de datos en `databases/`, tráela a `pps01` con `adb pull` y consúltala con `sqlite3`.
 
-2. **Base de datos.** Repite con el reto «Part 2» (SQLite), trae la base de datos a `pps01` y consúltala:
+    *Pista:* la base se llama `ids2` y la tabla, `myuser`.
 
-    ```bash
-    adb shell ls /data/data/jakhar.aseem.diva/databases/
-    adb pull /data/data/jakhar.aseem.diva/databases/ids2 /tmp/ids2
-    sqlite3 /tmp/ids2 "select * from myuser;"
-    ```
+3. **Fichero temporal (Part 3).** La aplicación crea un fichero con nombre aleatorio en su directorio privado: búscalo por el prefijo `uinfo` y léelo.
+4. **Almacenamiento externo (Part 4).** El fichero queda en la tarjeta SD simulada, con nombre oculto (empieza por punto), legible por cualquier aplicación con permiso de lectura de almacenamiento.
 
-3. **Fichero temporal.** Repite con el reto «Part 3»: la aplicación crea un fichero con nombre aleatorio en su directorio privado.
+    *Pista:* si la aplicación responde «File error occurred», concede el permiso de almacenamiento a DIVA en Ajustes, Aplicaciones, DIVA, Permisos (en Android 6 se concede en ejecución) y repite el reto.
 
-    ```bash
-    adb shell ls /data/data/jakhar.aseem.diva/
-    adb shell cat /data/data/jakhar.aseem.diva/uinfo*tmp
-    ```
+5. **Registro y copias de seguridad.** Abre el reto «Insecure Logging», introduce un número de tarjeta inventado y búscalo en `adb logcat`; localiza en `LogActivity` la línea que lo escribe. Después mira en el manifiesto de la A4.1 el valor de `allowBackup`.
+6. **Tabla.** Monta una fila por mecanismo (los cuatro de almacenamiento, el registro y la copia de seguridad): qué dato se ha encontrado, dónde y en qué formato, y qué alternativa de la tabla de teoría le correspondería (clave en el Keystore y dato cifrado, base de datos cifrada, no guardarlo, o `android:allowBackup="false"`).
 
-4. **Almacenamiento externo.** Repite con el reto «Part 4»: el fichero queda en la tarjeta SD simulada, con nombre oculto (empieza por punto), y lo puede leer cualquier aplicación con permiso de lectura de almacenamiento:
+<span class="et et-com">Comprobación</span> La tabla tiene las seis filas con datos reales de tu ejecución (no valores inventados), y hay una captura de la salida de cada uno de los pasos 1 a 5.
 
-    ```bash
-    adb shell ls -a /sdcard/
-    adb shell cat /sdcard/.uinfo.txt
-    ```
-
-    Si la aplicación responde «File error occurred», concede el permiso de almacenamiento a DIVA en Ajustes, Aplicaciones, DIVA, Permisos (en Android 6 se concede en ejecución) y repite el reto.
-5. **Registro.** Abre el reto «Insecure Logging», introduce un número de tarjeta inventado y busca en el registro el fallo que localizaste en el código en la A4.3:
-
-    ```bash
-    adb logcat -d | grep -i diva
-    ```
-
-6. **Copias de seguridad.** Mira en el manifiesto de la A4.1 si DIVA las permite:
-
-    ```bash
-    grep -o 'allowBackup="[a-z]*"' ~/laboratorio-movil/diva/smali/AndroidManifest.xml
-    ```
-
-7. Monta una tabla con una fila por mecanismo (los cuatro de almacenamiento, el registro y la copia de seguridad): qué dato se ha encontrado, dónde y en qué formato, y qué alternativa de la tabla de teoría le correspondería (clave en el Keystore y dato cifrado, base de datos cifrada, no guardarlo, o `android:allowBackup="false"`).
-
-<span class="et et-com">Comprobación</span> La tabla tiene las seis filas con datos reales de tu ejecución (no valores inventados), y hay una captura de la salida de cada uno de los pasos 1 a 6.
-
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a44/` de `pps-entregas` la tabla de almacenamiento inseguro, las capturas de los pasos 1 a 6 y la corrección propuesta para cada fila. Lo recoge la entrega ACT_UT4_1 (plazo, el 15 de febrero).
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a44/` de `pps-entregas` la tabla de almacenamiento inseguro, las capturas de los pasos 1 a 5 y la corrección propuesta para cada fila. No lo recoge ninguna entrega; si lo documentas, puede ir en el capítulo «Extra» del PDF de ACT_UT4_1.
 
 ## Sesión 33 · Análisis del tráfico de una aplicación
 
@@ -423,13 +356,15 @@ Detectar un protocolo inseguro en una captura de proxy es, en la mayoría de los
 
 ### A4.5 Tráfico de una aplicación (sesión 33)
 
-<span class="et et-obj">Objetivo</span> Burp Suite como proxy de `movil01`, con su CA instalada en el emulador, y una captura del tráfico de InsecureBankv2 contra su servidor propio que muestra la petición de login en HTTP con el usuario y la contraseña legibles.
+<span class="et et-obj">Objetivo</span> Burp Suite como proxy de `movil01`, con su CA instalada en el emulador, y una captura del tráfico de InsecureBankv2 contra su servidor propio que muestra la petición de login en HTTP con el usuario y la contraseña legibles. Ningún enunciado de la unidad lo pide: es la práctica del CE d (detectar protocolos inseguros con herramientas de monitorización del tráfico), que el enunciado de ACT_UT4_2 lista entre sus objetivos sin un punto que lo trabaje, y entra en el examen del 3 de junio.
 
 <span class="et et-pre">Antes de empezar</span> `movil01` con InsecureBankv2 instalada (de la A4.1) y Burp Suite Community disponible en `pps01` (ya en la lista de herramientas del [puesto de trabajo](../laboratorio.md#puesto-de-trabajo)). Se ha explicado [el proxy de interceptación en el emulador](#proxy-de-interceptacion-en-el-emulador) y [los protocolos inseguros y cómo se detectan](#protocolos-inseguros-y-como-se-detectan).
 
 <span class="et et-pas">Pasos</span>
 
-1. Lanza en segundo plano la descarga de las imágenes que necesita la sesión siguiente (con toda la clase a la vez tardan) y despliega el servidor de InsecureBankv2 en `pps01` con Docker. El `Dockerfile` usa el código de `AndroLabServer/`, que trae el propio repositorio:
+La cadena se monta de un extremo al otro, comprobando cada eslabón antes del siguiente: primero el servidor y la aplicación hablando sin nadie en medio, después Burp en medio, y al final la captura que demuestra el fallo.
+
+1. **Servidor de la aplicación.** Lanza en segundo plano la descarga de las imágenes que necesita la sesión siguiente (con toda la clase a la vez tardan) y despliega el servidor de InsecureBankv2 en `pps01` con Docker. El `Dockerfile` usa el código de `AndroLabServer/`, que trae el propio repositorio:
 
     ```bash
     (docker pull opensecurity/mobile-security-framework-mobsf; docker pull drozerdocker/drozer:2.4.4) > /dev/null 2>&1 &
@@ -448,91 +383,69 @@ Detectar un protocolo inseguro en una captura de proxy es, en la mayoría de los
     docker run --rm -d -p 8888:8888 --name insecurebank-server insecurebank-server
     ```
 
-2. En `movil01`, abre InsecureBankv2, entra en Preferences y configura como servidor la IP `192.168.56.10` (`pps01`, red solo anfitrión) y el puerto `8888`. Haz un login de prueba y comprueba en la terminal de `docker logs insecurebank-server` que la petición llega.
-3. Arranca Burp Suite en `pps01` y activa el proxy en todas las interfaces, no solo en `localhost`, para que `movil01` llegue a él:
+2. **Aplicación contra su servidor.** En `movil01`, abre InsecureBankv2, entra en Preferences y configura como servidor la IP `192.168.56.10` (`pps01`, red solo anfitrión) y el puerto `8888`. Haz un login de prueba y comprueba en la terminal de `docker logs insecurebank-server` que la petición llega.
+3. **Proxy.** Arranca Burp Suite en `pps01` con un proxy en el puerto `8085` que escuche en todas las interfaces, no solo en `localhost`, para que `movil01` llegue a él, y configura en `movil01` ese proxy en la Wi-Fi.
 
-    ```text
-    Proxy > Proxy settings > Add > Bind to port 8085, Bind to address: All interfaces
-    ```
+    *Pista:* en Burp, *Proxy settings*, *Add*, *Bind to address: All interfaces*; en el emulador, Ajustes, Wi-Fi, mantener pulsada la red, Modificar red, Proxy manual, con `192.168.56.10` y `8085`.
 
-4. En `movil01`, configura el proxy Wi-Fi manual (Ajustes, Wi-Fi, mantener pulsada la red, Modificar red, Proxy manual) con `192.168.56.10` y el puerto `8085`.
-5. Con `Proxy > HTTP history` de Burp abierto, repite el login en InsecureBankv2 y localiza la petición: anota el método, la URL completa (con el esquema `http://`), y el usuario y la contraseña tal como viajan en el cuerpo. Este login va por HTTP y se ve sin instalar ninguna CA.
-6. Para ver también HTTPS hace falta la CA de Burp. Descárgala desde el navegador del emulador (`http://burp` con el proxy activo, formato DER) e instálala como certificado de usuario (Ajustes, Seguridad, Instalar desde almacenamiento; Android 6 exige antes un PIN o patrón de pantalla). Abre después una página `https://` cualquiera en el navegador del emulador y comprueba que aparece en `HTTP history` con el candado, es decir, descifrada por Burp.
-7. Documenta en una frase por qué la captura del paso 5 demuestra la categoría M3 del OWASP Mobile Top 10, y qué cambiaría en la aplicación (no en el servidor de pruebas) para evitarlo.
+4. **Captura del login.** Con `Proxy > HTTP history` de Burp abierto, repite el login en InsecureBankv2 y localiza la petición: anota el método, la URL completa (con el esquema `http://`), y el usuario y la contraseña tal como viajan en el cuerpo. Este login va por HTTP y se ve sin instalar ninguna CA.
+5. **HTTPS.** Para ver también HTTPS hace falta la CA de Burp. Descárgala desde el navegador del emulador (`http://burp` con el proxy activo, formato DER) e instálala como certificado de usuario (Ajustes, Seguridad, Instalar desde almacenamiento; Android 6 exige antes un PIN o patrón de pantalla). Abre después una página `https://` cualquiera en el navegador del emulador y comprueba que aparece en `HTTP history` con el candado, es decir, descifrada por Burp.
+6. **Corrección.** Documenta en una frase por qué la captura del paso 4 demuestra la categoría M3 del OWASP Mobile Top 10, y qué cambiaría en la aplicación (no en el servidor de pruebas) para evitarlo.
 
-<span class="et et-com">Comprobación</span> `HTTP history` de Burp muestra la petición de login de InsecureBankv2 con el esquema `http://` y la contraseña de prueba en texto plano dentro del cuerpo de la petición. Si has hecho el paso 6, una página `https://` aparece descifrada.
+<span class="et et-com">Comprobación</span> `HTTP history` de Burp muestra la petición de login de InsecureBankv2 con el esquema `http://` y la contraseña de prueba en texto plano dentro del cuerpo de la petición. Si has hecho el paso 5, una página `https://` aparece descifrada.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a45/` de `pps-entregas` la captura de la petición interceptada, con el usuario y la contraseña visibles, y la frase de corrección del paso 7. Lo recoge la entrega ACT_UT4_2 (plazo, el 25 de febrero).
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a45/` de `pps-entregas` la captura de la petición interceptada, con el usuario y la contraseña visibles, y la frase de corrección del paso 6. No lo recoge ninguna entrega; si lo documentas, puede ir en el capítulo «Extra» del PDF de ACT_UT4_2.
 
 ## Sesión 34 · Taller PIVAA
 
 <p class="ut-meta" markdown>18 de febrero · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Cómo se organiza un taller de vulnerabilidades móviles · 10 min&#10;A4.6 PIVAA · 100 min" data-dur="Cómo se organiza un taller de vulnerabilidades móviles · 10 min&#10;A4.6 PIVAA · 100 min">:material-school:<i class="dur-barra" style="--teoria:9%"></i>:material-flask:</span></p>
 
-Esta sesión es un taller guiado de principio a fin: al terminar hay respuesta a las preguntas del taller sobre los tres componentes vulnerables de PIVAA (proveedor de contenido, servicio y receptor de emisiones), con el comando de Drozer que explota cada uno y su captura. La teoría es solo cómo está organizado el taller, porque el resto de la sesión es trabajo guiado sobre una única aplicación.
+Esta sesión es un taller guiado de principio a fin, el capítulo 2 de `Lab_Movil.pdf`, que es casi todo el PDF de ACT_UT4_2: al terminar hay respuesta a cada pregunta del taller sobre PIVAA, desde los dos fallos de su pantalla de login hasta sus tres componentes vulnerables (proveedor de contenido, servicio y receptor de emisiones), con el comando que explota cada uno y su captura. La teoría es solo cómo está organizado el taller, porque el resto de la sesión es trabajo guiado sobre una única aplicación.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
     - [PIVAA](https://github.com/HTBridge/pivaa), [MobSF](https://hub.docker.com/r/opensecurity/mobile-security-framework-mobsf) y [Drozer](https://hub.docker.com/r/drozerdocker/drozer): la aplicación y las herramientas del taller.
-    - El enunciado de la entrega ACT_UT4_2 está en el aula.
+    - El enunciado «ACT_RA4_2. Purposefully Insecure and Vulnerable Android Application», en la tarea ACT_UT4_2 del aula, y su adjunto, el «Taller de ejercicios de vulnerabilidades en aplicaciones móviles» (`Lab_Movil.pdf`): las preguntas exactas de cada punto están ahí.
 
 ### Cómo se organiza un taller de vulnerabilidades móviles
 
 Este apartado da el mapa de la sesión antes de entrar en ella: qué hace cada herramienta y en qué orden se usan.
 
-El taller sigue siempre el mismo patrón: primero un análisis automatizado con MobSF que da una lista de componentes y posibles fallos sin escribir ni un comando de explotación, y después Drozer, que ataca de verdad los componentes que MobSF ha señalado como exportados. MobSF corre en un contenedor en `pps01` y se usa desde el navegador; Drozer necesita dos piezas, un agente instalado en `movil01` (la APK `drozer-agent-2.3.4.apk` de los recursos de la unidad) y una consola en `pps01`, también en contenedor, que se conecta al agente por la red solo anfitrión. El resto de la sesión repite tres veces el mismo ciclo (identificar el componente exportado con MobSF, atacarlo con el módulo de Drozer que corresponde, responder la pregunta del taller), sobre el proveedor de contenido, el servicio y el receptor de emisiones de PIVAA.
+El taller sigue siempre el mismo patrón: primero un análisis automatizado con MobSF que da una lista de componentes y posibles fallos sin escribir ni un comando de explotación, y después Drozer, que ataca de verdad los componentes que MobSF ha señalado como exportados. MobSF corre en un contenedor en `pps01` y se usa desde el navegador; Drozer necesita dos piezas, un agente instalado en `movil01` (la APK `drozer-agent-2.3.4.apk` de los recursos de la unidad) y una consola en `pps01`, también en contenedor, que se conecta al agente por la red solo anfitrión. Entre las dos herramientas, el taller lee en el código que muestra MobSF la pantalla de login de PIVAA y explota sus dos fallos con ADB y Logcat, la herramienta de Android que vuelca el registro del sistema. Después repite tres veces el mismo ciclo (identificar el componente exportado con MobSF, atacarlo con el módulo de Drozer que corresponde, responder la pregunta del taller), sobre el proveedor de contenido, el servicio y el receptor de emisiones. El taller está escrito para una máquina Kali Linux; aquí ese papel lo hace `pps01`, y las imágenes de Docker que cita para Drozer ya no se pueden descargar, así que la hoja usa la oficial actual.
 
 ### A4.6 PIVAA (sesión 34)
 
-<span class="et et-obj">Objetivo</span> Las preguntas del taller sobre PIVAA respondidas para sus tres componentes vulnerables (proveedor de contenido, servicio y receptor de emisiones), cada una con el comando de Drozer usado y una captura de su resultado.
+<span class="et et-obj">Objetivo</span> El capítulo 2 del taller `Lab_Movil.pdf` resuelto: PIVAA analizada con MobSF, los dos fallos de su login localizados en el código y explotados, y sus tres componentes vulnerables (proveedor de contenido, servicio y receptor de emisiones) atacados con Drozer, con cada pregunta del taller respondida y cada captura que pide hecha. Son los puntos 2.1 a 2.5 del PDF de ACT_UT4_2.
 
-<span class="et et-pre">Antes de empezar</span> `movil01` arrancado, con Docker en `pps01` funcionando (de las unidades anteriores). Se ha explicado [cómo se organiza el taller](#como-se-organiza-un-taller-de-vulnerabilidades-moviles). El enunciado completo con las preguntas exactas está en el aula.
+<span class="et et-pre">Antes de empezar</span> `movil01` arrancado y conectado por ADB (de la A4.1), y Docker en `pps01` con las imágenes de MobSF y de Drozer que se dejaron descargando en la A4.5 (si no están, lanza su descarga lo primero). Se ha explicado [cómo se organiza el taller](#como-se-organiza-un-taller-de-vulnerabilidades-moviles). Ten abierto `Lab_Movil.pdf`: las preguntas exactas están en él, y la hoja dice en cada paso a qué punto responde.
 
 <span class="et et-pas">Pasos</span>
 
-1. Comprueba con `docker images` que las dos imágenes de la A4.5 ya están descargadas (si no, el `docker pull` va delante y en segundo plano) e instala PIVAA y el agente de Drozer en `movil01` (desde `~/laboratorio-movil/apk/APK_2/APKs`):
+El orden es el del taller, de lo que se ve sin atacar nada a lo que exige una herramienta de explotación: primero el análisis estático con MobSF, después el login con ADB y Logcat, y al final los tres componentes con Drozer. Cada pregunta del taller («¿Podéis enseñarme...?», «Haced una captura...») es una evidencia del PDF: respóndela en el README en el momento, con su captura.
 
-    ```bash
-    adb install pivaa.apk
-    adb install drozer-agent-2.3.4.apk
-    ```
+1. **Análisis previo (punto 2.1).** Instala PIVAA y el agente de Drozer en `movil01` (desde `~/laboratorio-movil/apk/APK_2/APKs`), levanta MobSF con el contenedor del taller y analiza `pivaa.apk`. Localiza en el resultado el proveedor de contenido, el servicio y el receptor de emisiones exportados, y en `DECOMPILED CODE` el manifiesto y el código fuente.
+2. **Login: el código (punto 2.2).** Sigue en el código de MobSF el intento de login desde `MainActivity` hasta la clase `Authentication` (carpeta `handlers`) y localiza los dos fallos que señala el taller. Captura la línea vulnerable de `saveCache`, que es la que pide el taller, y la función que guarda las credenciales en la tarjeta SD.
+3. **Login: la explotación (punto 2.2.1).** Con Logcat en marcha, haz un login de prueba con datos inventados y enseña en el registro el usuario y la contraseña; después enseña el contenido de tu `credentials.dat`. Son las dos preguntas del punto.
 
-    Levanta MobSF:
+    *Pista:* el taller entra con `adb shell` y lanza `logcat` dentro; `adb logcat` desde `pps01` da lo mismo. La ruta de `credentials.dat` está en el propio taller.
 
-    ```bash
-    docker run --rm -p 8000:8000 -d --name mobsf opensecurity/mobile-security-framework-mobsf
-    ```
+4. **Proveedor de contenido (punto 2.3).** Activa el agente de Drozer en `movil01` (interruptor a *on*, puerto `31415`), conecta la consola desde `pps01` y captura su salida, que es lo primero que pide el punto. Busca después las URI del proveedor de PIVAA, lanza la consulta del taller y captura su salida; localiza en `DatabaseHelper.java` el `rawQuery` sin saneamiento que lo hace posible.
 
-2. Abre `http://localhost:8000` en `pps01`, arrastra `pivaa.apk` al análisis de MobSF y espera a que termine. En la pestaña de componentes, localiza el proveedor de contenido, el servicio y el receptor de emisiones marcados como exportados, y en `DECOMPILED CODE` el código fuente de cada uno.
-3. En `movil01`, abre la aplicación Drozer Agent y actívala (pasa el interruptor a on): queda escuchando en el puerto `31415`.
-4. Levanta la consola de Drozer en `pps01` y conéctate al agente con la IP de `movil01`:
+    *Pista:* las imágenes del taller (`fsecurelabs/drozer`) ya no se pueden descargar. Usa la oficial actual, en la versión que corresponde al agente 2.3.4 (consola y agente tienen que ser de la misma versión mayor); la imagen ya arranca `drozer`, así que la orden empieza en `console`:
 
     ```bash
     docker run -it --rm drozerdocker/drozer:2.4.4 console connect --server <IP de movil01>
     ```
 
-    La imagen ya arranca `drozer`, así que la orden empieza en `console`. Conecta con el agente (la IP de `movil01`, que viste con `adb` en la A4.1; puede no ser la `.60`) y, en el prompt `dz>`, comprueba que ve PIVAA:
+5. **Servicio (punto 2.4).** Responde a las dos preguntas del punto: identifica el servicio en el `AndroidManifest.xml` y di qué atributos tiene configurados. Después arráncalo desde Drozer con el módulo del taller y captura el resultado.
+6. **Receptor de emisiones (punto 2.5).** Encuentra el código del receptor y el código donde se le llama, y relaciónalos (es la primera pregunta del punto). Envíale con Drozer el intent del taller, que crea un fichero en la tarjeta SD, y responde a la segunda: cómo y con qué herramienta se ve ese fichero, con la captura de su contenido.
 
-    ```text
-    dz> run app.package.list -f pivaa
-    ```
+<span class="et et-com">Comprobación</span> El usuario y la contraseña de prueba aparecen en el registro y en `credentials.dat`; la consola de Drozer muestra el prompt `dz>` conectado al agente; la consulta al proveedor devuelve filas; el servicio arranca sin haber abierto PIVAA, y el fichero del receptor existe en la tarjeta SD con el texto que enviaste. Cada pregunta del taller tiene su respuesta y su captura en el README.
 
-    Las imágenes antiguas `fsecurelabs/drozer` y `withsecurelabs/drozer` ya no se pueden descargar; la oficial actual es `drozerdocker/drozer`. Se fija la etiqueta `2.4.4` porque es la de la línea 2 de Drozer, la que corresponde al agente 2.3.4 del paquete de recursos: consola y agente tienen que ser de la misma versión mayor.
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a46/` de `pps-entregas` el README con un apartado por punto del taller (2.1 a 2.5), cada uno con sus capturas y la respuesta a sus preguntas. Con el entorno de la A4.1, es el PDF de ACT_UT4_2 (plazo, el 25 de febrero).
 
-    Si la consola no encuentra el agente, comprueba primero que `movil01` responde por red (`ping` desde `pps01`) y que el interruptor de Drozer Agent sigue activado.
-5. **Login (pantalla inicial).** En `MainActivity` sigue la tarea de login hasta la clase `Authentication` (carpeta `handlers`). Localiza en `saveCache` la línea que escribe usuario y contraseña en el registro y en `saveLoginInfoExternalStorage` la que guarda credenciales sin cifrar en la SD. Captura las dos líneas, haz un login de prueba en PIVAA (datos inventados) y muestra con `adb logcat -d | grep -i pivaa` el usuario y la contraseña en el registro, y con `adb shell cat /sdcard/Android/data/com.htbridge.pivaa/files/credentials.dat` el fichero de credenciales.
-6. **Proveedor de contenido.** Encuentra sus URI con `app.provider.finduri` sobre el paquete de PIVAA, y extrae datos con `app.provider.query`. Ejemplo del taller: `run app.provider.query content://com.htbridge.pivaa/"select * from data"`. Localiza en `DatabaseHelper.java` el `rawQuery` sin saneamiento que lo hace posible y responde con ello a la pregunta del taller.
-7. **Servicio.** Identifícalo en el manifiesto (¿qué atributos tiene?) y arráncalo desde fuera de la aplicación con `app.service.start` sobre el componente localizado en MobSF, y comprueba en el propio dispositivo que se ha ejecutado sin haber abierto la aplicación.
-8. **Receptor de emisiones.** Relaciona el código del receptor con el que lo invoca y envíale un intent con `app.broadcast.send`: acción `service.vulnerable.vulnerableservice.LOG`, extras `data` (contenido) y `location` (ruta del fichero), y comprueba con `adb shell cat` el fichero que se crea. El módulo es `app.broadcast.send` con `--action` y un `--extra string` por cada campo:
-
-    ```text
-    dz> run app.broadcast.send --action service.vulnerable.vulnerableservice.LOG --extra string data "texto de prueba" --extra string location "/sdcard/Android/data/com.htbridge.pivaa/files/broadcastfile"
-    ```
-9. Para los tres componentes, responde en el informe a las preguntas exactas del taller (no solo «se ha explotado»): qué atributo del manifiesto falta, qué comando de Drozer lo aprovecha y qué cambio en el código lo evitaría.
-
-<span class="et et-com">Comprobación</span> Los dos fallos del login (paso 5) se ven en el registro y en `credentials.dat`, y los tres módulos de Drozer del paso 6 al 8 devuelven un resultado (datos del proveedor, confirmación de arranque del servicio, fichero creado por el receptor), y cada uno tiene su pregunta del taller respondida con el comando exacto usado.
-
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a46/` de `pps-entregas` el informe con los dos fallos del login y las tres explotaciones (comando, captura, respuesta a las preguntas del taller y corrección). Lo recoge la entrega ACT_UT4_2 (plazo, el 25 de febrero).
+<span class="et et-ext">Si te sobra tiempo</span> Es el «Extra» de ACT_UT4_2. Para cada fallo del taller (los dos del login y los tres componentes), escribe qué cambio en el código o en el manifiesto lo evitaría: qué atributo falta (`android:exported="false"`, un `android:permission`), qué consulta debería ir parametrizada, qué no debería llegar nunca al registro ni a la tarjeta SD.
 
 ## Sesión 35 · Compras integradas y CASB
 
@@ -581,20 +494,22 @@ Un CASB (intermediario de seguridad de acceso a la nube, del inglés *Cloud Acce
 
 ### A4.7 Validación de compras en el servidor (sesión 35)
 
-<span class="et et-obj">Objetivo</span> Un servidor propio en Flask (puerto 5001) que valida un recibo de compra simulado firmado con HMAC, concede el producto solo si la firma es correcta y el recibo no se ha usado antes, y rechaza un recibo manipulado o repetido, probado con `curl` en los tres casos.
+<span class="et et-obj">Objetivo</span> Un servidor propio en Flask (puerto 5001) que valida un recibo de compra simulado firmado con HMAC, concede el producto solo si la firma es correcta y el recibo no se ha usado antes, y rechaza un recibo manipulado o repetido, probado con `curl` en los tres casos. Ningún enunciado de la unidad lo pide: es la práctica del CE c (validación de compras integradas en el servidor), que el enunciado de ACT_UT4_2 lista entre sus objetivos sin un punto que lo trabaje, y entra en el examen del 3 de junio.
 
 <span class="et et-pre">Antes de empezar</span> `pps01` con Python instalado (de unidades anteriores). Se ha explicado [la validación de compras integradas](#validacion-de-compras-integradas) y [qué es un CASB](#casb).
 
 <span class="et et-pas">Pasos</span>
 
-1. Instala Flask desde los repositorios (en Ubuntu 24.04 `pip install` fuera de un entorno virtual está bloqueado) y crea el directorio del servidor:
+Primero el servidor, que se da hecho porque lo que interesa no es programarlo sino ver qué decide; después tres pruebas, una por cada caso que tiene que distinguir: el recibo bueno, el falsificado y el reutilizado.
+
+1. **Entorno.** Instala Flask desde los repositorios (en Ubuntu 24.04 `pip install` fuera de un entorno virtual está bloqueado) y crea el directorio del servidor:
 
     ```bash
     sudo apt install -y python3-flask
     mkdir -p ~/validacion-compras && cd ~/validacion-compras
     ```
 
-2. Copia tal cual el servidor. Firma cada recibo con HMAC-SHA256 sobre el identificador de producto y un identificador de recibo único, y recuerda qué identificadores ya se han canjeado para no aceptarlos dos veces:
+2. **Servidor.** Copia tal cual el servidor. Firma cada recibo con HMAC-SHA256 sobre el identificador de producto y un identificador de recibo único, y recuerda qué identificadores ya se han canjeado para no aceptarlos dos veces:
 
     ```python
     # servidor.py · Validación de compras integradas (A4.7)
@@ -640,13 +555,9 @@ Un CASB (intermediario de seguridad de acceso a la nube, del inglés *Cloud Acce
         app.run(host="127.0.0.1", port=5001)
     ```
 
-3. Arranca el servidor en segundo plano (al terminar la hoja, `kill %1` lo para):
+    Arráncalo en segundo plano (al terminar la hoja, `kill %1` lo para).
 
-    ```bash
-    python3 servidor.py &
-    ```
-
-4. **Recibo válido.** Simula la tienda emitiendo un recibo y después el servidor validándolo:
+3. **Recibo válido.** Simula la tienda emitiendo un recibo y después el servidor validándolo:
 
     ```bash
     curl -s -X POST http://localhost:5001/tienda/emitir -H 'Content-Type: application/json' \
@@ -655,7 +566,7 @@ Un CASB (intermediario de seguridad de acceso a la nube, del inglés *Cloud Acce
       -d @/tmp/recibo.json
     ```
 
-5. **Recibo manipulado.** Pide un recibo nuevo a la tienda y cambia el producto conservando la firma:
+4. **Recibo manipulado.** Pide un recibo nuevo a la tienda y cambia el producto conservando la firma:
 
     ```bash
     curl -s -X POST http://localhost:5001/tienda/emitir -H 'Content-Type: application/json' \
@@ -663,13 +574,13 @@ Un CASB (intermediario de seguridad de acceso a la nube, del inglés *Cloud Acce
     curl -s -X POST http://localhost:5001/servidor/validar -H 'Content-Type: application/json' -d @/tmp/manipulado.json
     ```
 
-     Comprueba que el servidor lo rechaza por firma inválida, no por casualidad.
-6. **Recibo repetido.** Envía otra vez la petición exacta del paso 4 (el mismo `/tmp/recibo.json`, sin manipular) y comprueba que el servidor lo rechaza la segunda vez por recibo ya canjeado, aunque la firma sea perfectamente válida.
-7. En el informe, explica con una frase por qué el paso 5 falla por la firma y el paso 6 falla por la reutilización, y por qué ninguna de las dos comprobaciones podría hacerlas la propia aplicación.
+    Comprueba que el servidor lo rechaza por firma inválida, no por casualidad.
+5. **Recibo repetido.** Envía otra vez la petición exacta del paso 3 (el mismo `/tmp/recibo.json`, sin manipular) y comprueba que el servidor lo rechaza la segunda vez por recibo ya canjeado, aunque la firma sea perfectamente válida.
+6. **Explicación.** En el informe, explica con una frase por qué el paso 4 falla por la firma y el paso 5 falla por la reutilización, y por qué ninguna de las dos comprobaciones podría hacerlas la propia aplicación.
 
-<span class="et et-com">Comprobación</span> El paso 4 responde `concedido: true`, el paso 5 responde `403` con `firma inválida`, y el paso 6 responde `409` con `recibo ya canjeado`.
+<span class="et et-com">Comprobación</span> El paso 3 responde `concedido: true`, el paso 4 responde `403` con `firma inválida`, y el paso 5 responde `409` con `recibo ya canjeado`.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut4/a47/` de `pps-entregas` `servidor.py`, la salida de los tres `curl` del paso 4 al 6 y la explicación del paso 7. Lo recoge la entrega ACT_UT4_2 (plazo, el 25 de febrero).
+<span class="et et-ent">Para practicar</span> Guarda en `ut4/a47/` de `pps-entregas` `servidor.py`, la salida de los tres `curl` del paso 3 al 5 y la explicación del paso 6. No lo recoge ninguna entrega; si lo documentas, puede ir en el capítulo «Extra» del PDF de ACT_UT4_2.
 
 <span class="et et-ext">Si te sobra tiempo</span> Añade al servidor un límite de tiempo: que un recibo emitido hace más de cinco minutos también se rechace, aunque la firma sea correcta y no se haya usado.
 
@@ -687,51 +598,87 @@ Esta sesión no trae teoría nueva: cierra la unidad. Es también el plazo de en
 
     Es el mismo tipo de fallo que el de los componentes exportados de PIVAA (sesión 34), aplicado ahora a una actividad completa en lugar de a un proveedor, un servicio o un receptor: comprobarlo cierra el recorrido de la unidad por las cuatro formas de exponer un componente sin querer.
 
-- **Si se ha perdido alguna sesión**, esta es la sesión para recuperar su hoja: repite los pasos de la hoja correspondiente sobre `movil01`, que sigue disponible con las aplicaciones de la unidad instaladas, y entrégala en el mismo directorio de `pps-entregas` que le habría correspondido.
+- **Si se ha perdido alguna sesión**, esta es la sesión para recuperar su hoja: repite los pasos de la hoja correspondiente sobre `movil01`, que sigue disponible con las aplicaciones de la unidad instaladas, y guárdala en el mismo directorio de `pps-entregas` que le habría correspondido. Lo primero es lo que pide ACT_UT4_2, que vence hoy: el entorno de la A4.1 y el taller de PIVAA de la A4.6.
 
 ## Prácticas evaluables de la unidad
 
-En esta asignatura no hay sesiones de práctica evaluable: cada entrega se construye con varias hojas y se cierra por su plazo.
+La unidad tiene dos entregas, ACT_UT4_1 y ACT_UT4_2, y ninguna tiene sesión propia: cada una se construye con las hojas de las que sale y se cierra por su plazo. **Cada entrega tiene en el aula su enunciado en PDF, y lo que dice ese enunciado es lo que se entrega**: este apartado lo resume y dice de qué paso de qué hoja sale cada punto, pero no añade ni quita nada. Lo que las hojas proponen fuera del enunciado está en sus «Si te sobra tiempo» y solo cuenta como «Extra», el nivel más alto de la escala.
+
+| Entrega en Aules | Enunciado (PDF) | Hojas | Plazo | CE |
+|---|---|---|---|---|
+| ACT_UT4_1 · Android App Vulnerable | ACT_RA4_1. Android App Vulnerable | A4.1 y A4.3 | lunes 15 de febrero, 23:59 | e |
+| ACT_UT4_2 · PIVAA | ACT_RA4_2. Purposefully Insecure and Vulnerable Android Application, con su adjunto `Lab_Movil.pdf` | A4.1 y A4.6 | jueves 25 de febrero, 23:59 | e |
+
+Los dos enunciados enumeran más criterios en sus objetivos (a, b y e el primero; c, d y e el segundo), pero lo que piden hacer es inspeccionar binarios de aplicaciones móviles, que es el CE e. Los CE a, b, c y d no tienen punto en ningún enunciado: se practican en las hojas A4.2, A4.4, A4.7 y A4.5, que no se entregan, y se evalúan en el examen del 3 de junio.
+
+**Cómo se entrega.** Las dos igual: un PDF en la tarea de Aules con la estructura de la *Normativa de entrega* (portada, índice, introducción, desarrollo, bibliografía y conclusión), con el desarrollo ordenado por los puntos del enunciado, y en el texto de la tarea la URL de `pps-entregas`, donde están las carpetas de las hojas con las evidencias. Los enunciados no fijan el formato, así que se aplica el general del módulo. Cómo se pasa de los README de las hojas al PDF, con la plantilla del aula, está en [Del README al PDF de la entrega](../laboratorio.md#del-readme-al-pdf-de-la-entrega); lo que lleva cada capítulo está en el apartado de cada entrega, en **Qué lleva el PDF**. Un documento que no cumple la normativa se corrige como no evaluado. Los plazos vencen a las 23:59 (hora de Madrid) y una entrega fuera de plazo y sin causa justificada se corrige sobre el 50 %. Las capturas solo enseñan credenciales de prueba inventadas para el laboratorio, nunca la contraseña del `.jks`.
+
+**Cómo se califica.** Ninguno de los dos enunciados trae rúbrica. Se califican con los mismos niveles que las actividades sin rúbrica de la [UT1](ut1-prueba-aplicaciones.md#practicas-evaluables-de-la-unidad), punto por punto, y los pesos de cada entrega son una propuesta del módulo, repartida entre los puntos del enunciado:
+
+| Nivel | Qué significa |
+|---:|---|
+| No evaluado | No cumple la normativa |
+| 40 % | Ejecución del programa |
+| 60 % | Resultado verificado |
+| 80 % | README |
+| 90 % | *Clean code* |
+| 100 % | Extra |
 
 ### ACT_UT4_1 · Android App Vulnerable
 
-Sale de las hojas A4.1 a A4.4. Plazo: **lunes 15 de febrero, 23:59**. CE: a, b, e.
+Enunciado: «ACT_RA4_1. Android App Vulnerable». Tiene un solo punto, el 3.1 «Ingeniería inversa», que remite a la guía [Ingeniería inversa en Android](https://psegarrac.github.io/Ciberseguridad-PePS/tema6/seguridad/m%C3%B3vil/2022/03/01/Ingenieria-inversa.html): instalar DIVA, descompilarla, cambiar su texto de bienvenida y volver a instalarla firmada. Sale de las hojas [A4.1](#a41-laboratorio-movil-sesion-29) y [A4.3](#a43-diva-analisis-estatico-sesion-31). Plazo: **lunes 15 de febrero, 23:59**, el día de la sesión 33. Como el punto es uno solo, la tabla lo divide en las fases de la guía.
 
-Se entrega un único informe en PDF (formato de la *Normativa de entrega* del aula) que reúne, de las cuatro hojas:
-
-1. La tabla de permisos y componentes exportados de DIVA e InsecureBankv2, con la comparación Android frente a iOS y la verificación de firma de las dos APK (A4.2).
-2. Los tres fallos de DIVA localizados en el código y la aplicación modificada y firmada, con captura y corrección de cada uno (A4.3).
-3. Los cuatro mecanismos de almacenamiento inseguro de DIVA, más el registro y la copia de seguridad, con su dato real, su captura y su alternativa segura (A4.4).
-
-| Criterio | RA4 | Sale de | Peso |
+| Punto del enunciado | CE | Peso en la entrega (propuesta) | De dónde sale |
 |---|---|---|---|
-| Comparación de modelos de permisos, con ejemplos reales | a | A4.2 | 25 % |
-| Almacenamiento inseguro localizado y corregido correctamente | b | A4.4 | 35 % |
-| Binarios inspeccionados: retos de análisis estático resueltos con evidencia | e | A4.1 y A4.3 | 40 % |
+| 3.1 Ingeniería inversa: DIVA instalada en el emulador | e | 15 % | A4.1, pasos 1 a 5 |
+| 3.1 Ingeniería inversa: decompilado y lectura del código Java | e | 25 % | A4.1, paso 6, y A4.3, paso 1 |
+| 3.1 Ingeniería inversa: Smali con `apktool` y texto `dintro` modificado | e | 20 % | A4.1, paso 6, y A4.3, paso 2 |
+| 3.1 Ingeniería inversa: APK reempaquetada y firmada | e | 25 % | A4.3, pasos 3 y 4 |
+| 3.1 Ingeniería inversa: versión modificada instalada en lugar de la original | e | 15 % | A4.3, paso 5 |
+
+**Qué lleva el PDF.** Portada, índice e introducción, y en el desarrollo un capítulo, «3.1 Ingeniería inversa», con un subapartado por fase:
+
+1. **Instalación de DIVA.** El emulador (API 23, Google Nexus 5X) con su red, `adb devices` mostrándolo y DIVA abierta en él.
+2. **Decompilado a Java.** Con qué herramienta (`jadx`, o `dex2jar` y `jd-gui` como la guía), la captura del paquete `jakhar.aseem.diva` y qué se lee y qué se pierde respecto al código fuente.
+3. **Smali y recursos.** La orden de `apktool d`, la estructura que deja y la línea `dintro` de `strings.xml` antes y después del cambio.
+4. **Reempaquetado y firma.** Las órdenes de `apktool b` y de firma (`keytool` y `apksigner`, o `uber-apk-signer`) y la salida de `apksigner verify --print-certs` sobre la APK modificada.
+5. **Instalación de la versión modificada.** Por qué hay que desinstalar antes la original y la captura de la pantalla de bienvenida con el texto nuevo.
+
+Después, la bibliografía (la guía del enunciado y la documentación de las herramientas) y la conclusión. Lo que hayas hecho del «Si te sobra tiempo» de la A4.3 (los tres fallos de DIVA en el código), de la A4.2 o de la A4.4 va en un capítulo final, «Extra».
 
 ### ACT_UT4_2 · PIVAA
 
-Sale de las hojas A4.5 a A4.7. Plazo: **jueves 25 de febrero, 23:59**. CE: c, d, e.
+Enunciado: «ACT_RA4_2. Purposefully Insecure and Vulnerable Android Application». Su único punto, el 3.1, remite al taller adjunto, «Taller de ejercicios de vulnerabilidades en aplicaciones móviles» (`Lab_Movil.pdf`), y la tabla usa la numeración del taller. Sale de las hojas [A4.1](#a41-laboratorio-movil-sesion-29) y [A4.6](#a46-pivaa-sesion-34). Plazo: **jueves 25 de febrero, 23:59**, el día de la sesión de margen.
 
-Se entrega un informe en PDF que reúne, de las tres hojas:
-
-1. La captura del tráfico de InsecureBankv2 con la petición de login en HTTP y su corrección (A4.5).
-2. Las tres explotaciones de PIVAA con Drozer y las respuestas a las preguntas del taller (A4.6).
-3. `servidor.py` y la prueba de los tres casos de validación de compras: recibo válido, manipulado y repetido (A4.7).
-
-| Criterio | RA4 | Sale de | Peso |
+| Punto del taller | CE | Peso en la entrega (propuesta) | De dónde sale |
 |---|---|---|---|
-| Validación de compras integradas con validación en el servidor | c | A4.7 | 35 % |
-| Tráfico de red capturado y protocolo inseguro identificado y corregido | d | A4.5 | 30 % |
-| Binarios de PIVAA inspeccionados: componentes exportados explotados y corregidos | e | A4.6 | 35 % |
+| 1 Instalación del entorno (1.1 a 1.3) | e | 10 % | A4.1 |
+| 2.1 Decompilado y análisis previo | e | 15 % | A4.6, paso 1 |
+| 2.2 Main Activity (Login) | e | 15 % | A4.6, paso 2 |
+| 2.2.1 Explotando los fallos de seguridad | e | 15 % | A4.6, paso 3 |
+| 2.3 Content provider vulnerable | e | 15 % | A4.6, paso 4 |
+| 2.4 Servicio vulnerable | e | 15 % | A4.6, paso 5 |
+| 2.5 Broadcast receiver vulnerable | e | 15 % | A4.6, paso 6 |
 
-El enunciado de ACT_UT4_1 y de ACT_UT4_2, con su formato de entrega exacto, está en el aula.
+**Qué lleva el PDF.** Portada, índice e introducción, y en el desarrollo un capítulo por punto del taller:
+
+1. **1 Instalación del entorno.** Genymotion, el dispositivo virtual con su configuración de red, las herramientas de `pps01` (que hace de Kali) y las aplicaciones instaladas.
+2. **2.1 Decompilado y análisis previo.** El contenedor de MobSF, la página principal del análisis de PIVAA y los componentes exportados que señala.
+3. **2.2 Main Activity (Login).** El recorrido del login hasta `Authentication` y la captura de la línea vulnerable de `saveCache`, con la función que escribe en la tarjeta SD.
+4. **2.2.1 Explotando los fallos de seguridad.** Las respuestas a las dos preguntas: el usuario y la contraseña en Logcat, y el contenido de `credentials.dat`.
+5. **2.3 Content provider vulnerable.** La captura de la consola de Drozer conectada, las URI encontradas, la salida de la consulta del taller y el `rawQuery` de `DatabaseHelper.java`.
+6. **2.4 Servicio vulnerable.** El servicio en el `AndroidManifest.xml` con sus atributos y el resultado de arrancarlo con Drozer.
+7. **2.5 Broadcast receiver vulnerable.** El código del receptor relacionado con el que lo llama, el envío del intent y cómo y con qué herramienta se ve el fichero creado, con la captura de su contenido.
+
+Después, la bibliografía (el taller y la documentación de MobSF y Drozer) y la conclusión. Lo que hayas hecho del «Si te sobra tiempo» de la A4.6 (la corrección de cada fallo), de la A4.5 o de la A4.7 va en un capítulo final, «Extra».
 
 ## Errores frecuentes en el laboratorio
 
 - **`adb devices` no muestra `movil01`, o lo muestra como `unauthorized`.** El emulador no ha terminado de arrancar, o la conexión TCP/IP no se ha aceptado desde el propio dispositivo la primera vez. `adb connect <IP>:5555` otra vez tras esperar a que el emulador esté completamente iniciado suele bastar; si sigue en `unauthorized`, reinicia `adb` con `adb kill-server && adb start-server`.
 - **`apktool d` falla con un error de recursos (`brut.androlib.AndrolibException`).** La versión de `apktool` es más antigua que el formato de recursos de la APK. `apktool --version` lo dice; se soluciona actualizando a la versión estable actual, que publica su [página de descargas](https://ibotpeaches.github.io/Apktool/install/).
 - **`jarsigner -verify` responde que el `jar` no está firmado, o da un error de algoritmo no soportado.** Algunas versiones recientes de Java deshabilitan por defecto algoritmos de firma antiguos (MD5, SHA1 en ciertos modos) que estas aplicaciones de 2016 a 2021 todavía usan. `jarsigner -verify -verbose -certs -J-Djava.security.debug=jar` da el detalle; si el algoritmo está deshabilitado, se comprueba igualmente con `apksigner verify --print-certs`, `apksigner` ya está instalado desde la A4.1, así que es la comprobación que se documenta.
+- **`adb install` de la DIVA modificada falla con `INSTALL_FAILED_UPDATE_INCOMPATIBLE` o `INSTALL_PARSE_FAILED_NO_CERTIFICATES`.** El primero sale porque la original sigue instalada y está firmada con otra clave: Android no actualiza una aplicación con una firma distinta, y hay que desinstalar antes `jakhar.aseem.diva`. El segundo, porque se está instalando la salida de `apktool b`, que aún no está firmada.
+- **`docker pull fsecurelabs/drozer` (la orden del taller) falla porque la imagen no existe.** Las imágenes antiguas de Drozer se retiraron; la oficial actual es `drozerdocker/drozer`, con la etiqueta `2.4.4` para que la consola sea de la misma versión mayor que el agente 2.3.4 del paquete de recursos.
 - **`movil01` no responde por red desde `pps01`.** El adaptador solo anfitrión de VirtualBox no es el mismo en las dos máquinas, o `movil01` ha arrancado con NAT en lugar de con red compartida. Se comprueba en la configuración de red de Genymotion y con `ip a` en `pps01`: las dos tienen que estar en la misma subred.
 - **Burp Suite intercepta el tráfico del navegador del emulador pero no el de una aplicación instalada.** La aplicación tiene su propio proxy configurado, o ignora el proxy del sistema (poco frecuente en las aplicaciones de esta unidad, pero posible si se prueba con otra). El proxy de Wi-Fi de Android cubre las conexiones HTTP estándar de la mayoría de aplicaciones; si una no lo respeta, hace falta redirigir su tráfico a nivel de red (con `iptables` en el propio emulador, fuera del alcance de esta unidad).
 - **La aplicación rechaza la conexión aunque el certificado de Burp esté instalado.** Comprobar primero el `targetSdkVersion` de la APK en su manifiesto: si es 24 o superior, el fallo es el explicado en [la teoría de la sesión 33](#proxy-de-interceptacion-en-el-emulador), y no tiene arreglo sin volver a compilar la aplicación con su propio `network_security_config`. Con las aplicaciones de esta unidad no debería darse.

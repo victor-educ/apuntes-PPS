@@ -209,7 +209,7 @@ Lo que las hojas crean con nombre fijo. Si una hoja nombra uno de ellos, es el d
 | Contenedor | `jenkins` | Jenkins, con `--restart unless-stopped` | UT5, desde A5.4 |
 | Contenedor | `jenkins-restaurado` | Comprobación de la copia de seguridad | UT5, A5.18 |
 | Imagen | `pps-base`, `pps-a31` | Apache de partida de la UT3 | UT3 |
-| Imagen | `pps<NIA>/pr1`, `pr2`, `pr3` | Las tres imágenes en cascada de ACT_UT3_1, publicadas en Docker Hub | UT3 |
+| Imagen | `pps<NIA>/certificado`, `pr1` a `pr4` y `hardening` (y `pr5`, opcional) | Las seis imágenes en cascada de ACT_UT3_1, publicadas en Docker Hub | UT3 |
 | Imagen | `pps-jenkins:1` | Jenkins con Maven, construida con el `Dockerfile` de `~/jenkins-lab` | UT5, A5.4 |
 | Imagen | `pps-jenkins:2` | La anterior más el cliente de Docker; sustituye a la `:1` desde la A5.6 | UT5, A5.6 en adelante |
 | Imagen | `pps<NIA>/pps-app:<etiqueta>` | La aplicación del curso, con el número de la construcción como etiqueta | UT5, A5.6 en adelante |
@@ -232,7 +232,7 @@ Las cuentas se crean en la sesión 1 (A1.1) y valen para todo el curso. El usuar
 | Cuenta | Para qué se usa | Datos |
 |---|---|---|
 | GitHub | Los repositorios `pps-entregas`, `pps-app` y `pps-iac`, y la organización de la práctica de roles de la UT5 | Usuario `pps<NIA>`, correo corporativo. La clave SSH se genera en `pps01` y se sube a *Settings, SSH and GPG keys* ([guía de GitHub](https://docs.github.com/es/authentication/connecting-to-github-with-ssh)) |
-| Docker Hub | Las imágenes `pps<NIA>/pr1`, `pr2`, `pr3` (UT3) y `pps<NIA>/pps-app` (UT5) | Usuario `pps<NIA>`. En Jenkins se usa un token de acceso, no la contraseña |
+| Docker Hub | Las imágenes `pps<NIA>/certificado`, `pr1` a `pr4` y `hardening` (UT3) y `pps<NIA>/pps-app` (UT5) | Usuario `pps<NIA>`. En Jenkins se usa un token de acceso, no la contraseña |
 | PortSwigger Academy | Los laboratorios de Burp y de vulnerabilidades web (UT3) | Correo corporativo |
 | Atenea | Retos de ciberseguridad del CCN-CERT | Correo de la Generalitat, registro en <https://atenea.ccn-cert.cni.es/registro> |
 | Genymotion | El emulador `movil01` (UT4) | Cuenta personal gratuita; el correo de activación puede tardar hasta una hora, así que se crea antes de la sesión 29 |
@@ -286,6 +286,43 @@ Hay dos casos que no siguen esa regla:
 
 - **Las entregas que son documento** (PDF con el formato de la *Normativa de entrega* del aula y su plantilla `Plantilla_memoria_tarea`) se suben a la tarea de Aules. Las que son repositorio llevan la URL en la tarea. La sección de prácticas evaluables de cada unidad dice cuál es cuál.
 - **Otros repositorios de la UT5.** Además de `pps-entregas`, la UT5 usa `pps-app` (privado: la aplicación Java, su `Jenkinsfile`, el `compose.yml` y los manifiestos de `k8s/`; Jenkins lo descarga con la credencial `github-token`) y `pps-iac` (Terraform en `terraform/`, que se lanza desde el anfitrión, y Ansible en `ansible/`, que se lanza desde `pps01`; el mismo repositorio se clona en las dos máquinas). Sus carpetas de entrega en `pps-entregas` enlazan a ellos en el `README.md`. Todos llevan `.gitignore` con `.terraform/`, `*.tfstate` y los ficheros de valores desde el primer commit.
+
+### Del README al PDF de la entrega
+
+**El problema.** Las hojas se documentan en el `README.md` de su carpeta, en Markdown, mientras se trabaja. Pero muchas prácticas evaluables se entregan como un PDF (cada unidad dice cuáles) con el formato de la *Normativa de entrega de documentos* del aula, y un PDF que no la cumple se corrige como no evaluado. El PDF no es un trabajo nuevo: es el contenido de esos README, ordenado por los puntos del enunciado y con la estructura de la normativa.
+
+**Qué lleva el PDF, exactamente.** Las seis partes de la normativa, en este orden:
+
+| Parte | Qué contiene |
+|---|---|
+| Portada | IES El Caminás; módulo (Puesta en producción segura); título (el código y el nombre de la entrega, por ejemplo `ACT_UT1_1 · Pruebas de aplicaciones`); autor (nombre y usuario `pps<NIA>`); profesor; fecha; versión. Sin encabezado ni pie |
+| Índice | Generado automáticamente desde los títulos, con enlaces a cada apartado |
+| Introducción | Un párrafo: qué pide la actividad, con qué herramientas se ha hecho y dónde está el código (la URL de `pps-entregas` y las carpetas) |
+| Desarrollo | **Un capítulo por punto del enunciado, con su número y en su orden** (3.1, 3.2, 3.3.1...). En cada uno: qué se ha hecho, los comandos o el código que importan, el resultado (la salida o la captura) y la respuesta a lo que pregunta el enunciado. Cada captura, numerada y con su pie |
+| Bibliografía | Las lecturas del enunciado y cualquier otra fuente usada, con su enlace |
+| Conclusión | Cinco a diez líneas: qué se ha aprendido, qué costó y qué se haría distinto |
+
+El formato también cuenta: márgenes de 3 cm a los lados y 2,5 cm arriba y abajo, letra de 12 pt con interlineado 1,5, títulos de 14 pt y subtítulos de 13 pt numerados automáticamente, párrafos justificados, encabezado con el título del documento y pie con el número de página. La plantilla del aula (`Plantilla_memoria_tarea`, en `.odt` y `.docx`) ya trae todo eso: por eso conviene partir siempre de ella. Lo que cada entrega pide en cada punto está en el apartado de prácticas evaluables de su unidad.
+
+**Cómo se hace.** Hay dos caminos, y los dos acaban en la plantilla:
+
+=== "Con la plantilla"
+
+    Abre `Plantilla_memoria_tarea.odt` en LibreOffice Writer (o la `.docx` en Word) y guárdala con el nombre de la entrega. Rellena la portada, borra los capítulos de ejemplo y escribe un capítulo por punto del enunciado con el estilo «Título 1» (y «Título 2» para los subapartados), copiando el texto de los README de las hojas. Inserta las capturas con su pie (*Insertar, Pie*). Al terminar, actualiza el índice (*Herramientas, Actualizar, Actualizar todo*) y exporta a PDF (*Archivo, Exportar como PDF*).
+
+=== "Desde el README"
+
+    Escribe el README de la hoja con un título `##` por punto del enunciado (`## 3.3.1 Ejecución`), y las capturas con su pie como texto alternativo: `![Salida del programa](captura.png)`. Después, con la plantilla `.docx` descargada del aula en la raíz de `pps-entregas`, conviértelo a `.docx` con `pandoc` (`sudo apt install -y pandoc`), usando la plantilla como referencia para que salga con sus estilos, márgenes, encabezado y pie:
+
+    ```bash
+    pandoc ut1/a12/README.md ut1/a13/README.md --resource-path=ut1/a12:ut1/a13 \
+      --reference-doc=Plantilla_memoria_tarea.docx -o ACT_UT1_1.docx
+    ```
+
+    Varios README se juntan en un solo documento, en el orden en que se escriben. `pandoc` no copia la portada ni el índice de la plantilla: abre la plantilla, pega el contenido convertido en el lugar de los capítulos de ejemplo, rellena la portada, añade introducción, bibliografía y conclusión, actualiza el índice y exporta a PDF.
+
+!!! truco "Antes de subirlo"
+    Abre el PDF y repasa: portada con todos sus campos; índice actualizado y con números de página; un capítulo por punto del enunciado, en su orden; cada captura con su número y su pie, y sin contraseñas, tokens ni claves a la vista; bibliografía y conclusión; y la URL de `pps-entregas` en el texto de la tarea de Aules.
 
 La práctica de roles y permisos de la UT5 (A5.2) usa una organización gratuita de GitHub con un repositorio **público**, `equipo-demo`, sin ningún dato real, porque las reglas de rama no funcionan en repositorios privados con el plan gratuito.
 

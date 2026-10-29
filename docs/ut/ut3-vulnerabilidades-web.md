@@ -2,10 +2,10 @@
 
 <p class="ut-meta">26 h · Sesiones 15 a 27 · RA3 CE a, b, c, d, e, f, g</p>
 
-Una aplicación web recibe texto de desconocidos, lo mezcla con consultas, comandos y páginas, y lo devuelve a otros navegadores. Casi todos los fallos de esta unidad salen de ahí: el servidor trata como orden lo que debía tratar como dato. Lo que se busca es doble: endurecer el servidor que aloja la aplicación (Apache en un contenedor, con TLS, cabeceras, cortafuegos de aplicación y límites) y reconocer, explotar en un laboratorio propio y corregir las vulnerabilidades web más habituales. Las herramientas son Docker y `curl` para el servidor, DVWA y los laboratorios de PortSwigger Academy para las vulnerabilidades, Burp Suite Community para ver y repetir el tráfico, y una pequeña aplicación Flask para las contraseñas y los bots.
+Una aplicación web recibe texto de desconocidos, lo mezcla con consultas, comandos y páginas, y lo devuelve a otros navegadores. Casi todos los fallos de esta unidad salen de ahí: el servidor trata como orden lo que debía tratar como dato. Lo que se busca es doble: endurecer el servidor que aloja la aplicación (Apache en un contenedor, con TLS, cabeceras, cortafuegos de aplicación y límites) y reconocer, explotar en un laboratorio propio y corregir las vulnerabilidades web más habituales. Las herramientas son Docker y `curl` para el servidor, DVWA y los laboratorios de PortSwigger Academy para las vulnerabilidades, Burp Suite Community para ver y repetir el tráfico, y una pequeña aplicación Flask para las contraseñas y los bots. Son trece sesiones (doce de trabajo y una de margen) y seis entregas evaluables, ACT_UT3_1 a ACT_UT3_6. Las cinco primeras tienen en el aula su enunciado en PDF («RA3.1 Apache Hardening», «RA3.2 Damm Vulnerable Web App», «RA3.3 SQL Injection», «RA3.4.1 Burp Suite - Server Side» y «RA3.4.2 Burp Suite - Client Side»), y **el PDF es el que manda**: las hojas siguen su numeración (3.1.1, 3.2.1...) y dicen en cada paso a qué punto responden, y lo que una hoja añade por su cuenta va en «Si te sobra tiempo». La sexta, ACT_UT3_6, no tiene enunciado en PDF: la define esta unidad.
 
 !!! ojo "Solo sobre lo propio o lo autorizado por escrito"
-    Todo lo ofensivo de esta unidad se hace **únicamente** contra aplicaciones deliberadamente vulnerables que corren en la máquina virtual del propio alumno (DVWA, en una red aislada) o en los laboratorios que sus plataformas autorizan (PortSwigger Academy). Acceder sin autorización a un sistema ajeno es delito en España (Código Penal, artículos 197 bis y 264 y siguientes), aunque la intención sea "solo mirar" y aunque no se cause daño. El criterio profesional es siempre el mismo: solo sobre lo propio o lo que se ha autorizado por escrito. Cada práctica termina con la corrección, porque el objetivo de la unidad es saber evitar el fallo, no solo provocarlo.
+    Todo lo ofensivo de esta unidad se hace **únicamente** contra aplicaciones deliberadamente vulnerables que corren en la máquina virtual del propio alumno (DVWA, en una red aislada) o en los laboratorios que sus plataformas autorizan (PortSwigger Academy). Acceder sin autorización a un sistema ajeno es delito en España (Código Penal, artículos 197 bis y 264 y siguientes), aunque la intención sea "solo mirar" y aunque no se cause daño. El criterio profesional es siempre el mismo: solo sobre lo propio o lo que se ha autorizado por escrito. Cada vulnerabilidad se explica con su corrección, porque el objetivo de la unidad es saber evitar el fallo, no solo provocarlo; aplicarla en el código es lo que proponen los «Si te sobra tiempo» de las hojas de DVWA, y el examen pregunta por ella.
 
 Lo que va más allá de lo que se hace en clase (ampliaciones, otras herramientas y enlaces para seguir) está en [Para ampliar](../ampliacion.md#ut3-vulnerabilidades-web).
 
@@ -21,7 +21,7 @@ Al acabar esta sesión hay un servidor Apache corriendo en un contenedor de `pps
     **Para la práctica**
 
     - [Documentación de Apache 2.4](https://httpd.apache.org/docs/2.4/): la referencia del servidor.
-    - El enunciado de la entrega ACT_UT3_1 está en el aula.
+    - El enunciado de la entrega ACT_UT3_1, «RA3.1 Apache Hardening», en el aula. Sus prácticas siguen dos guías que enlaza: [Hardening del servidor](https://psegarrac.github.io/Ciberseguridad-PePS/tema3/seguridad/web/2021/03/01/Hardening-Servidor.html) (prácticas 1 a 5) y [Certificado SSL en Apache](https://psegarrac.github.io/Ciberseguridad-PePS/tema1/practicas/2020/11/08/P1-SSL.html) (punto 3.2).
 
 ### Arquitectura de una aplicación web
 
@@ -110,7 +110,7 @@ En un contenedor la configuración no se edita dentro: se guarda junto al `Docke
 
 <span class="et et-obj">Objetivo</span> Una imagen `pps-base` con Apache 2.4 sobre Ubuntu, corriendo en `pps01` en el puerto 8080, y la evidencia de que se ha leído una petición y una respuesta HTTP completas con `curl` y con el navegador, y de que se ha cambiado la configuración básica reconstruyendo la imagen.
 
-<span class="et et-pre">Antes de empezar</span> `pps01` encendida, Docker funcionando sin `sudo` y el repositorio `pps-entregas` clonado ([repositorio de entregas](../laboratorio.md#repositorio-de-entregas)). Se han explicado [dónde está cada pieza de una aplicación web](#arquitectura-de-una-aplicacion-web), [cómo es un mensaje HTTP](#el-protocolo-http) y [cómo se organiza Apache](#apache-y-su-configuracion-basica). Esta imagen es la base de A3.2, A3.3 y A3.4: se conserva la carpeta.
+<span class="et et-pre">Antes de empezar</span> `pps01` encendida, Docker funcionando sin `sudo` y el repositorio `pps-entregas` clonado ([repositorio de entregas](../laboratorio.md#repositorio-de-entregas)). Se han explicado [dónde está cada pieza de una aplicación web](#arquitectura-de-una-aplicacion-web), [cómo es un mensaje HTTP](#el-protocolo-http) y [cómo se organiza Apache](#apache-y-su-configuracion-basica). Esta imagen es la base de todas las de ACT_UT3_1 (A3.2, A3.3 y A3.4): se conserva la carpeta.
 
 <span class="et et-pas">Pasos</span>
 
@@ -138,7 +138,7 @@ En un contenedor la configuración no se edita dentro: se guarda junto al `Docke
 
 <span class="et et-com">Comprobación</span> `curl -i http://localhost:8080/noexiste` devuelve `404` con el texto `Recurso no encontrado en pps01` y una línea `Set-Cookie: visita=1`; la segunda petición del paso 5 muestra `> Cookie: visita=1`; `apache2ctl -S` no da avisos de nombre de servidor. Si el contenedor no arranca o el puerto está ocupado, mira `docker logs web` y [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a31/` de `pps-entregas` `Dockerfile`, `Dockerfile.basico`, `basico.conf`, `index.html`, `README.md` y las capturas. Lo recoge, con la A3.2, la A3.3 y la A3.4, la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre). Su README final lo escribes el 7 de diciembre, en la [A3.4](#a34-hardening-final-sesion-18).
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a31/` de `pps-entregas` `Dockerfile`, `Dockerfile.basico`, `basico.conf`, `index.html`, `README.md` y las capturas. Esta hoja no es un punto del enunciado de **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre), pero `pps-base` es la imagen de la que parten todas las que pide; el README general de la entrega lo escribes el 7 de diciembre, en la [A3.4](#a34-hardening-final-sesion-18).
 
 <span class="et et-ext">Si te sobra tiempo</span> Crea un segundo sitio con su propio `VirtualHost`, su carpeta de documentos y un nombre distinto (por ejemplo `otro.local`, que se resuelve con la cabecera `Host` de `curl -H 'Host: otro.local' http://localhost:8080/`), actívalo con `a2ensite` y comprueba con `apache2ctl -S` que hay dos.
 
@@ -146,11 +146,12 @@ En un contenedor la configuración no se edita dentro: se guarda junto al `Docke
 
 <p class="ut-meta" markdown>30 de noviembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Certificados y TLS en Apache · 15 min&#10;HSTS y CSP · 10 min&#10;A3.2 Certificado y CSP · 85 min" data-dur="Certificados y TLS en Apache · 15 min&#10;HSTS y CSP · 10 min&#10;A3.2 Certificado y CSP · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión la imagen de Apache sirve la página por HTTPS con un certificado propio, redirige el HTTP al HTTPS, envía las cabeceras HSTS y CSP, tiene desactivado el listado de directorios y está publicada en Docker Hub como `pps<NIA>/pr1`. Antes se ve qué garantiza TLS y cómo se instala un certificado en Apache, y después qué hacen las dos cabeceras que obligan al navegador a usarlo y a limitar de dónde carga contenido.
+Al acabar esta sesión la imagen de Apache sirve la página por HTTPS con un certificado propio, redirige el HTTP al HTTPS, envía las cabeceras HSTS y CSP, tiene desactivado el listado de directorios, y queda publicada en Docker Hub en dos imágenes: `pps<NIA>/certificado` (punto 3.2.1 del enunciado de ACT_UT3_1) y `pps<NIA>/pr1` (su práctica 1). Antes se ve qué garantiza TLS y cómo se instala un certificado en Apache, y después qué hacen las dos cabeceras que obligan al navegador a usarlo y a limitar de dónde carga contenido.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
+    - [Certificado SSL en Apache](https://psegarrac.github.io/Ciberseguridad-PePS/tema1/practicas/2020/11/08/P1-SSL.html) y [Hardening del servidor](https://psegarrac.github.io/Ciberseguridad-PePS/tema3/seguridad/web/2021/03/01/Hardening-Servidor.html): las guías del punto 3.2.1 y de la práctica 1 del enunciado de ACT_UT3_1.
     - [CSP](https://developer.mozilla.org/es/docs/Web/HTTP/CSP) y [HSTS](https://developer.mozilla.org/es/docs/Web/HTTP/Headers/Strict-Transport-Security) en la documentación de Mozilla: las cabeceras de seguridad.
 
 ### Certificados y TLS en Apache
@@ -210,13 +211,15 @@ Se acompañan de otras cabeceras de una línea: `X-Content-Type-Options: nosniff
 
 ### A3.2 Certificado y CSP (sesión 16)
 
-<span class="et et-obj">Objetivo</span> La imagen `pps<NIA>/pr1`, construida sobre `pps-base`, sirve el sitio por HTTPS en el 8443 con un certificado autofirmado, redirige el 8080 al 8443, envía HSTS y CSP, no lista directorios y está subida a Docker Hub con su README. Es la práctica 1 y el punto 3.2 del enunciado de ACT_UT3_1.
+<span class="et et-obj">Objetivo</span> Dos imágenes en Docker Hub, cada una con su README. `pps<NIA>/certificado`, sobre `pps-base`, sirve el sitio por HTTPS en el 8443 con un certificado autofirmado y redirige el 8080 al 8443: es el punto 3.2.1 del enunciado de ACT_UT3_1. `pps<NIA>/pr1`, construida sobre ella, desactiva el listado de directorios y envía HSTS y CSP: es la práctica 1 (punto 3.1.1). El orden es el de las capas y no el del enunciado, porque la práctica 1 pide HSTS, que solo funciona por HTTPS, y su guía da el certificado por instalado.
 
-<span class="et et-pre">Antes de empezar</span> La imagen `pps-base` de la [A3.1](#a31-apache-y-http-en-un-contenedor-sesion-15) construida en `pps01`, y la cuenta de Docker Hub `pps<NIA>`. Se han explicado [los certificados y TLS en Apache](#certificados-y-tls-en-apache) y [HSTS y CSP](#hsts-y-csp).
+<span class="et et-pre">Antes de empezar</span> La imagen `pps-base` de la [A3.1](#a31-apache-y-http-en-un-contenedor-sesion-15) construida en `pps01`, y la cuenta de Docker Hub `pps<NIA>`. Se han explicado [los certificados y TLS en Apache](#certificados-y-tls-en-apache) y [HSTS y CSP](#hsts-y-csp). Las dos guías que enlaza el enunciado están en los recursos de la [sesión 15](#sesion-15-arquitectura-web-y-http).
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea la carpeta `~/pps-entregas/ut3/a32/` con la `index.html` de la A3.1 y escribe los dos ficheros de configuración. `seguridad.conf` lleva las cabeceras HSTS y CSP de [HSTS y CSP](#hsts-y-csp), con la CSP `default-src 'self'; frame-ancestors 'none'`. `sitio.conf` tiene dos hosts virtuales: uno en el 80 que redirige a `https://localhost:8443/`, y otro en el 443 que sirve por TLS con el certificado que genera el `Dockerfile`.
+Se construye de abajo arriba: primero la imagen del certificado, que se comprueba sola, y encima la de la práctica 1, de modo que `pr1` ya contiene el HTTPS. El enunciado pide un README por práctica, así que cada imagen va en su subcarpeta (`ut3/a32/certificado/` y `ut3/a32/pr1/`) con su `Dockerfile`, su configuración y su README.
+
+1. **Certificado (punto 3.2.1).** Escribe `sitio.conf` con dos hosts virtuales: uno en el 80 que redirige a `https://localhost:8443/` y otro en el 443 que sirve por TLS con el certificado que genera el `Dockerfile`. El `Dockerfile`, sobre `pps-base`, activa `ssl`, genera el certificado autofirmado con la orden de [Certificados y TLS en Apache](#certificados-y-tls-en-apache) en `/etc/ssl/pps/`, desactiva el sitio por defecto y activa el tuyo. Construye `pps<NIA>/certificado`, arranca publicando el 8080 y el 8443 (para antes el contenedor de la A3.1 si sigue vivo) y comprueba que el HTTP redirige y que el navegador muestra el certificado con tu `CN`.
 
     ```apache
     <VirtualHost *:443>
@@ -228,23 +231,22 @@ Se acompañan de otras cabeceras de una línea: `X-Content-Type-Options: nosniff
     </VirtualHost>
     ```
 
-    *Pista:* HSTS solo tiene efecto por HTTPS, así que su `Header` lleva `"expr=%{HTTPS} == 'on'"`.
+    *Pista:* `a2dissite 000-default`; la clave privada se genera al construir y lleva `chmod 600`. La guía del enunciado usa `default-ssl.conf` y un dominio inventado en `/etc/hosts`; en el laboratorio basta `localhost`.
 
-2. Escribe el `Dockerfile` sobre `pps-base`: activa `ssl` y `headers`, desactiva `autoindex` (el listado de un directorio sin `index.html`) y el sitio por defecto, genera el certificado autofirmado con la orden de [Certificados y TLS en Apache](#certificados-y-tls-en-apache) en `/etc/ssl/pps/` y activa tu configuración y tu sitio. Construye como `pps<NIA>/pr1` y arranca publicando el 8080 y el 8443 (para antes el contenedor de la A3.1 si sigue vivo).
+2. **Práctica 1: listado, HSTS y CSP (punto 3.1.1).** Escribe `seguridad.conf` con las cabeceras de [HSTS y CSP](#hsts-y-csp), con la CSP `default-src 'self'; frame-ancestors 'none'`. El `Dockerfile`, sobre `pps<NIA>/certificado`, activa `headers`, desactiva `autoindex` (el listado de un directorio sin `index.html`) y activa tu configuración. Construye `pps<NIA>/pr1` y arráncala en lugar de la anterior.
 
-    *Pista:* `a2dismod -f autoindex` y `a2dissite 000-default`; la clave privada se genera al construir y lleva `chmod 600`.
+    *Pista:* HSTS solo tiene efecto por HTTPS, así que su `Header` lleva `"expr=%{HTTPS} == 'on'"`; `autoindex` se desactiva con `a2dismod -f`.
 
-3. Comprueba la redirección y las cabeceras por HTTP y por HTTPS (con `-k`, que acepta el certificado autofirmado) y anota qué cabeceras aparecen en cada caso y por qué HSTS solo sale en la segunda.
-4. Comprueba que la CSP tiene efecto y que `frame-ancestors` impide incrustar la página: sirve desde el contenedor una página `csp.html` con un script en línea que cambia el título y otra que incrusta la tuya en un `iframe`, ábrelas por HTTPS y anota qué bloquea el navegador en la consola (F12).
+3. **Cabeceras y listado (punto 3.1.1).** Compara las cabeceras por HTTP y por HTTPS (con `-k`, que acepta el certificado autofirmado) y anota qué cabeceras aparecen en cada caso y por qué HSTS solo sale en la segunda. Después comprueba que una carpeta `privado` sin `index.html` responde `404` (nunca un listado) y que un fichero suyo sí se sirve.
+4. **Efecto de la CSP (punto 3.1.1).** Sirve desde el contenedor una página `csp.html` con un script en línea que cambia el título y otra que incrusta la tuya en un `iframe`, ábrelas por HTTPS y anota qué bloquea el navegador en la consola (F12). Es la prueba de que la cabecera no solo se envía, sino que el navegador la cumple.
 
     *Pista:* copia las dos páginas de prueba al contenedor con `docker cp`; con la CSP, el script en línea no se ejecuta y el marco sale vacío.
 
-5. Comprueba que no hay listado de directorios: una carpeta `privado` sin `index.html` responde `404` (nunca un listado) y un fichero suyo sí se sirve.
-6. Inicia sesión en Docker Hub (la contraseña o el token nunca en el fichero ni en una captura) y sube `pps<NIA>/pr1`. Escribe el `README.md` de la práctica (explicación, validación con las salidas de los pasos 3 a 5, capturas y la orden `docker pull pps<NIA>/pr1`) y súbelo todo a `pps-entregas`.
+5. **Docker Hub y README (puntos 3.1.1 y 3.2.1).** Inicia sesión en Docker Hub (la contraseña o el token nunca en un fichero ni en una captura) y sube las dos imágenes. Escribe el `README.md` de cada subcarpeta con lo que pide el enunciado: explicación, validación con las salidas de los pasos 1, 3 y 4, capturas y la orden `docker pull` de su imagen. Súbelo todo a `pps-entregas`.
 
-<span class="et et-com">Comprobación</span> `curl -I http://localhost:8080/` da `301` con `Location: https://localhost:8443/`; `curl -kI https://localhost:8443/` muestra `Strict-Transport-Security` y `Content-Security-Policy`; `csp.html` no cambia el título y la consola registra el bloqueo; la carpeta `privado` devuelve `404` y no un listado; y `docker pull pps<NIA>/pr1` en otra terminal la descarga. Si el navegador insiste en HTTP tras una prueba anterior, es HSTS: mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
+<span class="et et-com">Comprobación</span> `curl -I http://localhost:8080/` da `301` con `Location: https://localhost:8443/`; `curl -kI https://localhost:8443/` muestra `Strict-Transport-Security` y `Content-Security-Policy` con `pr1`, y no con `certificado`; `csp.html` no cambia el título y la consola registra el bloqueo; la carpeta `privado` devuelve `404` y no un listado; y `docker pull pps<NIA>/pr1` en otra terminal la descarga. Si el navegador insiste en HTTP tras una prueba anterior, es HSTS: mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a32/` de `pps-entregas` los ficheros, el README y las capturas, y deja la imagen `pps<NIA>/pr1` en Docker Hub. Lo recoge la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre).
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a32/` de `pps-entregas` las subcarpetas `certificado/` y `pr1/` con sus ficheros, su README y sus capturas, y deja en Docker Hub `pps<NIA>/certificado` y `pps<NIA>/pr1`. Lo recoge la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre), en sus puntos 3.2.1 y 3.1.1.
 
 <span class="et et-ext">Si te sobra tiempo</span> Cambia la CSP por `Content-Security-Policy-Report-Only` y comprueba que el script en línea se ejecuta pero la consola avisa de lo que se habría bloqueado. Después mira el certificado con `openssl s_client -connect localhost:8443 -servername localhost < /dev/null | openssl x509 -noout -subject -dates`.
 
@@ -252,11 +254,12 @@ Se acompañan de otras cabeceras de una línea: `X-Content-Type-Options: nosniff
 
 <p class="ut-meta" markdown>3 de diciembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Qué es un cortafuegos de aplicación web · 5 min&#10;ModSecurity y OWASP CRS · 10 min&#10;A3.3 WAF con ModSecurity y CRS · 95 min" data-dur="Qué es un cortafuegos de aplicación web · 5 min&#10;ModSecurity y OWASP CRS · 10 min&#10;A3.3 WAF con ModSecurity y CRS · 95 min">:material-school:<i class="dur-barra" style="--teoria:14%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión la imagen de la sesión anterior lleva ModSecurity con el conjunto de reglas OWASP CRS, bloquea con un 403 las peticiones con patrones de ataque conocidos, deja el motivo en el registro de errores y está publicada como `pps<NIA>/pr2`. Primero se ve qué es un cortafuegos de aplicación y qué lo distingue de uno de red, y después cómo funcionan el motor y las reglas que lo hacen útil.
+Al acabar esta sesión la imagen de la sesión anterior lleva ModSecurity con el conjunto de reglas OWASP CRS, bloquea con un 403 las peticiones con patrones de ataque conocidos y deja el motivo en el registro de errores, en dos imágenes: `pps<NIA>/pr2`, con el motor y una regla propia (práctica 2 del enunciado), y `pps<NIA>/pr3`, con las reglas (práctica 3). Primero se ve qué es un cortafuegos de aplicación y qué lo distingue de uno de red, y después cómo funcionan el motor y las reglas que lo hacen útil.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
+    - [Hardening del servidor](https://psegarrac.github.io/Ciberseguridad-PePS/tema3/seguridad/web/2021/03/01/Hardening-Servidor.html): la guía de las prácticas 2 y 3 del enunciado de ACT_UT3_1.
     - [OWASP Core Rule Set](https://coreruleset.org/docs/): las reglas del cortafuegos de aplicación web.
 
 ### Qué es un cortafuegos de aplicación web
@@ -308,51 +311,53 @@ El paquete de Ubuntu 24.04 trae el CRS en su serie 3.3; la serie actual del proy
 
 ### A3.3 WAF con ModSecurity y CRS (sesión 17)
 
-<span class="et et-obj">Objetivo</span> La imagen `pps<NIA>/pr2`, construida sobre `pps<NIA>/pr1`, bloquea con un 403 una petición de prueba con XSS, otra con inyección SQL, otra con recorrido de ruta y otra con ejecución de comandos, deja en el registro el identificador de cada regla que saltó y bloquea también con una regla local propia. Es el conjunto de las prácticas 2 y 3 del enunciado de ACT_UT3_1.
+<span class="et et-obj">Objetivo</span> Dos imágenes más en la cascada de ACT_UT3_1, cada una con su README. `pps<NIA>/pr2`, sobre `pps<NIA>/pr1`, lleva el motor ModSecurity activo y una regla local propia que bloquea con un 403: es la práctica 2 (punto 3.1.2). `pps<NIA>/pr3`, sobre `pr2`, añade las reglas OWASP CRS y bloquea las peticiones de prueba de inyección de comandos, recorrido de ruta, XSS e inyección SQL, con el identificador de cada regla en el registro: es la práctica 3 (punto 3.1.3).
 
 <span class="et et-pre">Antes de empezar</span> La imagen `pps<NIA>/pr1` de la [A3.2](#a32-certificado-y-csp-sesion-16) en `pps01`. Se han explicado [qué es un cortafuegos de aplicación web](#que-es-un-cortafuegos-de-aplicacion-web) y [ModSecurity y OWASP CRS](#modsecurity-y-owasp-crs). Las cadenas de prueba de esta hoja son las de manual y se lanzan solo contra tu propio contenedor.
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea `~/pps-entregas/ut3/a33/` y escribe el `Dockerfile` sobre `pps<NIA>/pr1`: instala el motor ModSecurity y las reglas OWASP CRS desde los paquetes de Ubuntu, copia la configuración recomendada como activa y pon el motor en `On` (viene en `DetectionOnly`). Construye como `pps<NIA>/pr2` y arranca (para antes el contenedor anterior si sigue vivo).
+Primero el motor solo y después las reglas, en dos imágenes, porque así lo separa el enunciado y porque así se ve qué aporta cada pieza: el motor sin reglas no bloquea casi nada, y por eso `pr2` lleva una regla propia para comprobar el 403 (la guía la pone en la práctica 3; aquí se adelanta, y `pr3` la hereda). Cada imagen va en su subcarpeta (`ut3/a33/pr2/` y `ut3/a33/pr3/`) con su README.
 
-    *Pista:* los paquetes son `libapache2-mod-security2` (motor) y `modsecurity-crs` (reglas); el módulo se activa solo al instalar el paquete. El `On` se fija con un `sed` sobre `/etc/modsecurity/modsecurity.conf`, copiado de `modsecurity.conf-recommended`.
+1. **Práctica 2: el motor (punto 3.1.2).** Escribe el `Dockerfile` sobre `pps<NIA>/pr1`: instala solo el motor ModSecurity, copia la configuración recomendada como activa y pon el motor en `On` (viene en `DetectionOnly`). Añade en `reglas-locales.conf` una regla propia que bloquee cualquier petición cuyo parámetro `testparam` contenga la palabra `test`. Construye `pps<NIA>/pr2` y arráncala en lugar de la anterior.
 
-2. Comprueba que una petición normal pasa (`200`) y que las cuatro cadenas de manual, una por categoría (XSS, inyección SQL, recorrido de ruta y ejecución de comandos), reciben `403`.
+    *Pista:* el paquete del motor es `libapache2-mod-security2`, y con `--no-install-recommends` no arrastra las reglas, que son la práctica 3. El `On` se fija con un `sed` sobre `/etc/modsecurity/modsecurity.conf`, copiado de `modsecurity.conf-recommended`; la regla es un `SecRule ARGS:testparam "@contains test"` con un identificador propio (`id:1000001`), `deny` y `status:403`, copiada a `/etc/modsecurity/`.
+
+2. **Prueba del 403 (punto 3.1.2).** Comprueba que una petición normal da `200`, que `testparam=un test` recibe `403` tanto en la URL como enviado desde un formulario (la guía lo prueba con un formulario) y que `testparam=nada` pasa. Localiza en el registro de errores la línea con el `id` de tu regla.
+
+    *Pista:* `curl -d` envía los datos como un formulario `POST`; cada bloqueo deja `[id "..."] [msg "..."]` en `/var/log/apache2/error.log`.
+
+3. **Práctica 3: reglas OWASP (punto 3.1.3).** Escribe el `Dockerfile` sobre `pps<NIA>/pr2` que instala el conjunto de reglas OWASP CRS, construye `pps<NIA>/pr3` y arráncala. Comprueba que la regla local de `pr2` sigue bloqueando: es la herencia que pide el enunciado.
+
+    *Pista:* el paquete es `modsecurity-crs`, y la configuración del módulo en Ubuntu ya lo carga. La guía clona el repositorio del CRS; el paquete de Ubuntu ahorra ese paso (la serie que trae está en [ModSecurity y OWASP CRS](#modsecurity-y-owasp-crs)).
+
+4. **Ataques de prueba y registro (punto 3.1.3).** Lanza las dos peticiones de la guía, `exec=/bin/bash` (inyección de comandos) y `exec=/../../` (recorrido de ruta), y una de XSS y otra de inyección SQL de manual: las cuatro reciben `403` y una normal `200`. Lee en el registro de errores por qué se bloqueó cada una: cuenta las reglas que sumaron puntos y anota el identificador y el mensaje de tres.
 
     *Pista:* `-G --data-urlencode` codifica el parámetro para que llegue tal cual; si una cadena no va codificada, `curl` la puede partir y el WAF no la ve.
 
-3. Lee en el registro de errores por qué se bloqueó cada una: cuenta las reglas que sumaron puntos y anota el identificador y el mensaje de tres.
+5. **Docker Hub y README (puntos 3.1.2 y 3.1.3).** Sube `pps<NIA>/pr2` y `pps<NIA>/pr3` y escribe el `README.md` de cada subcarpeta: explicación, validación con las salidas de los pasos 2 y 4, capturas y la orden `docker pull` de su imagen.
 
-    *Pista:* cada bloqueo deja `[id "..."] [msg "..."]` en `/var/log/apache2/error.log`.
+<span class="et et-com">Comprobación</span> Con `pr2`, `testparam=un test` da `403` por URL y por formulario y `testparam=nada` da `200`. Con `pr3`, las cuatro peticiones del paso 4 dan `403` y la normal `200`; el registro muestra identificadores de las familias `932` (comandos), `930` (ruta), `941` (XSS) o `942` (SQL) y un `949110` de puntuación excedida; y la regla `1000001` sigue bloqueando. Si una petición de ataque da `200`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-4. Añade una regla local propia que bloquee cualquier petición cuyo parámetro `testparam` contenga la palabra `test`, en un fichero `reglas-locales.conf` aparte, y compruébala (bloquea `testparam=un test` y deja pasar `testparam=nada`).
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a33/` de `pps-entregas` las subcarpetas `pr2/` (con `Dockerfile` y `reglas-locales.conf`) y `pr3/`, cada una con su `README.md` y sus capturas, y deja en Docker Hub `pps<NIA>/pr2` y `pps<NIA>/pr3`: como `pr3` parte de `pr2` y esta de `pr1`, contiene también el HTTPS, HSTS y CSP de la A3.2, que es la cascada que pide el enunciado. Lo recoge la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre), en sus puntos 3.1.2 y 3.1.3.
 
-    *Pista:* es un `SecRule ARGS:testparam "@contains test"` con un identificador propio del rango 1000000 en adelante (`id:1000001`), `deny` y `status:403`. Apache no relee la configuración solo: recárgalo con `apache2ctl graceful`, sin parar el contenedor.
-
-5. Prueba el modo de solo detección: pon el motor en `DetectionOnly`, repite una de las cadenas de ataque (ahora responde `200` pero el registro la sigue anotando) y vuelve a `On`.
-6. Haz que la regla local forme parte de la imagen (cópiala en el `Dockerfile`, reconstruye y vuelve a comprobarla), sube `pps<NIA>/pr2` y escribe el `README.md` (explicación, las salidas de los pasos 2 a 5, capturas y la orden `docker pull pps<NIA>/pr2`).
-
-<span class="et et-com">Comprobación</span> Las cuatro peticiones del paso 2 dan `403` y la normal `200`; el registro muestra identificadores de las familias `941` (XSS), `942` (SQL), `930` (ruta) o `932` (comandos) y un `949110` de puntuación excedida; la regla `1000001` bloquea `testparam=un test` y deja pasar `testparam=nada`; en `DetectionOnly` el XSS da `200`. Si una petición de ataque da `200`, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
-
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a33/` de `pps-entregas` `Dockerfile`, `reglas-locales.conf`, `README.md` y capturas, y deja la imagen `pps<NIA>/pr2` en Docker Hub: como `pr2` parte de `pr1`, contiene también el HTTPS, HSTS y CSP de la A3.2. Lo recoge la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre).
-
-<span class="et et-ext">Si te sobra tiempo</span> Cambia el `default-src` de la CSP por uno demasiado estricto y comprueba en la consola qué se rompe, o envía por `curl` un `User-Agent` de escáner conocido (`curl -A "sqlmap/1.0" ...`) y localiza la regla `913100` en el registro.
+<span class="et et-ext">Si te sobra tiempo</span> Prueba el modo de solo detección: pon el motor en `DetectionOnly`, repite una de las cadenas de ataque (ahora responde `200`, pero el registro la sigue anotando) y vuelve a `On`. Después cambia el `default-src` de la CSP por uno demasiado estricto y comprueba en la consola qué se rompe, o envía por `curl` un `User-Agent` de escáner conocido (`curl -A "sqlmap/1.0" ...`) y localiza la regla `913100` en el registro.
 
 ## Sesión 18 · Denegación de servicio y buenas prácticas del servidor
 
 <p class="ut-meta" markdown>7 de diciembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Denegación de servicio y su mitigación en Apache · 10 min&#10;Buenas prácticas de hardening · 10 min&#10;A3.4 Hardening final · 90 min" data-dur="Denegación de servicio y su mitigación en Apache · 10 min&#10;Buenas prácticas de hardening · 10 min&#10;A3.4 Hardening final · 90 min">:material-school:<i class="dur-barra" style="--teoria:18%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión el servidor rechaza a quien hace demasiadas peticiones o las envía demasiado despacio, no revela su versión, solo admite los métodos que usa, no lista directorios ni deja ficheros legibles a cualquiera, y la imagen final `pps<NIA>/pr3` recoge todo lo de las cuatro hojas y completa el material de la entrega ACT_UT3_1. Antes se ve cómo se ataca la disponibilidad de un servidor y qué mitigaciones ofrece Apache, y después la lista de buenas prácticas que cierra el endurecimiento.
+Al acabar esta sesión el servidor rechaza a quien hace demasiadas peticiones o las envía demasiado despacio, no revela su versión, solo admite los métodos que usa, no lista directorios ni deja ficheros legibles a cualquiera. Queda en dos imágenes: `pps<NIA>/pr4` (práctica 4 del enunciado, la denegación de servicio) y `pps<NIA>/hardening` (punto 3.3, buenas prácticas), que es la final, recoge todo lo de las hojas anteriores y completa el material de la entrega ACT_UT3_1. Antes se ve cómo se ataca la disponibilidad de un servidor y qué mitigaciones ofrece Apache, y después la lista de buenas prácticas que cierra el endurecimiento.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
-    - [Endurecimiento de Apache](https://geekflare.com/cybersecurity/apache-web-server-hardening-security/): la lista de buenas prácticas del servidor.
+    - [Endurecimiento de Apache](https://geekflare.com/cybersecurity/apache-web-server-hardening-security/): la guía del punto 3.3 del enunciado de ACT_UT3_1, con la lista de buenas prácticas del servidor.
+    - [Hardening del servidor](https://psegarrac.github.io/Ciberseguridad-PePS/tema3/seguridad/web/2021/03/01/Hardening-Servidor.html): la guía de la práctica 4 (`mod_evasive` y Apache Bench).
 
     **Para ampliar** (opcional)
 
-    - [Versión para Nginx](https://geekflare.com/es/nginx-webserver-security-hardening-guide/): la práctica 5, opcional.
+    - [Versión para Nginx](https://geekflare.com/es/nginx-webserver-security-hardening-guide/): para la práctica 5, el «EXTRA» del enunciado.
 
 ### Denegación de servicio y su mitigación en Apache
 
@@ -392,13 +397,15 @@ Otros ajustes que se ven en las guías y no se aplican aquí: autenticación bá
 
 ### A3.4 Hardening final (sesión 18)
 
-<span class="et et-obj">Objetivo</span> La imagen `pps<NIA>/pr3`, construida sobre `pps<NIA>/pr2`, bloquea con `mod_evasive` una ráfaga de peticiones, corta a un cliente lento con un 408, oculta la versión, solo admite `GET`, `POST` y `HEAD`, no lista directorios y sirve el sitio con permisos mínimos. Cierra las prácticas 4 del enunciado de ACT_UT3_1 y el punto 3.3 (buenas prácticas). La práctica 5 (Nginx) es opcional y va en "Si te sobra tiempo".
+<span class="et et-obj">Objetivo</span> Las dos últimas imágenes de ACT_UT3_1, cada una con su README. `pps<NIA>/pr4`, sobre `pps<NIA>/pr3`, bloquea con `mod_evasive` una ráfaga de peticiones de Apache Bench, con el informe de `ab` guardado: es la práctica 4 (punto 3.1.4). `pps<NIA>/hardening`, sobre `pr4`, aplica las buenas prácticas de la guía del punto 3.3: oculta la versión, solo admite `GET`, `POST` y `HEAD`, no lista directorios, corta a un cliente lento con un 408 y sirve el sitio con permisos mínimos (punto 3.3.1). Al terminar, el README general de la entrega. La práctica 5 (Nginx) es el «EXTRA» del enunciado y va en «Si te sobra tiempo».
 
-<span class="et et-pre">Antes de empezar</span> La imagen `pps<NIA>/pr2` de la [A3.3](#a33-waf-con-modsecurity-y-crs-sesion-17) en `pps01`. Se han explicado [la denegación de servicio y su mitigación](#denegacion-de-servicio-y-su-mitigacion-en-apache) y [las buenas prácticas de hardening](#buenas-practicas-de-hardening). Para generar carga, `sudo apt-get install -y apache2-utils` (trae `ab`) y `netcat-openbsd` si `nc` no está.
+<span class="et et-pre">Antes de empezar</span> La imagen `pps<NIA>/pr3` de la [A3.3](#a33-waf-con-modsecurity-y-crs-sesion-17) en `pps01`. Se han explicado [la denegación de servicio y su mitigación](#denegacion-de-servicio-y-su-mitigacion-en-apache) y [las buenas prácticas de hardening](#buenas-practicas-de-hardening). Para generar carga, `sudo apt-get install -y apache2-utils` (trae `ab`) y `netcat-openbsd` si `nc` no está.
 
 <span class="et et-pas">Pasos</span>
 
-1. Crea `~/pps-entregas/ut3/a34/` y escribe las dos configuraciones del endurecimiento. `evasive.conf` configura `mod_evasive` con umbrales bajos para que la prueba se vea:
+Se cierra la cascada en el orden del enunciado: primero la práctica 4 sobre `pr3`, y encima la imagen de buenas prácticas, que es la final y contiene todo lo anterior. Cada imagen va en su subcarpeta (`ut3/a34/pr4/` y `ut3/a34/hardening/`) con su README, y el último paso comprueba que nada de lo de las hojas anteriores se ha perdido por el camino.
+
+1. **Práctica 4: `mod_evasive` (punto 3.1.4).** Escribe `evasive.conf` con umbrales bajos para que la prueba se vea y el `Dockerfile` sobre `pps<NIA>/pr3` que instala y activa `mod_evasive` con esa configuración. Construye `pps<NIA>/pr4` y arráncala en lugar de la anterior.
 
     ```apache
     <IfModule mod_evasive20.c>
@@ -412,27 +419,27 @@ Otros ajustes que se ven en las guías y no se aplican aquí: autenticación bá
     </IfModule>
     ```
 
-    `buenas-practicas.conf` recoge las prácticas de [Buenas prácticas de hardening](#buenas-practicas-de-hardening) (versión y sistema ocultos, `TRACE` off, solo `GET POST HEAD`, sin listados, `.htaccess` ni ejecución de scripts, tiempos y tamaños acotados) y el corte del cliente lento de `mod_reqtimeout`.
+    *Pista:* el paquete es `libapache2-mod-evasive`, y la carpeta de `DOSLogDir` tiene que existir y ser del usuario `www-data`.
 
-    *Pista:* el corte del cliente lento no está en la teoría: se escribe con `RequestReadTimeout header=5-10,minrate=500 body=5,minrate=500` (cabeceras en 5 s, hasta 10 si envía datos; cuerpo en 5 s).
+2. **Prueba con Apache Bench (punto 3.1.4).** Lanza una ráfaga contra la página y comprueba que deja de recibir `200` al pasar el umbral; guarda la salida de `ab` en `ab-informe.txt`, que es el informe que pide la guía. Espera a que expire el bloqueo de la IP y comprueba que se vuelve a entrar.
 
-2. Escribe el `Dockerfile` sobre `pps<NIA>/pr2`: instala y activa `mod_evasive` y `reqtimeout`, incorpora las dos configuraciones con un nombre que se cargue después de la de Ubuntu, y deja la raíz de documentos con propietario `root`, grupo `www-data` y sin permisos para otros. Construye como `pps<NIA>/pr3`, arranca y valida con `apache2ctl configtest`.
+    *Pista:* `ab -n 200 -c 10` genera la ráfaga; el bloqueo dura lo que marca `DOSBlockingPeriod`.
 
-    *Pista:* `security.conf` de Ubuntu fija `ServerTokens OS` y gana la última directiva cargada, por eso la configuración propia va con un nombre posterior (por ejemplo `seguridad-final`). Permisos mínimos con `chown -R root:www-data` y `chmod` quitando el acceso a otros, nunca `777`.
+3. **Buenas prácticas (punto 3.3.1).** Escribe `buenas-practicas.conf` con las prácticas de [Buenas prácticas de hardening](#buenas-practicas-de-hardening) (versión y sistema ocultos, `TRACE` off, solo `GET POST HEAD`, sin listados, `.htaccess` ni ejecución de scripts, tiempos y tamaños acotados) y el corte del cliente lento de `mod_reqtimeout`. El `Dockerfile`, sobre `pps<NIA>/pr4`, activa `reqtimeout`, incorpora la configuración con un nombre que se cargue después de la de Ubuntu y deja la raíz de documentos con propietario `root`, grupo `www-data` y sin permisos para otros. Construye `pps<NIA>/hardening`, arranca y valida con `apache2ctl configtest`.
 
-3. Comprueba el bloque de configuración: la cabecera `Server` solo dice `Apache`, los métodos distintos de `GET`, `POST` y `HEAD` se rechazan, una carpeta sin `index.html` no lista sus ficheros y el contenido tiene los permisos mínimos.
-4. Comprueba `mod_evasive` con una ráfaga (Apache Bench) y `mod_reqtimeout` con un cliente lento que no termina la petición: la ráfaga deja de recibir `200` al pasar el umbral y el cliente lento recibe un `408`. Espera a que expire el bloqueo de la IP y comprueba que se vuelve a entrar.
+    *Pista:* el corte del cliente lento no está en la teoría: `RequestReadTimeout header=5-10,minrate=500 body=5,minrate=500`. `security.conf` de Ubuntu fija `ServerTokens OS` y gana la última directiva cargada, por eso la configuración propia va con un nombre posterior (por ejemplo `seguridad-final`). Permisos con `chown -R root:www-data` y un `chmod` que quite el acceso a otros, nunca `777`.
 
-    *Pista:* `ab -n 200 -c 10` genera la ráfaga; el cliente lento se simula enviando con `nc` una cabecera incompleta y esperando. El bloqueo de `mod_evasive` dura lo que marca `DOSBlockingPeriod`.
+4. **Comprobación de las buenas prácticas (punto 3.3.1).** Comprueba que la cabecera `Server` solo dice `Apache`, que los métodos distintos de `GET`, `POST` y `HEAD` se rechazan, que una carpeta sin `index.html` no lista sus ficheros, que el contenido tiene los permisos mínimos y que un cliente lento que no termina la petición recibe un `408`.
 
-5. Comprueba que las defensas de las hojas anteriores siguen activas en la imagen final: la redirección y HSTS de la A3.2 y el bloqueo del WAF de la A3.3. Sube `pps<NIA>/pr3`.
-6. Deja listo el material de ACT_UT3_1. En la carpeta `ut3/` escribe el `README.md` general de esa entrega: una tabla con las tres imágenes (`pr1`, `pr2`, `pr3`), qué añade cada una y su orden `docker pull`, la validación de los pasos 3 a 5 con capturas y una frase que explique la herencia (`pr3` contiene a `pr2` y esta a `pr1`). Haz `git add`, `git commit` y `git push`.
+    *Pista:* el cliente lento se simula enviando con `nc` una cabecera incompleta y esperando.
 
-<span class="et et-com">Comprobación</span> `Server` solo dice `Apache`; `PUT`, `DELETE` y `OPTIONS` dan `403` y `TRACE` no da `200` (`403` o `405`); la carpeta sin `index.html` no lista sus ficheros; `ab` muestra la mayoría de respuestas no 2xx y `/var/log/mod_evasive` tiene un fichero con tu IP; el cliente lento recibe `408`; y las comprobaciones del paso 5 pasan. Si `ab` no bloquea nada, mira los umbrales de `evasive.conf` en [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
+5. **Cascada y README general (puntos 3.1 a 3.3).** Comprueba que las defensas de las hojas anteriores siguen activas en `hardening` (la redirección y HSTS, la CSP y el bloqueo del WAF) y sube `pr4` y `hardening` a Docker Hub, cada una con el README de su subcarpeta. Después escribe en `ut3/` el `README.md` general de ACT_UT3_1: una tabla con las seis imágenes (`certificado`, `pr1` a `pr4` y `hardening`), el punto del enunciado al que responde cada una, qué añade y su orden `docker pull`, y una frase que explique la herencia (cada una contiene a la anterior). Súbelo todo a `pps-entregas`.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a34/` de `pps-entregas` los ficheros, el README de la hoja y las capturas, deja en `ut3/` el `README.md` general de ACT_UT3_1 y en Docker Hub las tres imágenes (`pps<NIA>/pr1`, `pr2` y `pr3`). Lo recoge, con la A3.1 a la A3.3, la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre), cuyo enunciado está en el aula.
+<span class="et et-com">Comprobación</span> Con `pr4`, `ab` muestra la mayoría de respuestas no 2xx y `/var/log/mod_evasive` tiene un fichero con tu IP. Con `hardening`, `Server` solo dice `Apache`; `PUT`, `DELETE` y `OPTIONS` dan `403` y `TRACE` no da `200` (`403` o `405`); la carpeta sin `index.html` no lista sus ficheros; el cliente lento recibe `408`; y las comprobaciones del paso 5 pasan. Si `ab` no bloquea nada, mira los umbrales de `evasive.conf` en [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-<span class="et et-ext">Si te sobra tiempo</span> Repite lo esencial en Nginx (práctica 5 opcional): una imagen `pps<NIA>/pr5` sobre `nginx:stable` con HTTPS, HSTS, CSP, versión oculta, métodos limitados y límite de peticiones. Equivalencias con lo hecho en Apache, y una configuración de partida que se ha comprobado (`default.conf`, que se copia en `/etc/nginx/conf.d/`):
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a34/` de `pps-entregas` las subcarpetas `pr4/` (con `ab-informe.txt`) y `hardening/`, cada una con sus ficheros, su README y sus capturas; deja en `ut3/` el `README.md` general de ACT_UT3_1 y en Docker Hub las seis imágenes. Lo recoge, con la A3.2 y la A3.3, la entrega **ACT_UT3_1 · Server hardening** (plazo, el 14 de diciembre), cuyo enunciado es «RA3.1 Apache Hardening»: esta hoja cubre sus puntos 3.1.4 y 3.3.1.
+
+<span class="et et-ext">Si te sobra tiempo</span> Es la práctica 5 del enunciado, marcada como «EXTRA»: repetir en Nginx lo hecho en Apache, en una imagen `pps<NIA>/pr5` sobre `nginx:stable`. La guía pide un `index.php` con `phpinfo();`, un directorio protegido con autenticación, el certificado con el servidor seguro, las cabeceras HSTS y CSP y las reglas OWASP de ModSecurity, y como entrega la imagen y una explicación detallada de la instalación y la configuración. Equivalencias con lo hecho en Apache, y una configuración de partida que se ha comprobado (`default.conf`, que se copia en `/etc/nginx/conf.d/`), a la que faltan el PHP y el directorio con autenticación (`auth_basic` y `auth_basic_user_file`):
 
 | En Apache | En Nginx |
 |---|---|
@@ -479,13 +486,13 @@ El certificado se genera con `openssl` en el `Dockerfile`, igual que en la A3.2.
 
 <p class="ut-meta" markdown>10 de diciembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="No confiar en la entrada del usuario · 10 min&#10;XSS reflejado, almacenado y basado en DOM · 15 min&#10;A3.5 DVWA XSS · 85 min" data-dur="No confiar en la entrada del usuario · 10 min&#10;XSS reflejado, almacenado y basado en DOM · 15 min&#10;A3.5 DVWA XSS · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión hay una DVWA corriendo en `pps01` (puerto 8081, solo accesible desde la propia máquina), se ha explotado el XSS reflejado, el almacenado y el basado en DOM en los niveles Low y Medium, se ha comprobado en el código de cada nivel por qué funciona y se ha corregido uno de ellos. La hoja se apoya en dos apartados: el principio que evita casi todo lo que viene en la unidad (no fiarse de la entrada) y la familia del XSS con sus tres variantes.
+Al acabar esta sesión hay una DVWA corriendo en `pps01` (puerto 8081, solo accesible desde la propia máquina), se ha explotado el XSS reflejado, el almacenado y el basado en DOM en los niveles Low y Medium y se ha comprobado en el código de cada nivel por qué funciona, que es lo que pide el enunciado de ACT_UT3_2 para cada tutorial de DVWA. La hoja se apoya en dos apartados: el principio que evita casi todo lo que viene en la unidad (no fiarse de la entrada) y la familia del XSS con sus tres variantes.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
     - [DVWA](https://github.com/digininja/DVWA): la aplicación vulnerable que se usa en clase.
-    - El enunciado de la entrega ACT_UT3_2 está en el aula.
+    - El enunciado de la entrega ACT_UT3_2, «RA3.2 Damm Vulnerable Web App», en el aula. Su bibliografía incluye unas [soluciones de DVWA](https://aftabsama.com/writeups/dvwa/) que sirven para comprobar, no para copiar.
 
 ### No confiar en la entrada del usuario
 
@@ -541,13 +548,15 @@ Los [atributos de las cookies](#robo-y-fijacion-de-sesion-atributos-de-las-cooki
 
 ### A3.5 DVWA XSS (sesión 19)
 
-<span class="et et-obj">Objetivo</span> DVWA montada en `pps01` en el puerto 8081; el XSS reflejado, el almacenado y el basado en DOM explotados en Low y Medium con su captura; el motivo de cada fallo localizado en el código; y una corrección aplicada y comprobada. Es la primera hoja de la entrega ACT_UT3_2 (DVWA).
+<span class="et et-obj">Objetivo</span> DVWA montada en `pps01` en el puerto 8081, y el XSS reflejado, el almacenado y el basado en DOM explotados en Low y Medium, cada uno con su captura, la cadena usada y el motivo del fallo localizado en el código. Son los tres primeros tutoriales del punto 3.1 del enunciado de ACT_UT3_2, que pide **todos** los de DVWA en Low y Medium con capturas, comandos y una breve explicación.
 
 <span class="et et-pre">Antes de empezar</span> `pps01` con Docker y acceso a Internet para descargar las imágenes de DVWA y de MariaDB (unos minutos: con treinta equipos a la vez, empieza el montaje en cuanto llegues). Se han explicado [no confiar en la entrada del usuario](#no-confiar-en-la-entrada-del-usuario) y [los tres tipos de XSS](#xss-reflejado-almacenado-y-basado-en-dom). Solo se ataca la DVWA de tu propia máquina, en `127.0.0.1` ([red aislada y buenas prácticas](../laboratorio.md#red-aislada-y-buenas-practicas)).
 
 <span class="et et-pas">Pasos</span>
 
-1. Toma una instantánea de la VM `pps01` por si algo se rompe, crea `~/pps-entregas/ut3/a35/` y escribe el `compose.yml` de DVWA con MariaDB. Publica DVWA solo en el bucle local (así no se ve desde otras máquinas) y usa contraseñas de laboratorio para la base, que no valen fuera de este contenedor.
+Primero se monta DVWA, que sirve para esta hoja y para las tres siguientes, y después se recorren los tres tutoriales de XSS del menú, cada uno en Low y luego en Medium: Medium solo se entiende comparando su filtro con el código de Low.
+
+1. **DVWA en local (preparación del punto 3.1).** Toma una instantánea de la VM `pps01` por si algo se rompe, crea `~/pps-entregas/ut3/a35/` y escribe el `compose.yml` de DVWA con MariaDB. Publica DVWA solo en el bucle local (así no se ve desde otras máquinas) y usa contraseñas de laboratorio para la base, que no valen fuera de este contenedor.
 
     ```yaml
     services:
@@ -576,36 +585,31 @@ Los [atributos de las cookies](#robo-y-fijacion-de-sesion-atributos-de-las-cooki
       dvwa-datos:
     ```
 
-2. Levanta DVWA, inicializa la base en `http://127.0.0.1:8081/setup.php` (**Create / Reset Database**), entra con las credenciales de DVWA (las de su documentación) y comprueba en **DVWA Security** que el nivel es **Low**.
+2. **Primer arranque.** Levanta DVWA, inicializa la base en `http://127.0.0.1:8081/setup.php` (**Create / Reset Database**), entra con las credenciales de DVWA (las de su documentación) y comprueba en **DVWA Security** que el nivel es **Low**.
 
     *Pista:* MariaDB tarda en arrancar; si da error de conexión, espera unos segundos y recarga (ver [Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
 
-3. **XSS reflejado.** Explótalo en **Low** y después en **Medium**. En cada nivel, comprueba con Ctrl+U que el parámetro vuelve en la respuesta y pulsa **View Source** para localizar en el código por qué funciona. En Medium el filtro es una lista negra: encuentra un vector que no contenga la cadena que elimina y anota por qué un filtro así no basta.
+3. **XSS (Reflected) (punto 3.1).** Explótalo en **Low** y después en **Medium**. En cada nivel, comprueba con Ctrl+U que el parámetro vuelve en la respuesta y pulsa **View Source** para localizar en el código por qué funciona. En Medium el filtro es una lista negra: encuentra un vector que no contenga la cadena que elimina y anota por qué un filtro así no basta.
 
     *Pista:* el reflejado se dispara con un enlace que lleva el script en un parámetro; para Medium, piensa en etiquetas HTML con un evento, que no necesitan la palabra que el filtro quita.
 
-4. **XSS almacenado y XSS basado en DOM.** Explota el almacenado en **Low** y **Medium** (comprueba que sobrevive a una recarga sin reenviar nada) y el basado en DOM en **Low** y **Medium**. Para cada uno, **View Source** o el inspector, y anota dónde está el fallo.
+4. **XSS (Stored) y XSS (DOM) (punto 3.1).** Explota el almacenado en **Low** y **Medium** (comprueba que sobrevive a una recarga sin reenviar nada) y el basado en DOM en **Low** y **Medium**. Para cada uno, **View Source** o el inspector, y anota dónde está el fallo.
 
     *Pista:* en el almacenado de Medium el campo de nombre limita la longitud con un `maxlength` que se cambia en F12 (no es una defensa real). En el DOM, compara el código fuente del servidor (Ctrl+U) con el DOM ya construido (F12, Elementos): el script solo aparece en el segundo.
 
-5. **Corrección.** En **Low**, corrige el XSS reflejado para que el parámetro se codifique a la salida: copia el fichero del contenedor, cámbialo y devuélvelo. Repite el ataque (ahora la cadena se ve como texto) y compara tu cambio con el nivel **Impossible**.
+5. **Documentación (punto 3.1).** Escribe el `README.md` con lo que pide el enunciado para cada tutorial: las capturas de la explotación (Low y Medium de las tres variantes), las cadenas y comandos usados y una breve explicación con el motivo visto en el código. El enunciado insiste en que es imprescindible aportar toda la información necesaria: quien lo lea tiene que poder repetirlo. Súbelo a `pps-entregas`.
 
-    *Pista:* la función de codificación en PHP es `htmlspecialchars`. El fichero se saca y se devuelve con `docker compose cp`; su ruta es `.../vulnerabilities/xss_r/source/low.php`.
+<span class="et et-com">Comprobación</span> Tienes seis capturas de un aviso (tres variantes, dos niveles), la comprobación de que el XSS almacenado sobrevive a una recarga y la de que el DOM no aparece en el código fuente del servidor. Si DVWA no carga o pide inicializar la base, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
 
-6. Rellena la tabla de corrección de la hoja (una fila por variante: causa vista en el código y corrección) y escribe el `README.md` con las seis capturas (Low y Medium de las tres variantes), las cadenas usadas y la explicación breve. `git add`, `git commit`, `git push`.
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a35/` de `pps-entregas` `compose.yml` y el `README.md` con las capturas. Lo recoge, con la A3.6, la A3.7 y la parte de DVWA de la A3.8, la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero). Completa en casa antes de ese plazo, con el mismo formato, los tutoriales de DVWA que no se hacen en clase (están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad)).
 
-<span class="et et-com">Comprobación</span> Tienes seis capturas de un aviso (tres variantes, dos niveles), la comprobación de que el XSS almacenado sobrevive a una recarga, la de que el DOM no aparece en el código fuente del servidor, y el antes y después del paso 5 con la cadena visible como texto. Si DVWA no carga o pide inicializar la base, mira [Errores frecuentes](#errores-frecuentes-en-el-laboratorio).
-
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a35/` de `pps-entregas` `compose.yml`, `low.php` corregido, la tabla y el `README.md` con las capturas. Lo recoge, con la A3.6 y la A3.7, la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero). Completa en casa antes de ese plazo, con el mismo formato, los tutoriales de DVWA que no se hacen en clase (están en [Prácticas evaluables](#practicas-evaluables-de-la-unidad)).
-
-<span class="et et-ext">Si te sobra tiempo</span> Cambia **Medium** a **High** y averigua qué filtro usa el XSS reflejado y por qué sigue siendo una lista negra (`View Source`). Después, el módulo **CSP Bypass**: qué política envía y de dónde carga scripts.
-
+<span class="et et-ext">Si te sobra tiempo</span> Corrige el XSS reflejado de **Low** para que el parámetro se codifique a la salida: copia el fichero del contenedor, cámbialo con `htmlspecialchars` y devuélvelo (`docker compose cp`; la ruta es `.../vulnerabilities/xss_r/source/low.php`). Repite el ataque (ahora la cadena se ve como texto) y compara tu cambio con el nivel **Impossible**. Después cambia a **High** y averigua qué filtro usa el XSS reflejado y por qué sigue siendo una lista negra (**View Source**), y mira en el módulo **CSP Bypass** qué política envía y de dónde carga scripts.
 
 ## Sesión 20 · Sesiones, autenticación y CSRF
 
 <p class="ut-meta" markdown>14 de diciembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Robo y fijación de sesión, atributos de las cookies · 15 min&#10;CSRF y sus contramedidas · 10 min&#10;A3.6 DVWA: sesión y CSRF · 85 min" data-dur="Robo y fijación de sesión, atributos de las cookies · 15 min&#10;CSRF y sus contramedidas · 10 min&#10;A3.6 DVWA: sesión y CSRF · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión se ha comprobado en DVWA cómo un identificador de sesión predecible permite suplantar a otro usuario, se ha explotado un CSRF que cambia la contraseña sin que la víctima lo pida, y se ha corregido la gestión de sesión con los atributos de cookie correctos. La hoja se apoya en dos apartados: qué hace segura o insegura una cookie de sesión, y cómo funciona el CSRF y qué lo frena.
+Al acabar esta sesión se ha comprobado en DVWA cómo un identificador de sesión predecible permite suplantar a otro usuario y se ha explotado, en Low y en Medium, un CSRF que cambia la contraseña sin que la víctima lo pida. La hoja se apoya en dos apartados: qué hace segura o insegura una cookie de sesión, y cómo funciona el CSRF y qué lo frena.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -668,45 +672,43 @@ El token anti-CSRF es la defensa principal porque no depende de que el navegador
 
 ### A3.6 DVWA: sesión y CSRF (sesión 20)
 
-<span class="et et-obj">Objetivo</span> Con la DVWA de la [A3.5](#a35-dvwa-xss-sesion-19), el identificador de sesión débil de Low y Medium documentado, el CSRF de cambio de contraseña explotado en Low y bloqueado en Medium, y la cookie de sesión corregida con `HttpOnly` y `SameSite`.
+<span class="et et-obj">Objetivo</span> Con la DVWA de la [A3.5](#a35-dvwa-xss-sesion-19), el identificador de sesión débil de Low y Medium documentado y el CSRF de cambio de contraseña explotado en Low y en Medium, cada uno con su captura, los comandos usados y el motivo visto en el código. Son dos tutoriales más del punto 3.1 del enunciado de ACT_UT3_2.
 
 <span class="et et-pre">Antes de empezar</span> DVWA en marcha (`docker compose up -d` en `~/pps-entregas/ut3/a35/` si se ha parado). Se han explicado [los atributos de las cookies](#robo-y-fijacion-de-sesion-atributos-de-las-cookies) y [el CSRF](#csrf-y-sus-contramedidas).
 
 <span class="et et-pas">Pasos</span>
 
-1. **Weak Session IDs.** En **Low** y en **Medium**, pulsa **Generate** varias veces y anota los valores de la cookie `dvwaSession`. Deduce el patrón de cada nivel y por qué los dos son predecibles.
+Primero la sesión y después el CSRF, que se apoya en ella: el CSRF funciona precisamente porque el navegador adjunta la cookie de sesión sin preguntar. En los dos, Low enseña el fallo y Medium la defensa que lo intenta cerrar.
+
+1. **Weak Session IDs (punto 3.1).** En **Low** y en **Medium**, pulsa **Generate** varias veces y anota los valores de la cookie `dvwaSession`. Deduce el patrón de cada nivel y por qué los dos son predecibles.
 
     *Pista:* los valores se ven en F12 (Aplicación o Almacenamiento, Cookies). Fíjate en si crecen de uno en uno o si siguen otra magnitud conocida del servidor.
 
-2. Comprueba que la cookie de sesión que emite ese módulo no lleva `HttpOnly`, en la pestaña Red de F12 y también por línea de órdenes, que es como lo vería un script.
+2. **Atributos de la cookie (punto 3.1).** Comprueba que la cookie de sesión que emite ese módulo no lleva `HttpOnly`, en la pestaña Red de F12 y también por línea de órdenes, que es como lo vería un script, y anota qué permite eso a un XSS.
 
     *Pista:* la cabecera `Set-Cookie` está en la respuesta; con `curl -i` se ve igual, pasando las cookies `security` y `PHPSESSID`.
 
-3. **CSRF.** En **Low**, cambia tu contraseña con el formulario y después provoca el mismo cambio sin usar el formulario, como lo haría una página ajena, para ver que la petición se acepta igual. Deshaz el cambio.
+3. **CSRF en Low (punto 3.1).** Cambia tu contraseña con el formulario y después provoca el mismo cambio sin usar el formulario, como lo haría una página ajena, para ver que la petición se acepta igual. Deshaz el cambio.
 
     *Pista:* una página atacante dispararía la acción con una etiqueta que hace una petición al dominio (un `<img>` o un formulario que se envía solo); para la prueba basta lanzar esa misma petición desde la pestaña con la sesión abierta.
 
-4. En **Medium**, repite y comprueba que ahora falla. En **View Source** localiza la comprobación (mira la cabecera `Referer`) y demuestra que se puede burlar sirviendo una página atacante cuyo origen contenga el nombre del servidor. Anota por qué esta defensa es más débil que un token.
+4. **CSRF en Medium (punto 3.1).** Repite y comprueba que ahora falla. En **View Source** localiza la comprobación (mira la cabecera `Referer`) y demuestra que se puede burlar sirviendo una página atacante cuyo origen contenga el nombre del servidor. Anota por qué esta defensa es más débil que un token.
 
     *Pista:* una página servida en local cuya ruta o nombre incluya el del servidor hace que el `Referer` pase la comprobación; un navegador configurado para no enviar `Referer` (habitual por privacidad) bloquearía también lo legítimo.
 
-5. Corrige el identificador de sesión de **Weak Session IDs** para que use una fuente criptográfica y añada `HttpOnly` y `SameSite=Strict`: copia el fichero del contenedor, cámbialo y devuélvelo. Comprueba que el valor ya no sigue un patrón y que la cookie lleva esos atributos.
+5. **Documentación (punto 3.1).** Escribe el `README.md` con las capturas de los pasos 1 a 4, las peticiones y comandos usados y la explicación breve de cada fallo con el fragmento de código que lo produce. Súbelo a `pps-entregas`.
 
-    *Pista:* en PHP, `bin2hex(random_bytes(20))` da el valor y `setcookie(..., ["httponly" => true, "samesite" => "Strict"])` los atributos; el fichero es `.../weak_id/source/low.php`.
+<span class="et et-com">Comprobación</span> Los valores anotados en el paso 1 muestran el patrón (consecutivo, y después la hora); la cookie del paso 2 sale sin `HttpOnly`; el paso 3 cambia la contraseña sin usar el formulario, y en el 4 la petición directa falla y la página con el nombre del servidor en su ruta la vuelve a colar. Si la prueba del paso 3 no cambia nada, comprueba que sigues autenticado y en nivel Low ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
 
-6. Rellena la tabla de corrección (causa vista en el código y corrección: aplicada para el identificador de sesión, propuesta para el CSRF) y escribe el `README.md` con las capturas de los pasos 1 a 5. `git add`, `git commit`, `git push`.
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a36/` de `pps-entregas` el `README.md` con las capturas. Lo recoge la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero).
 
-<span class="et et-com">Comprobación</span> Los valores anotados en el paso 1 muestran el patrón (consecutivo, y después la hora); el paso 3 cambia la contraseña sin usar el formulario y el 4 lo bloquea; tras el paso 5, `Set-Cookie: dvwaSession=...` lleva `HttpOnly` y `SameSite=Strict` y el valor no sigue ningún patrón visible. Si la prueba del paso 3 no cambia nada, comprueba que sigues autenticado y en nivel Low ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
-
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a36/` de `pps-entregas` `weak_low.php`, la tabla y el `README.md` con las capturas. Lo recoge la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero).
-
-<span class="et et-ext">Si te sobra tiempo</span> En **CSRF**, nivel **High**, mira `View Source`: además de comprobar el `Referer`, exige un token. Compara su generación con `generateSessionToken()` de **Impossible** y anota qué añade el token que no daba el `Referer`. Después, la fijación de sesión: en **Impossible**, comprueba en el código si se regenera el identificador al autenticarse (`session_regenerate_id`) y por qué eso corrige la fijación.
+<span class="et et-ext">Si te sobra tiempo</span> Corrige el identificador de sesión de **Weak Session IDs** para que use una fuente criptográfica y añada `HttpOnly` y `SameSite=Strict`: copia `.../weak_id/source/low.php` del contenedor, cámbialo (en PHP, `bin2hex(random_bytes(20))` da el valor y `setcookie(..., ["httponly" => true, "samesite" => "Strict"])` los atributos) y devuélvelo; comprueba que el valor ya no sigue un patrón y que la cookie lleva esos atributos. En **CSRF**, nivel **High**, mira **View Source**: además de comprobar el `Referer`, exige un token. Compara su generación con `generateSessionToken()` de **Impossible** y anota qué añade el token que no daba el `Referer`. Por último, la fijación de sesión: en **Impossible**, comprueba en el código si se regenera el identificador al autenticarse (`session_regenerate_id`) y por qué eso corrige la fijación.
 
 ## Sesión 21 · Inyección de comandos, ficheros y rutas
 
 <p class="ut-meta" markdown>17 de diciembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Inyección de comandos, subida e inclusión de ficheros, recorrido de ruta · 20 min&#10;A3.7 DVWA: comandos y ficheros · 90 min" data-dur="Inyección de comandos, subida e inclusión de ficheros, recorrido de ruta · 20 min&#10;A3.7 DVWA: comandos y ficheros · 90 min">:material-school:<i class="dur-barra" style="--teoria:18%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión se ha explotado en DVWA la inyección de comandos del sistema operativo, la subida de un fichero PHP disfrazado de imagen y la inclusión de un fichero fuera de la aplicación, en los niveles Low y Medium, y se ha corregido la inyección de comandos con una lista blanca. Estas tres vulnerabilidades comparten causa: un dato del usuario acaba dentro de una operación del sistema (ejecutar, guardar, incluir) sin comprobar su forma.
+Al acabar esta sesión se ha explotado en DVWA la inyección de comandos del sistema operativo, la subida de un fichero PHP disfrazado de imagen y la inclusión de un fichero fuera de la aplicación, en los niveles Low y Medium, cada una documentada con la línea de código que la permite. Estas tres vulnerabilidades comparten causa: un dato del usuario acaba dentro de una operación del sistema (ejecutar, guardar, incluir) sin comprobar su forma.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -744,49 +746,46 @@ Si además el lenguaje permite incluir una URL remota como si fuera un fichero l
 
 ### A3.7 DVWA: comandos y ficheros (sesión 21)
 
-<span class="et et-obj">Objetivo</span> Con la DVWA de las hojas anteriores, la inyección de comandos, la subida de un fichero PHP y la inclusión de ficheros explotadas en Low y Medium, cada una documentada con la petición, la respuesta y el fragmento de código que la explica, y la inyección de comandos corregida con una lista blanca comprobada.
+<span class="et et-obj">Objetivo</span> Con la DVWA de las hojas anteriores, la inyección de comandos, la subida de un fichero PHP y la inclusión de ficheros explotadas en Low y Medium, cada una documentada con la petición, la respuesta y el fragmento de código que la explica. Son tres tutoriales más del punto 3.1 del enunciado de ACT_UT3_2.
 
 <span class="et et-pre">Antes de empezar</span> DVWA en marcha. Se ha explicado [la inyección de comandos, la subida y la inclusión de ficheros](#inyeccion-de-comandos-subida-e-inclusion-de-ficheros-recorrido-de-ruta). La subida de ficheros de esta hoja se queda en demostrar que el servidor ejecuta el fichero subido: no se construye una conexión hacia un equipo atacante.
 
 <span class="et et-pas">Pasos</span>
 
-1. **Inyección de comandos.** En **Low**, comprueba que el formulario de `ping` ejecuta además un comando que encadenas, y prueba varios separadores de shell. En **Medium**, el filtro es una lista negra de separadores: encuentra uno que no esté en ella.
+Los tres módulos en el orden del menú de DVWA, cada uno en Low y luego en Medium. Comparten causa (un dato del usuario acaba en una operación del sistema) y por eso la documentación sigue el mismo molde en los tres: petición, respuesta y la línea de código que lo permite.
+
+1. **Command Injection (punto 3.1).** En **Low**, comprueba que el formulario de `ping` ejecuta además un comando que encadenas, y prueba varios separadores de shell. En **Medium**, el filtro es una lista negra de separadores: encuentra uno que no esté en ella.
 
     *Pista:* los separadores de shell son `;`, `&&`, `|`, `&` y el salto de línea; **View Source** enseña cuáles quita Medium.
 
-2. **Subida de ficheros.** En **Low**, sube un fichero PHP que solo demuestre ejecución de código y pide su ruta para comprobar que el servidor lo ejecuta (no lo muestra como texto). En **Medium**, la comprobación mira el tipo que declara el navegador: repite la subida forzando a mano un tipo de imagen para el mismo fichero y comprueba si sigue ejecutándose.
+2. **File Upload (punto 3.1).** En **Low**, sube un fichero PHP que solo demuestre ejecución de código y pide su ruta para comprobar que el servidor lo ejecuta (no lo muestra como texto). En **Medium**, la comprobación mira el tipo que declara el navegador: repite la subida forzando a mano un tipo de imagen para el mismo fichero y comprueba si sigue ejecutándose.
 
-    *Pista:* el PHP de prueba solo tiene que imprimir algo que pruebe que corre (por ejemplo el nombre del host); con `curl -F` se fija el `type=` del formulario, pasando las cookies `PHPSESSID` y `security`. La ruta de subida la devuelve DVWA (en `.../hackable/uploads/`). No se construye ninguna conexión hacia un equipo atacante.
+    *Pista:* el PHP de prueba solo tiene que imprimir algo que pruebe que corre (por ejemplo el nombre del host); con `curl -F` se fija el `type=` del formulario, pasando las cookies `PHPSESSID` y `security`. La ruta de subida la devuelve DVWA (en `.../hackable/uploads/`).
 
-3. **Inclusión de ficheros y recorrido de ruta.** En **Low**, usa el recorrido de ruta para leer un fichero del sistema fuera de la aplicación (uno sin datos sensibles, solo para comprobar el acceso). En **Medium**, el código sustituye `../` una sola vez: usa una cadena que se solape para burlarlo.
+3. **File Inclusion (punto 3.1).** En **Low**, usa el recorrido de ruta para leer un fichero del sistema fuera de la aplicación (uno sin datos sensibles, solo para comprobar el acceso). En **Medium**, el código sustituye `../` una sola vez: usa una cadena que se solape para burlarlo.
 
     *Pista:* el parámetro es `?page=...`; para Medium, piensa en una secuencia que, al quitarle un `../` del centro, vuelva a dejar `../`.
 
-4. **Corrección.** Corrige la inyección de comandos con una lista blanca: valida que el dato es una dirección IP antes de construir el comando y, aun así, escapa el argumento por si el validador tuviera un caso no previsto. Repite el ataque (ahora se rechaza) y comprueba que una IP correcta sigue funcionando: la corrección no puede romper el uso legítimo.
+4. **Documentación (punto 3.1).** Documenta las seis explotaciones (comandos, subida, inclusión; Low y Medium de cada una) con la petición o el comando, la captura, la respuesta relevante y el fragmento de código que explica el fallo. Escribe el `README.md` y súbelo a `pps-entregas`.
 
-    *Pista:* en PHP, `filter_var($ip, FILTER_VALIDATE_IP)` valida y `escapeshellarg()` escapa el argumento; el fichero es `.../exec/source/low.php`.
+<span class="et et-com">Comprobación</span> El paso 1 muestra la salida del comando encadenado tras el `ping`; el 2 demuestra que el `.php` subido se ejecuta, también con el tipo forzado en Medium; el 3 lee un fichero fuera de la aplicación en Low y lo vuelve a leer en Medium con la cadena que burla el filtro. Si `curl` con `-F` no sube el fichero con el tipo forzado, revisa las comillas del comando ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
 
-5. Documenta las seis explotaciones (comandos, subida, inclusión; Low y Medium de cada una) con la petición, la respuesta relevante y el fragmento de código, y la corrección del paso 4 con el antes y el después. Escribe el `README.md` y `git add`, `git commit`, `git push`.
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a37/` de `pps-entregas` `prueba.php` y el `README.md` con la documentación de las seis explotaciones. Lo recoge, con la A3.5, la A3.6 y la parte de DVWA de la A3.8, la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero). Completa en casa antes de ese plazo el resto de tutoriales de DVWA que el enunciado pide en Low y Medium (los que no se han hecho en clase).
 
-<span class="et et-com">Comprobación</span> El paso 1 muestra la salida del comando encadenado tras el `ping`; el 2 demuestra que el `.php` subido se ejecuta; el 3 lee un fichero fuera de la aplicación en Low y lo vuelve a leer en Medium con la cadena que burla el filtro; el 4 bloquea la inyección y mantiene el `ping` legítimo. Si `curl` con `-F` no sube el fichero con el tipo forzado, revisa las comillas del comando ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
-
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a37/` de `pps-entregas` `exec_low.php`, `prueba.php`, la documentación de las seis explotaciones y el `README.md`. Lo recoge, con la A3.5 y la A3.6, la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero). Completa en casa antes de ese plazo el resto de tutoriales de DVWA que el enunciado pide en Low y Medium (los que no se han hecho en clase).
-
-<span class="et et-ext">Si te sobra tiempo</span> En **File Upload**, nivel **High**, mira `View Source`: comprueba el contenido real de la imagen con `getimagesize()`. Sube un fichero que combine una cabecera de imagen válida con código PHP al final (una imagen polimórfica) y comprueba si `getimagesize()` la detiene o no.
-
+<span class="et et-ext">Si te sobra tiempo</span> Corrige la inyección de comandos con una lista blanca: valida que el dato es una dirección IP antes de construir el comando (`filter_var($ip, FILTER_VALIDATE_IP)`) y, aun así, escapa el argumento con `escapeshellarg()` por si el validador tuviera un caso no previsto; el fichero es `.../exec/source/low.php`. Repite el ataque (ahora se rechaza) y comprueba que una IP correcta sigue funcionando: la corrección no puede romper el uso legítimo. Después, en **File Upload**, nivel **High**, mira **View Source**: comprueba el contenido real de la imagen con `getimagesize()`. Sube un fichero que combine una cabecera de imagen válida con código PHP al final (una imagen polimórfica) y comprueba si `getimagesize()` la detiene o no.
 
 ## Sesión 22 · Inyección SQL
 
 <p class="ut-meta" markdown>21 de diciembre · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Cómo se produce una inyección SQL · 15 min&#10;Consultas parametrizadas · 10 min&#10;A3.8 Inyección SQL · 85 min" data-dur="Cómo se produce una inyección SQL · 15 min&#10;Consultas parametrizadas · 10 min&#10;A3.8 Inyección SQL · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión se ha explotado la inyección SQL en DVWA (Low y Medium) con la técnica UNION para leer la tabla de usuarios, y se han resuelto en PortSwigger Academy los primeros laboratorios de nivel Apprentice de esta categoría. Antes se ve cómo una consulta se altera con datos del usuario, y después la corrección que cierra el problema del todo: la consulta parametrizada.
+Al acabar esta sesión se ha explotado la inyección SQL en DVWA (Low y Medium) con la técnica UNION para leer la tabla de usuarios, que es un tutorial más de ACT_UT3_2, y se han resuelto en PortSwigger Academy los cinco primeros laboratorios de la categoría (los dos Apprentice y los tres Practitioner de UNION), que abren ACT_UT3_3. Antes se ve cómo una consulta se altera con datos del usuario, y después la corrección que cierra el problema del todo: la consulta parametrizada.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
     - [Laboratorios de inyección SQL de PortSwigger](https://portswigger.net/web-security/all-labs#sql-injection): niveles Apprentice y Practitioner.
     - [DVWA](https://github.com/digininja/DVWA): para practicar la técnica UNION viendo el código vulnerable y su corrección.
-    - El enunciado de la entrega ACT_UT3_3 está en el aula.
+    - El enunciado de la entrega ACT_UT3_3, «RA3.3 SQL Injection», en el aula.
 
 ### Cómo se produce una inyección SQL
 
@@ -841,47 +840,44 @@ Con esta forma, un valor como `1' OR '1'='1` no altera la consulta: se busca lit
 
 ### A3.8 Inyección SQL (sesión 22)
 
-<span class="et et-obj">Objetivo</span> La inyección SQL de DVWA explotada con la técnica UNION en Low y en Medium, hasta leer usuario y contraseña de la tabla `users`, y los cinco laboratorios Apprentice de la categoría *SQL injection* de PortSwigger Academy resueltos y con su captura "Solved".
+<span class="et et-obj">Objetivo</span> Los cinco primeros laboratorios de la categoría *SQL injection* de PortSwigger Academy (los dos de nivel Apprentice y los tres Practitioner de la técnica UNION) resueltos, con su captura *Not solved* y *Solved*: es el comienzo del punto 3.1 del enunciado de ACT_UT3_3, «RA3.3 SQL Injection». Antes, para ver el fallo en el código, el módulo SQL Injection de DVWA explotado con UNION en Low y en Medium hasta leer usuario y contraseña de la tabla `users`, que es un tutorial más del punto 3.1 de ACT_UT3_2.
 
-<span class="et et-pre">Antes de empezar</span> DVWA en marcha. Cuenta creada en PortSwigger Academy con el correo `@alu.edu.gva.es` ([cuentas y repositorios](../laboratorio.md#cuentas-y-repositorios)). Se ha explicado [cómo se produce una inyección SQL](#como-se-produce-una-inyeccion-sql) y [las consultas parametrizadas](#consultas-parametrizadas).
+<span class="et et-pre">Antes de empezar</span> DVWA en marcha. Cuenta creada en PortSwigger Academy con el correo `@alu.edu.gva.es` ([cuentas y repositorios](../laboratorio.md#cuentas-y-repositorios)): sin iniciar sesión, la Academy no guarda el progreso y la captura *Solved* no vale. Se ha explicado [cómo se produce una inyección SQL](#como-se-produce-una-inyeccion-sql) y [las consultas parametrizadas](#consultas-parametrizadas).
 
 <span class="et et-pas">Pasos</span>
 
-1. **Inyección SQL en DVWA, Low.** Averigua el número de columnas de la consulta y después usa la técnica UNION para leer usuario y contraseña de todos los usuarios de la tabla `users`. Anota que las contraseñas salen como hash, no en claro. En **View Source**, localiza la línea que mete el valor en el texto SQL. [Cómo se guardan bien las contraseñas](#sesion-25-contrasenas-seguras-y-proteccion-frente-a-bots) se trabaja el 18 de enero.
+Primero DVWA, porque deja ver el código vulnerable y la consulta que se altera; después los laboratorios, que no enseñan el código pero aplican la misma técnica sobre aplicaciones distintas. Los laboratorios van en el orden de la lista de la Academy, que es el de la tabla del enunciado.
+
+1. **SQL Injection de DVWA, Low (ACT_UT3_2, punto 3.1).** Averigua el número de columnas de la consulta y después usa la técnica UNION para leer usuario y contraseña de todos los usuarios de la tabla `users`. Anota que las contraseñas salen como hash, no en claro. En **View Source**, localiza la línea que mete el valor en el texto SQL. [Cómo se guardan bien las contraseñas](#sesion-25-contrasenas-seguras-y-proteccion-frente-a-bots) se trabaja el 18 de enero.
 
     *Pista:* el número de columnas se tantea con `ORDER BY 1`, `ORDER BY 2`... hasta el error, o con `UNION SELECT NULL`, `NULL,NULL`...; el `-- -` comenta el resto de la consulta original.
 
-2. **Medium.** El campo es ahora un desplegable y la petición va por `POST`: repite la inyección con `curl`. En **View Source**, localiza `mysqli_real_escape_string` y anota por qué no protege aquí.
+2. **SQL Injection de DVWA, Medium (ACT_UT3_2, punto 3.1).** El campo es ahora un desplegable y la petición va por `POST`: repite la inyección con `curl`. En **View Source**, localiza `mysqli_real_escape_string` y anota por qué no protege aquí.
 
     *Pista:* en Medium el `id` se usa sin comillas en la consulta, así que escapar comillas no cambia nada; por eso la inyección no necesita comillas.
 
-3. Entra en tu cuenta de PortSwigger Academy y resuelve, por este orden, los cinco laboratorios de nivel Apprentice de la categoría *SQL injection* (<https://portswigger.net/web-security/all-labs#sql-injection>), aplicando la misma técnica de los pasos 1 y 2 sobre el campo vulnerable de cada uno. Captura cada uno en estado **Solved** y anota el payload usado.
-    - *SQL injection vulnerability in WHERE clause allowing retrieval of hidden data*
-    - *SQL injection vulnerability allowing login bypass*
-    - *SQL injection UNION attack, determining the number of columns returned by the query*
-    - *SQL injection UNION attack, finding a column containing text*
-    - *SQL injection UNION attack, retrieving data from other tables*
-4. Rellena la tabla de la hoja (laboratorio o explotación, técnica, resultado) y escribe el `README.md` con las capturas de DVWA (pasos 1 y 2) y de PortSwigger (paso 3). `git add`, `git commit`, `git push`.
+3. **Laboratorios Apprentice (ACT_UT3_3, punto 3.1).** Entra en tu cuenta de PortSwigger Academy y resuelve los dos laboratorios de nivel Apprentice de *SQL injection* (<https://portswigger.net/web-security/all-labs#sql-injection>), *SQL injection vulnerability in WHERE clause allowing retrieval of hidden data* y *SQL injection vulnerability allowing login bypass*. Captura cada uno en estado *Not solved* al abrirlo y *Solved* al terminar, y anota el payload usado.
+4. **Laboratorios UNION (ACT_UT3_3, punto 3.1).** Resuelve, por este orden, los tres primeros de nivel Practitioner, que aplican la técnica de los pasos 1 y 2 sobre el campo vulnerable de cada uno: *SQL injection UNION attack, determining the number of columns returned by the query*, *SQL injection UNION attack, finding a column containing text* y *SQL injection UNION attack, retrieving data from other tables*. Las mismas capturas y el payload.
+5. **Documentación.** Escribe el `README.md` con una sección para DVWA (pasos 1 y 2: comandos, capturas y la línea de código del fallo), que va a ACT_UT3_2, y otra para los laboratorios (pasos 3 y 4: una fila por laboratorio con su payload y las dos capturas), que es el principio del PDF de ACT_UT3_3. Súbelo a `pps-entregas`.
 
-<span class="et et-com">Comprobación</span> El UNION del paso 1 devuelve los cinco usuarios de DVWA con sus hashes; el paso 2 confirma que Medium sigue siendo vulnerable con el mismo UNION sin comillas; los cinco laboratorios del paso 3 aparecen como **Solved** en tu cuenta. Si un laboratorio de PortSwigger no arranca la instancia, espera unos segundos y recarga: la infraestructura de la Academy tarda en aprovisionar cada intento.
+<span class="et et-com">Comprobación</span> El UNION del paso 1 devuelve los cinco usuarios de DVWA con sus hashes; el paso 2 confirma que Medium sigue siendo vulnerable con el mismo UNION sin comillas; los cinco laboratorios de los pasos 3 y 4 aparecen como **Solved** en tu cuenta. Si un laboratorio de PortSwigger no arranca la instancia, espera unos segundos y recarga: la infraestructura de la Academy tarda en aprovisionar cada intento.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a38/` de `pps-entregas` la tabla, las capturas y el `README.md`. Lo recoge la entrega **ACT_UT3_3 · SQL Injection** (plazo, el 25 de enero), que empieza con esta hoja: completa en casa antes de ese plazo el resto de laboratorios Apprentice y Practitioner de la categoría (los que no exigen Burp Suite Professional), con el documento final en el formato de la entrega.
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a38/` de `pps-entregas` las capturas y el `README.md`. La parte de DVWA la recoge la entrega **ACT_UT3_2 · DVWA** (plazo, el 11 de enero). La de PortSwigger empieza la entrega **ACT_UT3_3 · SQL Injection** (plazo, el 25 de enero): el enunciado fija 18 laboratorios (2 Apprentice y 16 Practitioner), así que completa en casa antes de ese plazo los trece Practitioner que faltan, salvo los que exigen Burp Suite Professional, y monta el PDF con el formato de la normativa.
 
-<span class="et et-ext">Si te sobra tiempo</span> En DVWA, nivel **High**, mira `View Source`: usa `LIMIT 1` para devolver una sola fila. Averigua cómo se sigue extrayendo la tabla completa a pesar del límite (pista: el UNION se repite cambiando qué fila se pide, o se concatenan varias filas en un solo campo con una función de agregación).
-
+<span class="et et-ext">Si te sobra tiempo</span> En DVWA, nivel **High**, mira **View Source**: usa `LIMIT 1` para devolver una sola fila. Averigua cómo se sigue extrayendo la tabla completa a pesar del límite (pista: el UNION se repite cambiando qué fila se pide, o se concatenan varias filas en un solo campo con una función de agregación). Para la corrección, cambia la consulta de **Low** por la consulta parametrizada de [Consultas parametrizadas](#consultas-parametrizadas) y comprueba que el mismo UNION ya no devuelve nada.
 
 ## Sesión 23 · Burp Suite: interceptar y repetir
 
 <p class="ut-meta" markdown>11 de enero · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Qué hace Burp Suite · 15 min&#10;A3.9 Burp Suite y autenticación · 95 min" data-dur="Qué hace Burp Suite · 15 min&#10;A3.9 Burp Suite y autenticación · 95 min">:material-school:<i class="dur-barra" style="--teoria:14%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión Burp Suite Community está configurado en `pps01` como proxy del navegador, se ha interceptado y modificado una petición a DVWA con Proxy, se ha reenviado con Repeater cambiando un parámetro, y se han resuelto en PortSwigger Academy los primeros laboratorios de autenticación. Antes se ve qué hace cada módulo de Burp, y después se practica con el tráfico propio antes de usarlo contra los laboratorios.
+Al acabar esta sesión Burp Suite Community está configurado en `pps01` como proxy del navegador, y con Proxy, Repeater e Intruder se han resuelto los tres laboratorios de nivel Apprentice de autenticación de PortSwigger Academy, que abren ACT_UT3_4. Antes se ve qué hace cada módulo de Burp, y después se aprende a usarlo sobre el primer laboratorio.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
     - [Documentación de Burp Suite](https://portswigger.net/burp/documentation/desktop/getting-started): la herramienta.
     - [Laboratorios de PortSwigger](https://portswigger.net/web-security/all-labs): la categoría de autenticación.
-    - El enunciado de la entrega ACT_UT3_4 está en el aula.
+    - El enunciado de la entrega ACT_UT3_4, «RA3.4.1 Burp Suite - Server Side», en el aula.
 
 ### Qué hace Burp Suite
 
@@ -917,38 +913,36 @@ Para que Burp vea el tráfico HTTPS sin que el navegador avise de un certificado
 
 ### A3.9 Burp Suite y autenticación (sesión 23)
 
-<span class="et et-obj">Objetivo</span> Burp Suite Community en `pps01`, con el navegador configurado para pasar por su proxy en el puerto 8085 y su certificado instalado; una petición a DVWA interceptada, modificada y reenviada con Repeater; y los dos primeros laboratorios de nivel Apprentice de la categoría *Authentication* de PortSwigger Academy resueltos con Burp.
+<span class="et et-obj">Objetivo</span> Burp Suite Community en `pps01`, con el navegador configurado para pasar por su proxy en el puerto 8085 y su certificado instalado, y los tres laboratorios de nivel Apprentice de la categoría *Authentication* de PortSwigger Academy resueltos con Burp, con su captura *Not solved* y *Solved*. Es el comienzo de la categoría 1 del punto 3.1 del enunciado de ACT_UT3_4, «RA3.4.1 Burp Suite - Server Side».
 
-<span class="et et-pre">Antes de empezar</span> Burp Suite Community instalado en `pps01` con el instalador para Linux de <https://portswigger.net/burp/releases> (no existe paquete `snap` con ese nombre; el instalador pesa varios cientos de MB, así que conviene descargarlo antes de la clase y no con treinta equipos a la vez). Cuenta de PortSwigger Academy creada. DVWA en marcha. Se ha explicado [qué hace Burp Suite](#que-hace-burp-suite).
+<span class="et et-pre">Antes de empezar</span> Burp Suite Community instalado en `pps01` con el instalador para Linux de <https://portswigger.net/burp/releases> (no existe paquete `snap` con ese nombre; el instalador pesa varios cientos de MB, así que conviene descargarlo antes de la clase y no con treinta equipos a la vez). Cuenta de PortSwigger Academy creada e iniciada. Se ha explicado [qué hace Burp Suite](#que-hace-burp-suite).
 
 <span class="et et-pas">Pasos</span>
 
-1. Abre Burp y configura el navegador para pasar por su proxy en `127.0.0.1:8085`, con el certificado de la CA de Burp importado en el almacén del navegador.
+Primero la herramienta, y después los laboratorios en el orden de la lista de la Academy. El primero se resuelve usando los tres módulos por orden (Proxy para ver la petición, Repeater para cambiarla a mano e Intruder para automatizar lo que se ha hecho a mano), porque es la forma de trabajar de todos los demás.
+
+1. **Burp como proxy (preparación del punto 3.1).** Abre Burp y configura el navegador para pasar por su proxy en `127.0.0.1:8085`, con el certificado de la CA de Burp importado en el almacén del navegador.
 
     *Pista:* el listener está en **Proxy → Proxy settings** (créalo con **Add** si no existe). El certificado se descarga de `http://burp/cert` con el navegador ya apuntando al proxy, y se importa en el almacén de autoridades (Firefox usa el suyo, no el del sistema).
 
-2. Con **Intercept** activado, interrumpe el login de DVWA: cambia el valor de `username` en Burp y déjalo pasar con **Forward**. Comprueba que DVWA responde con el valor que pusiste en Burp, no el del formulario: es la prueba de que Burp modifica de verdad lo que llega al servidor.
-3. Desactiva **Intercept**, repite un login válido y envía esa petición a **Repeater**. Cambia el valor de `password` por uno incorrecto, reenvía y anota qué texto de la respuesta distingue un fallo de un éxito, porque es la base del laboratorio siguiente.
-4. En PortSwigger Academy (con el navegador pasando por el proxy de Burp) resuelve los dos primeros laboratorios de nivel Apprentice de *Authentication* usando **Intruder** (ataque *Sniper*) con las listas que da cada laboratorio:
-    - *Username enumeration via different responses*
-    - *Username enumeration via subtly different responses*
+2. **Username enumeration via different responses (punto 3.1, Authentication).** Con **Intercept** activado, interrumpe un intento de login del laboratorio, cambia el usuario en Burp y déjalo pasar con **Forward**: la respuesta corresponde al valor de Burp, no al del formulario. Envía la petición a **Repeater** y anota qué texto de la respuesta cambia según el usuario exista o no. Con esa diferencia, usa **Intruder** (ataque *Sniper*) con las listas que da el laboratorio para encontrar primero el usuario y después la contraseña.
 
-    *Pista:* el Intruder de Community es lento; lánzalo pronto y, mientras corre, sigue con el otro. Si la diferencia entre respuestas es sutil (un carácter, un tiempo), compáralas con **Comparer**.
+    *Pista:* el Intruder de Community es lento; lánzalo pronto. Si la diferencia entre respuestas es pequeña (un carácter, una longitud), ordena los resultados por longitud o compáralas con **Comparer**.
 
-5. Captura cada laboratorio en estado **Solved** y escribe el `README.md` con la captura del paso 2 (la petición modificada) y las del paso 4. `git add`, `git commit`, `git push`.
+3. **2FA simple bypass y Password reset broken logic (punto 3.1, Authentication).** En el primero, recorre en **HTTP history** el flujo de login con segundo factor y comprueba si el servidor exige de verdad ese paso pidiendo directamente la página posterior. En el segundo, con **Repeater**, observa qué parámetros lleva la petición que fija la contraseña nueva y cuáles comprueba realmente el servidor.
+4. **Documentación (punto 3.1).** Guarda de cada laboratorio la captura *Not solved* al empezar, la de *Solved* al terminar y la de la petición de Burp que lo resuelve, y escribe el `README.md` con ellas y una línea por laboratorio sobre qué fallaba. Súbelo a `pps-entregas`.
 
-<span class="et et-com">Comprobación</span> La petición del paso 2 llega a DVWA con el valor cambiado en Burp, no el escrito en el navegador; el paso 3 identifica el texto que distingue éxito de fallo; los dos laboratorios del paso 4 quedan en **Solved**. Si el navegador avisa de que el sitio no es seguro tras el paso 1, el certificado no se ha importado en el almacén correcto ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
+<span class="et et-com">Comprobación</span> La petición interceptada en el paso 2 llega al laboratorio con el valor cambiado en Burp, no el escrito en el navegador; Repeater muestra el texto que distingue un usuario válido; los tres laboratorios quedan en **Solved**. Si el navegador avisa de que el sitio no es seguro tras el paso 1, el certificado no se ha importado en el almacén correcto ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a39/` de `pps-entregas` las capturas y el `README.md`. Lo recoge, con la [A3.10](#a310-burp-control-de-acceso-y-servidor-sesion-24), la entrega **ACT_UT3_4 · Burp Suite, lado servidor** (plazo, el 25 de enero).
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a39/` de `pps-entregas` las capturas y el `README.md`. Lo recoge, con la [A3.10](#a310-burp-control-de-acceso-y-servidor-sesion-24), la entrega **ACT_UT3_4 · Burp Suite, lado servidor** (plazo, el 25 de enero). Los nueve Practitioner de *Authentication* que fija el enunciado se completan en casa antes del plazo.
 
-<span class="et et-ext">Si te sobra tiempo</span> En PortSwigger, resuelve *2FA simple bypass* (categoría *Authentication*, subcategoría *Multi-factor*): tras superar la contraseña, navega directamente a la página posterior al segundo factor sin completarlo, y observa con Burp si el servidor comprueba de verdad que ese paso se ha cumplido.
-
+<span class="et et-ext">Si te sobra tiempo</span> Resuelve *Username enumeration via subtly different responses*, el primer Practitioner de *Authentication*: la diferencia es un solo carácter, y en Intruder se encuentra con **Settings → Grep - Extract** sobre el mensaje de error. Después practica Proxy y Repeater con tu propio tráfico: intercepta el login de DVWA, cambia `username` en Burp y comprueba que DVWA responde con el valor que pusiste en Burp; en Repeater, cambia `password` por uno incorrecto y anota qué texto distingue el fallo del éxito.
 
 ## Sesión 24 · Control de acceso y vulnerabilidades del servidor
 
 <p class="ut-meta" markdown>14 de enero · Teoría y práctica · <span class="dur" tabindex="0" aria-label="Control de acceso y roles · 10 min&#10;IDOR y escalada de privilegios · 10 min&#10;SSRF y divulgación de información · 5 min&#10;A3.10 Burp: control de acceso y servidor · 85 min" data-dur="Control de acceso y roles · 10 min&#10;IDOR y escalada de privilegios · 10 min&#10;SSRF y divulgación de información · 5 min&#10;A3.10 Burp: control de acceso y servidor · 85 min">:material-school:<i class="dur-barra" style="--teoria:23%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión se han resuelto en PortSwigger Academy laboratorios de control de acceso, recorrido de ruta, inyección de comandos, divulgación de información y SSRF, usando Burp Suite para inspeccionar y modificar las peticiones. Antes se ve qué es el control de acceso por roles y cómo falla (IDOR, escalada), y después dos vulnerabilidades del lado del servidor que no se han visto todavía: la divulgación de información y el SSRF.
+Al acabar esta sesión se han resuelto en PortSwigger Academy los primeros laboratorios de control de acceso, recorrido de ruta, inyección de comandos, divulgación de información y SSRF, cinco de las ocho categorías de ACT_UT3_4, usando Burp Suite para inspeccionar y modificar las peticiones. Antes se ve qué es el control de acceso por roles y cómo falla (IDOR, escalada), y después dos vulnerabilidades del lado del servidor que no se han visto todavía: la divulgación de información y el SSRF.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
@@ -1002,24 +996,26 @@ El servidor, que sí puede llegar a esa dirección interna, hace la petición po
 
 ### A3.10 Burp: control de acceso y servidor (sesión 24)
 
-<span class="et et-obj">Objetivo</span> Seis laboratorios de PortSwigger Academy resueltos con Burp Suite (dos de control de acceso, uno de recorrido de ruta, uno de inyección de comandos, uno de divulgación de información y uno de SSRF), con la petición interceptada o repetida como evidencia de cada uno, y la matriz de roles y las correcciones documentadas.
+<span class="et et-obj">Objetivo</span> Seis laboratorios de nivel Apprentice de PortSwigger Academy resueltos con Burp Suite (dos de control de acceso, uno de recorrido de ruta, uno de inyección de comandos, uno de divulgación de información y uno de SSRF), cada uno con su captura *Not solved* y *Solved* y la petición de Burp que lo resuelve. Abren cinco de las ocho categorías del punto 3.1 del enunciado de ACT_UT3_4.
 
 <span class="et et-pre">Antes de empezar</span> Burp Suite configurado como en la [A3.9](#a39-burp-suite-y-autenticacion-sesion-23), con el navegador apuntando a `127.0.0.1:8085`. Se han explicado [el control de acceso por roles](#control-de-acceso-y-roles), [el IDOR y la escalada de privilegios](#idor-y-escalada-de-privilegios) y [la divulgación de información y el SSRF](#divulgacion-de-informacion-y-ssrf).
 
 <span class="et et-pas">Pasos</span>
 
-1. Resuelve *Unprotected admin functionality* (*Access control*): busca en el código fuente de la página de inicio la pista hacia una ruta de administración no enlazada y pídela directamente.
-2. Resuelve *User ID controlled by request parameter* (*Access control*): con **Repeater**, cambia el identificador de usuario de la petición que carga tu perfil por el del usuario objetivo. Es un IDOR de manual.
-3. Resuelve *File path traversal, simple case*: en la petición que pide una imagen por nombre de fichero, sustituye con Repeater el nombre por una ruta con recorrido hasta un fichero del sistema.
-4. Resuelve *OS command injection, simple case*: con Repeater, añade un separador de comandos (como en la [A3.7](#a37-dvwa-comandos-y-ficheros-sesion-21)) al campo que ejecuta un comando, para correr el que pide el enunciado.
-5. Resuelve *Information disclosure in error messages* y *Basic SSRF against the local server*: en el primero, provoca un error que revele un dato interno; en el segundo, con Repeater, cambia la URL del formulario de comprobación de stock por la del recurso interno que pide el enunciado.
-6. Captura cada laboratorio en **Solved** junto con la petición de Burp que lo resuelve. Para el CE d, añade al `README.md` la matriz de roles de la tienda de los pasos 1 y 2 (filas: anónimo, usuario, administrador; columnas: `/admin`, `/my-account?id=...` propio y ajeno) con lo que la aplicación permite y lo que debería permitir, indica qué pasos son escalada vertical (1) y horizontal (2) y da la corrección de cada laboratorio en una línea (comprobar rol y propietario en el servidor y denegar por defecto; lista blanca en la ruta, el comando y la URL; error genérico). Haz `git add`, `git commit`, `git push`.
+Un laboratorio de nivel Apprentice por categoría, el primero de su lista, para aprender a reconocer cada fallo con Burp; el resto de cada categoría sigue el mismo método y se completa en casa. Se empieza por control de acceso porque sus dos laboratorios no necesitan más que pedir una URL o cambiar un número.
 
-<span class="et et-com">Comprobación</span> Los seis laboratorios quedan en **Solved**, la matriz de roles está en el `README.md`, y cada captura muestra en Burp la petición concreta (con el parámetro cambiado) que produjo el resultado. Si un laboratorio no carga la instancia, espera y recarga: la Academy la aprovisiona bajo demanda.
+1. **Access control (punto 3.1, categoría 5).** Resuelve *Unprotected admin functionality* (*Access control*): busca en el código fuente de la página de inicio la pista hacia una ruta de administración no enlazada y pídela directamente.
+2. **Access control, IDOR (punto 3.1, categoría 5).** Resuelve *User ID controlled by request parameter*: con **Repeater**, cambia el identificador de usuario de la petición que carga tu perfil por el del usuario objetivo. Es un IDOR de manual.
+3. **File Path Traversal (punto 3.1, categoría 2).** Resuelve *File path traversal, simple case*: en la petición que pide una imagen por nombre de fichero, sustituye con Repeater el nombre por una ruta con recorrido hasta un fichero del sistema.
+4. **OS Command Injection (punto 3.1, categoría 3).** Resuelve *OS command injection, simple case*: con Repeater, añade un separador de comandos (como en la [A3.7](#a37-dvwa-comandos-y-ficheros-sesion-21)) al campo que ejecuta un comando, para correr el que pide el enunciado.
+5. **Information Disclosure y SSRF (punto 3.1, categorías 4 y 7).** Resuelve *Information disclosure in error messages* y *Basic SSRF against the local server*: en el primero, provoca un error que revele un dato interno; en el segundo, con Repeater, cambia la URL del formulario de comprobación de stock por la del recurso interno que pide el enunciado.
+6. **Documentación (punto 3.1).** Guarda de cada laboratorio la captura *Not solved* al empezar, la de *Solved* al terminar y la de la petición de Burp con el parámetro cambiado, y escribe el `README.md` con ellas agrupadas por categoría. Súbelo a `pps-entregas`.
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a310/` de `pps-entregas` las capturas y el `README.md`. Lo recoge, con la [A3.9](#a39-burp-suite-y-autenticacion-sesion-23), la entrega **ACT_UT3_4 · Burp Suite, lado servidor** (plazo, el 25 de enero). Completa en casa antes del plazo, con el mismo formato de captura, los laboratorios Apprentice y Practitioner de *File upload* y *API testing* que faltan (fuera de los que exigen Burp Suite Professional).
+<span class="et et-com">Comprobación</span> Los seis laboratorios quedan en **Solved** y cada captura muestra en Burp la petición concreta (con el parámetro cambiado) que produjo el resultado. Si un laboratorio no carga la instancia, espera y recarga: la Academy la aprovisiona bajo demanda.
 
-<span class="et et-ext">Si te sobra tiempo</span> Resuelve *Basic SSRF against another back-end system* (hay que recorrer un rango de direcciones internas con Intruder), *User ID controlled by request parameter with password disclosure* (misma categoría que el paso 2, un paso más allá) y *Information disclosure in version control history* (un repositorio `.git` accesible por HTTP): con Burp, pide `/.git/` y compara con lo que pasaría si el despliegue no hubiera dejado esa carpeta dentro de la raíz de documentos.
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a310/` de `pps-entregas` las capturas y el `README.md`. Lo recoge, con la [A3.9](#a39-burp-suite-y-autenticacion-sesion-23), la entrega **ACT_UT3_4 · Burp Suite, lado servidor** (plazo, el 25 de enero). Completa en casa antes del plazo, con el mismo formato de captura, el resto de laboratorios que fija la tabla del enunciado en las ocho categorías, incluidas *File upload* y *API testing*, que no se tocan en clase (fuera de los que exigen Burp Suite Professional).
+
+<span class="et et-ext">Si te sobra tiempo</span> Añade al `README.md` la matriz de roles de la tienda de los pasos 1 y 2 (filas: anónimo, usuario, administrador; columnas: `/admin`, `/my-account?id=...` propio y ajeno) con lo que la aplicación permite y lo que debería permitir, indica qué paso es escalada vertical (1) y cuál horizontal (2), y da la corrección de cada laboratorio en una línea (comprobar rol y propietario en el servidor y denegar por defecto; lista blanca en la ruta, el comando y la URL; error genérico). Después resuelve *Basic SSRF against another back-end system* (hay que recorrer un rango de direcciones internas con Intruder), *User ID controlled by request parameter with password disclosure* (misma categoría que el paso 2, un paso más allá) y *Information disclosure in version control history* (un repositorio `.git` accesible por HTTP): con Burp, pide `/.git/` y compara con lo que pasaría si el despliegue no hubiera dejado esa carpeta dentro de la raíz de documentos.
 
 ## Sesión 25 · Contraseñas seguras y protección frente a bots
 
@@ -1084,7 +1080,7 @@ flowchart TB
 - **`fail2ban` sobre el log de Apache.** Mientras la aplicación limita a nivel de cuenta, `fail2ban` vigila el log del servidor web y bloquea a nivel de red: lee las líneas que marcan un intento fallido y, al superar un umbral en una ventana de tiempo, añade una regla de cortafuegos que corta esa IP durante un periodo. Actúa aunque el atacante cambie de cuenta en cada intento, porque mira la IP contra el servidor entero.
 
 !!! examen "Qué se evalúa"
-    RA3 CE e (algoritmos criptográficos seguros para contraseñas) y CE g (medidas contra fuerza bruta, envío masivo y registros automáticos). La entrega **ACT_UT3_6**, que recoge esta hoja, pesa por sí sola los dos criterios: no hay otra hoja de la unidad que los cubra.
+    RA3 CE e (algoritmos criptográficos seguros para contraseñas) y CE g (medidas contra fuerza bruta, envío masivo y registros automáticos). La entrega **ACT_UT3_6**, que recoge esta hoja, es la única de la unidad que guarda contraseñas y frena bots: los enunciados de las demás citan el CE e entre sus criterios, pero ninguna hoja lo trabaja de lleno, y el g no lo cita ninguna.
 
 ### A3.11 Contraseñas y protección frente a bots (sesión 25)
 
@@ -1212,13 +1208,13 @@ flowchart TB
 
 <p class="ut-meta" markdown>21 de enero · Teoría y práctica · <span class="dur" tabindex="0" aria-label="CSRF desde el atacante y desde el desarrollador · 5 min&#10;CORS y la política del mismo origen · 5 min&#10;XSS basado en DOM en los laboratorios · 5 min&#10;A3.12 Burp: lado cliente · 95 min" data-dur="CSRF desde el atacante y desde el desarrollador · 5 min&#10;CORS y la política del mismo origen · 5 min&#10;XSS basado en DOM en los laboratorios · 5 min&#10;A3.12 Burp: lado cliente · 95 min">:material-school:<i class="dur-barra" style="--teoria:14%"></i>:material-flask:</span></p>
 
-Al acabar esta sesión se han resuelto en PortSwigger Academy seis laboratorios del lado cliente (CSRF, CORS y XSS, con dos de ellos basados en DOM), se tiene en Burp la petición que resuelve cada uno y se sabe qué corrección aplica el desarrollador en cada caso. La teoría no repite cómo funcionan el [XSS](#xss-reflejado-almacenado-y-basado-en-dom) y el [CSRF](#csrf-y-sus-contramedidas), ya vistos con DVWA: fija qué mira el atacante en cada fallo y qué cambia el desarrollador, que es lo que la hoja pide documentar.
+Al acabar esta sesión se han resuelto en PortSwigger Academy seis laboratorios del lado cliente (CSRF, CORS y XSS, con dos de ellos basados en DOM), y se tiene en Burp la petición que resuelve cada uno; son los primeros de las cuatro categorías de ACT_UT3_5. La teoría no repite cómo funcionan el [XSS](#xss-reflejado-almacenado-y-basado-en-dom) y el [CSRF](#csrf-y-sus-contramedidas), ya vistos con DVWA: fija qué mira el atacante en cada fallo, que es lo que guía cada laboratorio, y qué cambia el desarrollador, que es lo que pregunta el examen.
 
 !!! consulta "Recursos de la sesión"
     **Para la práctica**
 
     - [Laboratorios de PortSwigger](https://portswigger.net/web-security/all-labs): categorías [CSRF](https://portswigger.net/web-security/csrf), [CORS](https://portswigger.net/web-security/cors) y [vulnerabilidades del DOM](https://portswigger.net/web-security/dom-based).
-    - El enunciado de la entrega ACT_UT3_5 está en el aula.
+    - El enunciado de la entrega ACT_UT3_5, «RA3.4.2 Burp Suite - Client Side», en el aula.
 
 ### CSRF desde el atacante y desde el desarrollador
 
@@ -1271,36 +1267,38 @@ Una señal útil en Burp: la respuesta del servidor **no contiene** la cadena de
 
 ### A3.12 Burp: lado cliente (sesión 26)
 
-<span class="et et-obj">Objetivo</span> Seis laboratorios de PortSwigger Academy resueltos con Burp Suite (dos de CSRF, uno de CORS, uno de XSS reflejado y dos de XSS basado en DOM), con la petición de Burp y la captura *Not solved* a *Solved* de cada uno, y para cada uno la corrección que aplicaría el desarrollador.
+<span class="et et-obj">Objetivo</span> Seis laboratorios de PortSwigger Academy resueltos con Burp Suite (dos de CSRF, uno de CORS, uno de XSS reflejado y dos de XSS basado en DOM), con la petición de Burp y la captura *Not solved* a *Solved* de cada uno. Abren las cuatro categorías del punto 3.1 del enunciado de ACT_UT3_5; los dos de DOM de esta hoja están en la lista de la Academy dentro de *Cross-site scripting*, no de *DOM-based vulnerabilities*.
 
 <span class="et et-pre">Antes de empezar</span> Burp Suite configurado como en la [A3.9](#a39-burp-suite-y-autenticacion-sesion-23), con el navegador apuntando a `127.0.0.1:8085`, y la cuenta de PortSwigger Academy iniciada. Se han explicado [CSRF desde el atacante y desde el desarrollador](#csrf-desde-el-atacante-y-desde-el-desarrollador), [CORS y la política del mismo origen](#cors-y-la-politica-del-mismo-origen) y [XSS basado en DOM en los laboratorios](#xss-basado-en-dom-en-los-laboratorios), y antes [el XSS](#xss-reflejado-almacenado-y-basado-en-dom) y [el CSRF](#csrf-y-sus-contramedidas) con DVWA. Cada laboratorio da su **servidor de exploits** (botón *Go to exploit server*): es donde se aloja la página del atacante y no hace falta instalar nada.
 
 <span class="et et-pas">Pasos</span>
 
-1. Resuelve *CSRF vulnerability with no defenses* (Apprentice). Localiza en **Proxy → HTTP history** el `POST` que cambia el correo y móntalo en el servidor de exploits como un formulario que se envía solo al cargarse. Anota qué parámetro habría hecho falta que el atacante no conociera.
+Las categorías en el orden del enunciado (CSRF, CORS y después XSS), y dentro de cada una del laboratorio más simple al primero que tiene una defensa mal hecha, porque así se ve qué mira el atacante cuando la aplicación sí intenta protegerse.
+
+1. **CSRF sin defensas (punto 3.1, CSRF).** Resuelve *CSRF vulnerability with no defenses* (Apprentice). Localiza en **Proxy → HTTP history** el `POST` que cambia el correo y móntalo en el servidor de exploits como un formulario que se envía solo al cargarse. Anota qué parámetro habría hecho falta que el atacante no conociera.
 
     *Pista:* **Generate CSRF PoC** no está en Community; el molde está en la pestaña *Solution* del laboratorio, y se adapta la URL y el correo.
 
-2. Resuelve *CSRF where token validation depends on request method* (Practitioner). Con **Repeater**, comprueba que el token es obligatorio en `POST` pero no si cambias el método, y monta el exploit aprovechándolo. Anota qué comprobación faltaba en el servidor.
+2. **CSRF con token mal validado (punto 3.1, CSRF).** Resuelve *CSRF where token validation depends on request method* (Practitioner). Con **Repeater**, comprueba que el token es obligatorio en `POST` pero no si cambias el método, y monta el exploit aprovechándolo. Anota qué comprobación faltaba en el servidor.
 
     *Pista:* el método se cambia con el botón derecho, **Change request method**.
 
-3. Resuelve *CORS vulnerability with basic origin reflection* (Apprentice). Con Repeater, añade una cabecera `Origin` a la petición que devuelve los datos de la cuenta y comprueba que la respuesta la refleja; después monta en el servidor de exploits el script que lee esos datos con credenciales. Es el más largo: reserva unos 20 minutos.
+3. **CORS (punto 3.1, CORS).** Resuelve *CORS vulnerability with basic origin reflection* (Apprentice). Con Repeater, añade una cabecera `Origin` a la petición que devuelve los datos de la cuenta y comprueba que la respuesta la refleja; después monta en el servidor de exploits el script que lee esos datos con credenciales. Es el más largo: reserva unos 20 minutos.
 
     *Pista:* el molde del script está en la pestaña *Solution*; no lo copies sin entender qué hace cada línea.
 
-4. Resuelve *Reflected XSS into HTML context with nothing encoded* (Apprentice). Comprueba en Burp que la cadena de prueba vuelve **sin codificar**, que es lo que diferencia este caso de los de DOM.
-5. Resuelve *DOM XSS in document.write sink using source location.search* y *DOM XSS in innerHTML sink using source location.search* (Apprentice). En cada uno, localiza en el JavaScript la fuente y el sumidero antes de escribir el vector, y comprueba en Burp que la respuesta del servidor no trae la cadena.
+4. **XSS reflejado (punto 3.1, Cross-site scripting).** Resuelve *Reflected XSS into HTML context with nothing encoded* (Apprentice). Comprueba en Burp que la cadena de prueba vuelve **sin codificar**, que es lo que diferencia este caso de los de DOM.
+5. **XSS basado en DOM (punto 3.1, Cross-site scripting).** Resuelve *DOM XSS in document.write sink using source location.search* y *DOM XSS in innerHTML sink using source location.search* (Apprentice). En cada uno, localiza en el JavaScript la fuente y el sumidero antes de escribir el vector, y comprueba en Burp que la respuesta del servidor no trae la cadena.
 
     *Pista:* con `innerHTML` un `<script>` no se ejecuta; hay que usar un elemento con un evento.
 
-6. Escribe el `README.md` de la hoja con una tabla de seis filas: laboratorio, petición de Burp que lo resuelve y la corrección del desarrollador en una línea (token comprobado en cualquier método, lista blanca de orígenes, codificación de salida, `textContent`). Guarda las capturas *Not solved* y *Solved* y haz `git add`, `git commit` y `git push`.
+6. **Documentación (punto 3.1).** Guarda de cada laboratorio la captura *Not solved* al empezar, la de *Solved* al terminar y la de la petición de Burp o la cadena que lo resuelve, y escribe el `README.md` de la hoja con ellas agrupadas por categoría. Súbelo a `pps-entregas`.
 
 <span class="et et-com">Comprobación</span> Los seis laboratorios aparecen como **Solved** en el perfil de la Academy y cada captura muestra la petición o la cadena que lo resolvió. Si el laboratorio no carga o el servidor de exploits no responde, espera un minuto y recarga: la Academy aprovisiona la instancia bajo demanda y caduca a los pocos minutos de inactividad. Si Burp intercepta y bloquea la carga de la página, desactiva **Intercept** ([Errores frecuentes](#errores-frecuentes-en-el-laboratorio)).
 
-<span class="et et-ent">Para practicar</span> Guarda en `ut3/a312/` de `pps-entregas` el `README.md` y las capturas. Lo recoge la entrega **ACT_UT3_5 · Burp Suite, lado cliente** (plazo, el 25 de enero), que no tiene otra hoja y pide en la tarea de Aules un documento en PDF con el formato de la *Normativa de entrega* y las capturas *Not solved* a *Solved* de **todos** los laboratorios. En clase haces los seis de esta hoja; completa **en casa antes del plazo** el resto de laboratorios Apprentice y Practitioner de las categorías CSRF, CORS, DOM-based y Cross-site scripting (salvo los que exigen Burp Suite Professional), porque la nota es la regla de tres sobre el total de laboratorios.
+<span class="et et-ent">Para practicar</span> Guarda en `ut3/a312/` de `pps-entregas` el `README.md` y las capturas. Lo recoge la entrega **ACT_UT3_5 · Burp Suite, lado cliente** (plazo, el 25 de enero), que no tiene otra hoja: su enunciado, «RA3.4.2 Burp Suite - Client Side», pide un documento con el formato de la normativa y las capturas *Not solved* a *Solved* de **todos** los laboratorios que fija su tabla. En clase haces los seis de esta hoja; completa **en casa antes del plazo** el resto de laboratorios Apprentice y Practitioner de las categorías CSRF, CORS, DOM-based y Cross-site scripting (salvo los que exigen Burp Suite Professional), porque la nota es la regla de tres sobre el total.
 
-<span class="et et-ext">Si te sobra tiempo</span> Resuelve *CSRF where token is not tied to user session* (Practitioner): con dos cuentas, comprueba que el token de una vale para la otra, y anota por qué un token que no se une a la sesión no protege.
+<span class="et et-ext">Si te sobra tiempo</span> Añade al `README.md` una tabla con la corrección del desarrollador para cada uno de los seis laboratorios, en una línea (token comprobado en cualquier método, lista blanca de orígenes, codificación de salida, `textContent`), que es lo que pregunta el examen. Después resuelve *CSRF where token is not tied to user session* (Practitioner): con dos cuentas, comprueba que el token de una vale para la otra, y anota por qué un token que no se une a la sesión no protege.
 
 ## Sesión 27 · Margen y repaso de la unidad 3
 
@@ -1327,101 +1325,146 @@ Sesión sin contenido nuevo y sin hoja. Sirve para recuperar lo que se haya perd
 
 ## Prácticas evaluables de la unidad
 
-Las prácticas evaluables de la unidad no tienen sesión propia ni piden trabajo nuevo: cada entrega se construye con las hojas que se indican y se cierra en su plazo. La evidencia de cada hoja ya está en su carpeta de `pps-entregas`; lo que se sube a Aules es la carpeta o el documento que la resume. Todos los plazos terminan a las **23:59 (hora de Madrid)** del día indicado. Fuera de plazo y sin causa justificada, la entrega se corrige sobre el 50 %. El plazo no se mueve aunque se pierda una clase: en ese caso se recupera el contenido en la sesión 27 de margen o en casa.
+La unidad tiene seis entregas, ACT_UT3_1 a ACT_UT3_6, y ninguna tiene sesión propia: cada una se construye con las hojas de las que sale y se cierra por su plazo. La A3.1 (Apache y HTTP) no se califica: es la base de las imágenes de ACT_UT3_1. **Las cinco primeras entregas tienen en el aula su enunciado en PDF, y lo que dice ese enunciado es lo que se entrega**: este apartado lo resume y dice de qué paso de qué hoja sale cada punto, pero no añade ni quita nada. Lo que las hojas proponen fuera del enunciado está en sus «Si te sobra tiempo». ACT_UT3_6 no tiene enunciado en PDF: la define este apartado.
 
-| Entrega | Hojas | Plazo | CE | Qué se sube |
+| Entrega en Aules | Enunciado (PDF) | Hojas | Plazo | CE |
 |---|---|---|---|---|
-| ACT_UT3_1 · Server hardening | A3.1 a A3.4 | lunes 14 de diciembre, 23:59 | f | Carpeta `ut3/` del repositorio y tres imágenes en Docker Hub |
-| ACT_UT3_2 · DVWA | A3.5 a A3.7 | lunes 11 de enero, 23:59 | a, b, c | Carpeta `ut3/` del repositorio con las evidencias de cada tutorial |
-| ACT_UT3_3 · SQL Injection | A3.8 | lunes 25 de enero, 23:59 | a, b | Documento PDF con las capturas de los laboratorios |
-| ACT_UT3_4 · Burp Suite, lado servidor | A3.9 y A3.10 | lunes 25 de enero, 23:59 | a, b, d | Documento PDF con las capturas de los laboratorios |
-| ACT_UT3_5 · Burp Suite, lado cliente | A3.12 | lunes 25 de enero, 23:59 | b, c | Documento PDF con las capturas de los laboratorios |
-| ACT_UT3_6 · Contraseñas y protección frente a bots | A3.11 | lunes 25 de enero, 23:59 | e, g | Carpeta `ut3/a311/` del repositorio |
+| ACT_UT3_1 · Server hardening | RA3.1 Apache Hardening | A3.2 a A3.4 | lunes 14 de diciembre, 23:59 | a, b, c |
+| ACT_UT3_2 · DVWA | RA3.2 Damm Vulnerable Web App | A3.5 a A3.7 y la parte de DVWA de la A3.8 | lunes 11 de enero, 23:59 | a, b, c, d, e, f |
+| ACT_UT3_3 · SQL Injection | RA3.3 SQL Injection | A3.8 | lunes 25 de enero, 23:59 | a, b, c, d, e, f |
+| ACT_UT3_4 · Burp Suite, lado servidor | RA3.4.1 Burp Suite - Server Side | A3.9 y A3.10 | lunes 25 de enero, 23:59 | a, b, c, d, e, f |
+| ACT_UT3_5 · Burp Suite, lado cliente | RA3.4.2 Burp Suite - Client Side | A3.12 | lunes 25 de enero, 23:59 | a, b, c, d, e, f |
+| ACT_UT3_6 · Contraseñas y protección frente a bots | No tiene | A3.11 | lunes 25 de enero, 23:59 | e, g |
 
-Con estas seis entregas quedan cubiertos los siete criterios de la unidad: **a** en ACT_UT3_2, ACT_UT3_3 y ACT_UT3_4; **b** en ACT_UT3_2, ACT_UT3_3, ACT_UT3_4 y ACT_UT3_5; **c** en ACT_UT3_2 y ACT_UT3_5; **d** en ACT_UT3_4; **e** y **g** en ACT_UT3_6; **f** en ACT_UT3_1. Los retos de Atenea y el examen los gestiona la [página del módulo](../modulo.md).
+Los CE son los que cita cada enunciado. Los de ACT_UT3_2 a ACT_UT3_5 citan los seis primeros de la unidad con el mismo peso. El de ACT_UT3_1 cita tres, que rotula «CA.A», «CA.B» y «CA.E» bajo el título RA4, pero cuyos textos son los de los CE a, b y c de este RA3 (validar las entradas, riesgos de inyección y gestión de la sesión). El g solo lo trabaja ACT_UT3_6. Los retos de Atenea y el examen los gestiona la [página del módulo](../modulo.md).
+
+**Cómo se entrega.** Depende de lo que pide cada enunciado:
+
+- **ACT_UT3_1 y ACT_UT3_2, por Git.** Sus enunciados piden la entrega en el repositorio: en el texto de la tarea de Aules va la URL de `pps-entregas` (y en ACT_UT3_1, además, las órdenes `docker pull` de sus imágenes). El de ACT_UT3_1 pide expresamente las cuentas de GitHub y Docker Hub con el usuario `pps<NIA>` y el correo `@alu.edu.gva.es`, y el repositorio a partir de la [plantilla](https://github.com/pkaminasfp/template), que es como se creó `pps-entregas` en la sesión 1 ([cuentas y repositorios](../laboratorio.md#cuentas-y-repositorios)). Lo que lleva el repositorio está en el apartado de cada entrega, en **Qué lleva el repositorio**.
+- **ACT_UT3_3, ACT_UT3_4 y ACT_UT3_5, en PDF.** Sus enunciados piden «un documento con el formato correcto» con las capturas de los laboratorios: es un PDF con la estructura de la *Normativa de entrega* (portada, índice, introducción, desarrollo, bibliografía y conclusión), subido a la tarea de Aules. Cómo se monta, sobre la plantilla del aula o desde los README, está en [Del README al PDF de la entrega](../laboratorio.md#del-readme-al-pdf-de-la-entrega), y lo que lleva cada capítulo, en **Qué lleva el PDF** de cada entrega. Un documento que no cumple la normativa se corrige como no evaluado, sea cual sea su contenido.
+- **ACT_UT3_6, por Git**, con la URL de `pps-entregas` en la tarea.
+
+Los plazos vencen a las 23:59 (hora de Madrid) y una entrega fuera de plazo y sin causa justificada se corrige sobre el 50 %. El plazo no se mueve aunque se pierda una clase: en ese caso se recupera el contenido en la sesión 27 de margen o en casa.
+
+**Cómo se califica.** Ningún enunciado de la unidad trae rúbrica.
+
+- **ACT_UT3_3, ACT_UT3_4 y ACT_UT3_5, por regla de tres.** Los enunciados de ACT_UT3_4 y ACT_UT3_5 lo dicen expresamente: la nota es la proporción entre los laboratorios resueltos y todos los que fija la tabla del enunciado. El de ACT_UT3_3 trae la misma tabla y se califica igual. Los detalles, en el aviso de abajo.
+- **ACT_UT3_1 y ACT_UT3_2, punto por punto**, con los pesos que propone su apartado, y cada fila con los niveles que se usan en la unidad 1 para las actividades sin rúbrica: 40 % si funciona, 60 % si el resultado está verificado, 80 % si además el README lo explica con sus capturas y 90 % si está completo y limpio. En ACT_UT3_1, la práctica 5, que el enunciado marca como «EXTRA», es lo que da el 100 %.
+- **ACT_UT3_6**, con la tabla de su apartado.
 
 !!! ojo "Las tres entregas de PortSwigger se califican por regla de tres"
-    En ACT_UT3_3, ACT_UT3_4 y ACT_UT3_5 la nota de la parte de laboratorios es la proporción entre los laboratorios **resueltos** y el total de los que se podían resolver. Cuentan los de nivel Apprentice y Practitioner de las categorías de la entrega. **No se hacen ni cuentan en el total** los que exigen Burp Suite Professional (los que usan el escáner o Burp Collaborator, cosa que el enunciado del laboratorio indica). Un laboratorio cuenta como resuelto solo si el documento muestra su captura con el estado **Not solved** al empezar y **Solved** al terminar, con la cuenta de la Academy iniciada; sin la captura de cierre, no cuenta. Los laboratorios de nivel Expert no se piden. La lista viva de cada categoría está en <https://portswigger.net/web-security/all-labs>.
+    En ACT_UT3_3, ACT_UT3_4 y ACT_UT3_5 la nota es la proporción entre los laboratorios **resueltos** y el total de los que fija la tabla del enunciado, que son los de nivel Apprentice y Practitioner de sus categorías (los números están en el apartado de cada entrega). Si la Academy ha añadido laboratorios después, la referencia sigue siendo la tabla. **No se hacen ni cuentan en el total** los que exigen Burp Suite Professional (los que usan el escáner o Burp Collaborator, cosa que el enunciado del laboratorio indica): el enunciado dice que esos no se realizan. Un laboratorio cuenta como resuelto solo si el documento muestra su captura con el estado **Not solved** al empezar y **Solved** al terminar, con la cuenta de la Academy iniciada; sin la captura de cierre, no cuenta. Los de nivel Expert no se piden.
 
 ### ACT_UT3_1 · Server hardening
 
-**Hojas:** [A3.1](#a31-apache-y-http-en-un-contenedor-sesion-15), [A3.2](#a32-certificado-y-csp-sesion-16), [A3.3](#a33-waf-con-modsecurity-y-crs-sesion-17) y [A3.4](#a34-hardening-final-sesion-18). **Plazo:** lunes 14 de diciembre de 2026, 23:59. **CE:** f (se han configurado servidores web para reducir el riesgo de sufrir ataques conocidos).
+Enunciado: «RA3.1 Apache Hardening». Sale de las hojas [A3.2](#a32-certificado-y-csp-sesion-16), [A3.3](#a33-waf-con-modsecurity-y-crs-sesion-17) y [A3.4](#a34-hardening-final-sesion-18), sobre la imagen `pps-base` de la [A3.1](#a31-apache-y-http-en-un-contenedor-sesion-15). Plazo: **lunes 14 de diciembre de 2026, 23:59**. CE: a, b y c, que el enunciado cita para el conjunto y no reparte por punto.
 
-**Qué se entrega.** El repositorio `pps-entregas`, con las carpetas `ut3/a31/` a `ut3/a34/` y el `README.md` general de ACT_UT3_1 en `ut3/`, y las tres imágenes en Docker Hub: `pps<NIA>/pr1` (HTTPS, HSTS, CSP y sin listados), `pps<NIA>/pr2` (más ModSecurity con las reglas OWASP CRS y una regla local) y `pps<NIA>/pr3` (más límites frente a la denegación de servicio y buenas prácticas). Cada imagen hereda de la anterior, de modo que `pr3` contiene todo lo hecho. Cada práctica lleva su README con la explicación, la validación, las capturas y la orden `docker pull` de su imagen. En Aules se sube la URL del repositorio y las tres órdenes `docker pull`. La práctica 5 del enunciado (Nginx) es opcional y se recoge en la sección "Si te sobra tiempo" de la A3.4.
+El enunciado pide para todas las prácticas del punto 3.1 tres cosas: las imágenes en Docker Hub con la nomenclatura `pps/prX` (en el curso, `pps<NIA>/prX`, con el usuario de Docker Hub delante), la mejor estrategia de capas, con la información en cascada (la imagen de la práctica 3 contiene las de la 2 y la 1), y un README por práctica con explicación, validación, capturas y la URL para hacer el `pull`. Los puntos 3.2.1 y 3.3.1 piden también su imagen, sin darle número: en el curso son `pps<NIA>/certificado`, que va debajo de `pr1` porque la práctica 1 necesita el HTTPS, y `pps<NIA>/hardening`, encima de `pr4`. La cadena completa queda `pps-base`, `certificado`, `pr1`, `pr2`, `pr3`, `pr4` y `hardening`.
 
-| Criterio | Qué se mira | Peso |
+| Punto del enunciado | Peso propuesto | De dónde sale |
 |---|---|---|
-| Servidor base y lectura de HTTP | Imagen `pps-base` funcionando, petición y respuesta leídas con `curl` y con el navegador, cookie de prueba (A3.1) | 10 % |
-| HTTPS, HSTS y CSP | Redirección 301, certificado, `Strict-Transport-Security`, `Content-Security-Policy` con efecto comprobado y sin listado de directorios (A3.2) | 20 % |
-| Cortafuegos de aplicación | Cuatro ataques de manual bloqueados con `403`, identificadores de regla explicados y regla local propia funcionando (A3.3) | 25 % |
-| Denegación de servicio y buenas prácticas | `mod_evasive` y `mod_reqtimeout` con su prueba, versión oculta, métodos restringidos y permisos mínimos (A3.4) | 25 % |
-| Imágenes en cascada | `pr1`, `pr2` y `pr3` en Docker Hub, descargables con `docker pull`, y cada una construida sobre la anterior | 10 % |
-| Documentación | README de cada práctica con explicación, validación, capturas y orden `pull`, y README general con la tabla de imágenes | 10 % |
-| **Total** | | **100 %** |
+| 3.1 Requisitos comunes: imágenes `pps<NIA>/prX` en Docker Hub, en cascada, y un README por práctica | 10 % | A3.2, A3.3 y A3.4, último paso de cada una |
+| 3.1.1 Práctica 1: CSP (`pr1`: sin `autoindex`, HSTS y CSP) | 15 % | A3.2, pasos 2 a 5 |
+| 3.1.2 Práctica 2: Web Application Firewall (`pr2`: ModSecurity con una regla propia) | 15 % | A3.3, pasos 1, 2 y 5 |
+| 3.1.3 Práctica 3: OWASP (`pr3`: reglas OWASP CRS) | 15 % | A3.3, pasos 3 a 5 |
+| 3.1.4 Práctica 4: Evitar ataques DDOS (`pr4`: `mod_evasive` y Apache Bench) | 15 % | A3.4, pasos 1, 2 y 5 |
+| 3.1.5 Práctica 5 EXTRA: Nginx (`pr5`) | Extra, fuera del 100 % | A3.4, «Si te sobra tiempo» |
+| 3.2.1 Certificado digital en Apache y su imagen (`certificado`) | 15 % | A3.2, pasos 1 y 5 |
+| 3.3.1 Securizar Apache con las buenas prácticas y su imagen (`hardening`) | 15 % | A3.4, pasos 3 a 5 |
+
+Los pesos son una propuesta: el enunciado no trae rúbrica.
+
+**Qué lleva el repositorio.** Una subcarpeta por imagen, cada una con su `Dockerfile`, su configuración y su README (explicación, validación con las salidas, capturas y la orden `docker pull`), y un README general:
+
+1. **3.1.1 Práctica 1, `ut3/a32/pr1/`.** `seguridad.conf`; en el README, las cabeceras por HTTP y por HTTPS, la carpeta sin listado y el bloqueo de la CSP en la consola.
+2. **3.1.2 Práctica 2, `ut3/a33/pr2/`.** `reglas-locales.conf`; en el README, el `403` por URL y por formulario y la línea del registro con el `id` de la regla.
+3. **3.1.3 Práctica 3, `ut3/a33/pr3/`.** En el README, las cuatro peticiones bloqueadas, los identificadores y mensajes de tres reglas y la regla propia heredada.
+4. **3.1.4 Práctica 4, `ut3/a34/pr4/`.** `evasive.conf` y `ab-informe.txt`; en el README, la ráfaga bloqueada y el desbloqueo.
+5. **3.1.5 Práctica 5, si se hace, `ut3/a34/pr5/`.** La imagen de Nginx y la explicación detallada de la instalación y la configuración que pide la guía.
+6. **3.2.1 Certificado, `ut3/a32/certificado/`.** `sitio.conf` (nunca la clave privada); en el README, la redirección y el certificado visto en el navegador.
+7. **3.3.1 Buenas prácticas, `ut3/a34/hardening/`.** `buenas-practicas.conf`; en el README, cada práctica comprobada (versión, métodos, listado, permisos y el `408` del cliente lento) y las defensas anteriores aún activas.
+8. **`ut3/README.md`.** La tabla de las seis imágenes con su punto del enunciado, qué añade cada una y su `docker pull`, y la frase de la herencia.
+
+En el texto de la tarea de Aules, la URL del repositorio y las órdenes `docker pull`.
 
 ### ACT_UT3_2 · DVWA
 
-**Hojas:** [A3.5](#a35-dvwa-xss-sesion-19), [A3.6](#a36-dvwa-sesion-y-csrf-sesion-20) y [A3.7](#a37-dvwa-comandos-y-ficheros-sesion-21). **Plazo:** lunes 11 de enero de 2027, 23:59. **CE:** a (validar las entradas), b (riesgos de inyección en servidor y cliente) y c (gestión de la sesión).
+Enunciado: «RA3.2 Damm Vulnerable Web App». Sale de las hojas [A3.5](#a35-dvwa-xss-sesion-19), [A3.6](#a36-dvwa-sesion-y-csrf-sesion-20) y [A3.7](#a37-dvwa-comandos-y-ficheros-sesion-21) y de los pasos 1 y 2 de la [A3.8](#a38-inyeccion-sql-sesion-22). Plazo: **lunes 11 de enero de 2027, 23:59**. CE: a, b, c, d, e y f, con el mismo peso.
 
-**Qué se entrega.** El enunciado pide realizar **todos los tutoriales de DVWA en los niveles Low y Medium** y entregarlos por Git con capturas de la explotación, los comandos usados y una breve explicación. En clase se hacen XSS (reflejado, almacenado y DOM), Weak Session IDs, CSRF, Command Injection, File Upload y File Inclusion. El resto de módulos del menú de la versión instalada (por ejemplo Brute Force, Insecure CAPTCHA, SQL Injection (Blind), CSP Bypass y JavaScript, según la versión de DVWA) se completan **en casa antes del plazo**, con el mismo formato que las hojas: petición o comando, captura, fragmento de código que explica el fallo y corrección. El módulo SQL Injection ya sale de la [A3.8](#a38-inyeccion-sql-sesion-22) y no se repite. Se entrega la URL del repositorio, con una carpeta por hoja (`ut3/a35/`, `ut3/a36/`, `ut3/a37/`) y una carpeta `ut3/dvwa-resto/` con un `README.md` que tiene una sección por cada módulo hecho en casa.
+El enunciado tiene un solo punto, el 3.1: **realizar todos los tutoriales de DVWA en los niveles Low y Medium** y entregarlos por Git con capturas de la explotación, los comandos utilizados y una breve explicación, y avisa de que es imprescindible aportar toda la información necesaria. «Todos» son los módulos del menú de la versión instalada. En clase se hacen XSS (los tres), Weak Session IDs, CSRF, Command Injection, File Upload, File Inclusion y SQL Injection; el resto se completa **en casa antes del plazo**, con el mismo formato que las hojas.
 
-| Criterio | Qué se mira | Peso |
-|---|---|---|
-| XSS | Los tres tipos explotados en Low y Medium, con captura y motivo localizado en el código (A3.5) | 20 % |
-| Sesión y CSRF | Identificador débil documentado, CSRF explotado en Low y bloqueado en Medium (A3.6) | 20 % |
-| Comandos y ficheros | Inyección de comandos, subida e inclusión de ficheros en Low y Medium, cada una con petición, respuesta y código (A3.7) | 20 % |
-| Resto de tutoriales | Módulos del menú no vistos en clase, en Low y Medium, con captura y comandos | 15 % |
-| Corrección | Para cada vulnerabilidad, qué código o configuración la evita (codificación de salida, tokens, cookies, validación) y una corrección aplicada y comprobada | 15 % |
-| Documentación | Comandos, capturas con nombre descriptivo y explicación suficiente para repetirlo: es imprescindible aportar toda la información necesaria | 10 % |
-| **Total** | | **100 %** |
+| Punto del enunciado | CE | Peso propuesto | De dónde sale |
+|---|---|---|---|
+| 3.1 XSS (Reflected), XSS (Stored) y XSS (DOM) | a, b | 20 % | A3.5, pasos 3 a 5 |
+| 3.1 Weak Session IDs y CSRF | c | 15 % | A3.6 |
+| 3.1 Command Injection, File Upload y File Inclusion | a, b | 20 % | A3.7 |
+| 3.1 SQL Injection | a, b | 10 % | A3.8, pasos 1, 2 y 5 |
+| 3.1 Resto de módulos del menú (Brute Force, Insecure CAPTCHA, SQL Injection (Blind), CSP Bypass, JavaScript y los que traiga la versión, como Authorisation Bypass) | a a f | 25 % | En casa |
+| 3.1 Toda la información necesaria: capturas, comandos y explicación de cada tutorial | a a f | 10 % | El README de cada carpeta |
+
+Los pesos son una propuesta: el enunciado no trae rúbrica.
+
+**Qué lleva el repositorio.** Una carpeta por hoja y una para lo hecho en casa, cada una con su `README.md` y, en él, una sección por módulo con la captura de Low y la de Medium, la cadena o el comando usado y la explicación breve del fallo con el fragmento de código que lo produce:
+
+1. **`ut3/a35/`.** `compose.yml` y los tres XSS.
+2. **`ut3/a36/`.** Weak Session IDs y CSRF.
+3. **`ut3/a37/`.** `prueba.php`, Command Injection, File Upload y File Inclusion.
+4. **`ut3/a38/`.** La sección de SQL Injection de DVWA.
+5. **`ut3/dvwa-resto/`.** Una sección por cada módulo hecho en casa.
+
+En el texto de la tarea de Aules, la URL del repositorio. Las correcciones de los «Si te sobra tiempo» no las pide el enunciado; si se hacen, van en una sección final de cada README.
 
 ### ACT_UT3_3 · SQL Injection
 
-**Hoja:** [A3.8](#a38-inyeccion-sql-sesion-22). **Plazo:** lunes 25 de enero de 2027, 23:59. **CE:** a (validar las entradas) y b (riesgos de inyección en el servidor).
+Enunciado: «RA3.3 SQL Injection». Sale de los pasos 3 a 5 de la hoja [A3.8](#a38-inyeccion-sql-sesion-22). Plazo: **lunes 25 de enero de 2027, 23:59**. CE: a, b, c, d, e y f, con el mismo peso.
 
-**Qué se entrega.** Un documento en PDF, con el formato de la *Normativa de entrega* del aula y su plantilla `Plantilla_memoria_tarea`, que recoge las capturas **Not solved a Solved** de los laboratorios de la categoría *SQL injection* de PortSwigger Academy (<https://portswigger.net/web-security/all-labs#sql-injection>), niveles Apprentice y Practitioner. En clase se resuelven los seis primeros de Apprentice; el resto se completa **en casa antes del plazo**. Cada laboratorio lleva su captura y el payload usado. Se añade la parte de DVWA de la A3.8 (UNION en Low y Medium) y una explicación breve de por qué falla y cómo se corrige con una consulta parametrizada. El PDF se sube a la tarea de Aules y la carpeta `ut3/a38/` queda en el repositorio como respaldo.
+| Punto del enunciado | Laboratorios | Peso | De dónde sale |
+|---|---|---|---|
+| 3.1 Todos los laboratorios de *SQL injection* (<https://portswigger.net/web-security/all-labs#sql-injection>) | 2 Apprentice y 16 Practitioner: 18 | 100 %, por regla de tres | A3.8, pasos 3 y 4 (los dos Apprentice y los tres primeros Practitioner); el resto, en casa |
 
-| Criterio | Qué se mira | Peso |
-|---|---|---|
-| Laboratorios resueltos | Regla de tres: laboratorios Apprentice y Practitioner resueltos sobre el total de los que no exigen Burp Suite Professional | 70 % |
-| Evidencia de cada laboratorio | Captura de inicio y de cierre (Not solved a Solved) y payload anotado | 10 % |
-| SQL Injection de DVWA | UNION en Low y Medium hasta leer usuarios y hashes, con el fragmento de código que explica el fallo (A3.8) | 10 % |
-| Corrección | Consulta parametrizada explicada con un ejemplo, y por qué el escapado de Medium no protege | 5 % |
-| Formato del documento | Normativa de entrega: portada, índice, capturas legibles y numeradas | 5 % |
-| **Total** | | **100 %** |
+**Qué lleva el PDF.** Portada, índice e introducción, y en el desarrollo un solo capítulo, el **3.1 Laboratorios de SQL injection**, con una sección por laboratorio en el orden de la lista de la Academy: nombre y nivel, la captura *Not solved*, la captura *Solved* y, en una o dos líneas, la técnica o el payload que lo resolvió, que es lo que la normativa pide de cada apartado (qué se ha hecho y el resultado). Al final del capítulo, la lista de los que no se han hecho por exigir Burp Suite Professional, con el motivo. Después, la bibliografía (las fuentes del enunciado) y la conclusión. La parte de DVWA de la A3.8 no va aquí: es de ACT_UT3_2.
 
 ### ACT_UT3_4 · Burp Suite, lado servidor
 
-**Hojas:** [A3.9](#a39-burp-suite-y-autenticacion-sesion-23) y [A3.10](#a310-burp-control-de-acceso-y-servidor-sesion-24). **Plazo:** lunes 25 de enero de 2027, 23:59. **CE:** a (validar las entradas), b (riesgos de inyección en el servidor) y d (roles y control de acceso).
+Enunciado: «RA3.4.1 Burp Suite - Server Side». Sale de las hojas [A3.9](#a39-burp-suite-y-autenticacion-sesion-23) y [A3.10](#a310-burp-control-de-acceso-y-servidor-sesion-24). Plazo: **lunes 25 de enero de 2027, 23:59**. CE: a, b, c, d, e y f, con el mismo peso.
 
-**Qué se entrega.** Un documento en PDF con las capturas **Not solved a Solved** de los laboratorios Apprentice y Practitioner de las ocho categorías del enunciado: *Authentication*, *File path traversal*, `OS command injection`, *Information disclosure*, *Access control*, *File upload*, *SSRF* y *API testing* (<https://portswigger.net/web-security/all-labs>). En clase se hacen los dos primeros de autenticación (A3.9) y uno de cada una de cinco categorías (A3.10); todo lo demás, incluidos *File upload* y *API testing*, se completa **en casa antes del plazo**. Para los laboratorios de la A3.9 y la A3.10 se añade la captura de la petición de Burp que los resuelve. El PDF se sube a Aules; las carpetas `ut3/a39/` y `ut3/a310/` quedan como respaldo.
+El punto 3.1 pide todos los laboratorios de ocho categorías, numeradas en el enunciado, y su tabla fija cuántos de cada nivel; la nota es la regla de tres sobre el total, 55. En clase se hacen los de las hojas y el resto **en casa antes del plazo**.
 
-| Criterio | Qué se mira | Peso |
-|---|---|---|
-| Laboratorios resueltos | Regla de tres sobre el total de las ocho categorías, sin los que exigen Burp Suite Professional | 70 % |
-| Burp Suite en uso | Proxy en el 8085 con el certificado importado, petición interceptada y modificada, y Repeater usado en los laboratorios de clase (A3.9 y A3.10) | 10 % |
-| Corrección por categoría | Una frase o un fragmento por cada categoría con la medida que evita el fallo; en control de acceso, la comprobación en el servidor y denegar por defecto (CE d) | 10 % |
-| Formato del documento | Normativa de entrega: portada, índice, capturas legibles y agrupadas por categoría | 10 % |
-| **Total** | | **100 %** |
+| Punto del enunciado (3.1) | Apprentice | Practitioner | De dónde sale |
+|---|---:|---:|---|
+| 1 Authentication | 3 | 9 | A3.9, pasos 2 y 3 (los tres Apprentice) |
+| 2 File Path Traversal | 1 | 5 | A3.10, paso 3 |
+| 3 OS Command Injection | 1 | 3 | A3.10, paso 4 |
+| 4 Information Disclosure | 4 | 1 | A3.10, paso 5 |
+| 5 Access Control | 9 | 4 | A3.10, pasos 1 y 2 |
+| 6 File upload | 2 | 4 | En casa |
+| 7 SSRF | 2 | 3 | A3.10, paso 5 |
+| 8 Api Testing | 1 | 3 | En casa |
+| **Total** | **23** | **32** | **55 laboratorios, 100 % por regla de tres** |
+
+**Qué lleva el PDF.** Portada, índice e introducción, y en el desarrollo el capítulo **3.1** con una sección por categoría, en el orden del enunciado (1 Authentication a 8 Api Testing). En cada una, un apartado por laboratorio con su nombre y nivel, la captura *Not solved*, la captura *Solved* y una o dos líneas de qué se hizo con Burp para resolverlo (la petición cambiada, el módulo usado). Al final, los que no se han hecho por exigir Burp Suite Professional, con el motivo. Después, la bibliografía y la conclusión.
 
 ### ACT_UT3_5 · Burp Suite, lado cliente
 
-**Hoja:** [A3.12](#a312-burp-lado-cliente-sesion-26). **Plazo:** lunes 25 de enero de 2027, 23:59. **CE:** b (riesgos de inyección en el cliente) y c (gestión de la sesión).
+Enunciado: «RA3.4.2 Burp Suite - Client Side». Sale de la hoja [A3.12](#a312-burp-lado-cliente-sesion-26). Plazo: **lunes 25 de enero de 2027, 23:59**. CE: a, b, c, d, e y f, con el mismo peso.
 
-**Qué se entrega.** Un documento en PDF con las capturas **Not solved a Solved** de los laboratorios Apprentice y Practitioner de las categorías *Cross-site request forgery (CSRF)*, *Cross-origin resource sharing (CORS)*, *DOM-based vulnerabilities* y *Cross-site scripting* (<https://portswigger.net/web-security/all-labs>). La hoja fija los laboratorios de clase; el resto se completa **en casa antes del plazo**. Muchos de estos laboratorios usan el servidor de exploits que la propia Academy da a cada alumno: es el único servidor desde el que se lanza el ataque, y solo contra la instancia del laboratorio.
+El punto 3.1 pide todos los laboratorios de cuatro categorías, con la cantidad de cada nivel que fija su tabla; la nota es la regla de tres sobre el total, 44. Muchos usan el servidor de exploits que la propia Academy da a cada alumno: es el único servidor desde el que se lanza el ataque, y solo contra la instancia del laboratorio.
 
-| Criterio | Qué se mira | Peso |
-|---|---|---|
-| Laboratorios resueltos | Regla de tres sobre las cuatro categorías, sin los que exigen Burp Suite Professional | 70 % |
-| Atacante y desarrollador | Para cada categoría, cómo se explota y qué medida la evita (token CSRF, `SameSite`, política de CORS restrictiva, codificación de salida, CSP) | 20 % |
-| Formato del documento | Normativa de entrega: portada, índice, capturas legibles y agrupadas por categoría | 10 % |
-| **Total** | | **100 %** |
+| Punto del enunciado (3.1) | Apprentice | Practitioner | De dónde sale |
+|---|---:|---:|---|
+| Cross-site request forgery (CSRF) | 1 | 11 | A3.12, pasos 1 y 2 |
+| Cross-origin resource sharing (CORS) | 2 | 1 | A3.12, paso 3 |
+| DOM-based vulnerabilities | 0 | 5 | En casa |
+| Cross-site scripting | 9 | 15 | A3.12, pasos 4 y 5 |
+| **Total** | **12** | **32** | **44 laboratorios, 100 % por regla de tres** |
+
+**Qué lleva el PDF.** Portada, índice e introducción, y en el desarrollo el capítulo **3.1** con una sección por categoría, en el orden del enunciado (CSRF, CORS, DOM y XSS). En cada una, un apartado por laboratorio con su nombre y nivel, la captura *Not solved*, la captura *Solved* y una o dos líneas de qué se hizo para resolverlo (la petición de Burp o el exploit alojado). Al final, los que no se han hecho por exigir Burp Suite Professional, con el motivo. Después, la bibliografía y la conclusión.
 
 ### ACT_UT3_6 · Contraseñas y protección frente a bots
 
 **Hoja:** [A3.11](#a311-contrasenas-y-proteccion-frente-a-bots-sesion-25). **Plazo:** lunes 25 de enero de 2027, 23:59. **CE:** e (algoritmos criptográficos seguros para almacenar contraseñas) y g (medidas contra ataques a contraseñas, envío masivo de mensajes y registros automáticos).
 
-**Qué se entrega.** Es una actividad nueva, sin enunciado en el aula. La carpeta `ut3/a311/` del repositorio, con el código de la aplicación de ejemplo (puerto 5000), los dos ficheros de configuración de `fail2ban` y un `README.md` con las capturas y la explicación. La URL del repositorio se sube a Aules. Los hashes que se rompen son los que genera el propio alumno con contraseñas de laboratorio; no se entrega ninguna lista de contraseñas ajena ni ninguna contraseña real.
+**Qué se entrega.** Es una actividad nueva, sin enunciado en PDF en el aula: lo que se entrega y cómo se califica es lo que dice este apartado. La carpeta `ut3/a311/` del repositorio, con el código de la aplicación de ejemplo (puerto 5000), los dos ficheros de configuración de `fail2ban` y un `README.md` con las capturas y la explicación. La URL del repositorio se sube a Aules. Los hashes que se rompen son los que genera el propio alumno con contraseñas de laboratorio; no se entrega ninguna lista de contraseñas ajena ni ninguna contraseña real.
 
 | Criterio | Qué se mira | Peso |
 |---|---|---|
@@ -1432,8 +1475,6 @@ Con estas seis entregas quedan cubiertos los siete criterios de la unidad: **a**
 | Registros automáticos | CAPTCHA con la respuesta guardada en el servidor, prueba de que un alta sin él da `400` y explicación de cómo se integraría un servicio real | 10 % |
 | Documentación | README con comandos y capturas, y sin `usuarios.db` ni claves en el repositorio | 10 % |
 | **Total** | | **100 %** |
-
-El enunciado de cada entrega está en el aula, salvo el de ACT_UT3_6, que es nueva. Es la referencia de lo que se entrega; la hoja guía la práctica de clase y esta sección fija cómo se puntúa.
 
 ## Errores frecuentes en el laboratorio
 
@@ -1453,7 +1494,7 @@ Los fallos generales de las máquinas (VM que no arranca, disco lleno, `docker` 
 
 **`docker push` responde `denied: requested access to the resource is denied`.** Falta `docker login -u pps<NIA>` o el nombre de la imagen no lleva el usuario delante (`pr1` a secas se intenta subir a un espacio de nombres ajeno). Se etiqueta con `docker tag pr1 pps<NIA>/pr1` y se sube de nuevo.
 
-**Un cambio hecho con `docker exec` desaparece.** Lo que se toca dentro de un contenedor en marcha vive solo en ese contenedor. Para que forme parte de la imagen, el cambio va en un fichero de la carpeta, se copia en el `Dockerfile` y se reconstruye (paso 6 de la [A3.3](#a33-waf-con-modsecurity-y-crs-sesion-17)).
+**Un cambio hecho con `docker exec` desaparece.** Lo que se toca dentro de un contenedor en marcha vive solo en ese contenedor. Para que forme parte de la imagen, el cambio va en un fichero de la carpeta, se copia en el `Dockerfile` y se reconstruye, como la regla propia de la [A3.3](#a33-waf-con-modsecurity-y-crs-sesion-17).
 
 ### ModSecurity y las reglas
 
@@ -1485,7 +1526,7 @@ Los fallos generales de las máquinas (VM que no arranca, disco lleno, `docker` 
 
 **El CSRF de la A3.6 no cambia la contraseña.** La sesión ha caducado, el nivel no es Low, o el ataque se lanza desde una página de otro origen: los navegadores actuales no envían una cookie sin atributo `SameSite` en peticiones entre sitios, así que la prueba de manual se hace pegando la URL en la barra de direcciones del mismo navegador, como indica la hoja.
 
-**La cookie corregida no lleva `HttpOnly` en el navegador.** La cabecera se ve en la respuesta, no en el valor de la cookie: F12, pestaña Red, respuesta, `Set-Cookie`. Y en Application la columna *HttpOnly* aparece marcada. Si `curl -i` muestra la cabecera y el navegador no, se está mirando una respuesta anterior a la corrección (se recarga con la caché vaciada).
+**La cookie corregida (en el «Si te sobra tiempo» de la A3.6) no lleva `HttpOnly` en el navegador.** La cabecera se ve en la respuesta, no en el valor de la cookie: F12, pestaña Red, respuesta, `Set-Cookie`. Y en Application la columna *HttpOnly* aparece marcada. Si `curl -i` muestra la cabecera y el navegador no, se está mirando una respuesta anterior a la corrección (se recarga con la caché vaciada).
 
 ### Burp Suite
 

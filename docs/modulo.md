@@ -30,43 +30,43 @@ El currículo (Real Decreto 479/2020) define estos cinco resultados de aprendiza
 
 | CE | Qué se pide | Evidencia |
 |----|-------------|-----------|
-| a | Caracterizar los niveles de verificación de ASVS | [ACT_UT2_1](ut/ut2-nivel-seguridad.md#act_ut2_1-owasp-asvs) (A2.2) |
-| b | Identificar el nivel que exige una aplicación según sus riesgos | ACT_UT2_1 (A2.2) |
-| c | Enumerar los requisitos de verificación del nivel elegido | ACT_UT2_1 (A2.2 y A2.3) y [ACT_UT2_2](ut/ut2-nivel-seguridad.md#act_ut2_2-seguridad-en-docker) |
-| d | Reconocer los principales riesgos de las aplicaciones | ACT_UT2_1 (A2.1), ACT_UT2_2 y [ACT_UT2_3](ut/ut2-nivel-seguridad.md#act_ut2_3-seguridad-en-unix-xz) |
+| a | Caracterizar los niveles de verificación de ASVS | [ACT_UT2_1](ut/ut2-nivel-seguridad.md#act_ut2_1-owasp-asvs) (A2.2) y [ACT_UT2_3](ut/ut2-nivel-seguridad.md#act_ut2_3-seguridad-en-unix-xz) |
+| b | Identificar el nivel que exige una aplicación según sus riesgos | ACT_UT2_1 (A2.2 y A2.3) y ACT_UT2_3 |
+| c | Enumerar los requisitos de verificación del nivel elegido | [ACT_UT2_2](ut/ut2-nivel-seguridad.md#act_ut2_2-seguridad-en-docker) y ACT_UT2_4 (optativa) |
+| d | Reconocer los principales riesgos de las aplicaciones | ACT_UT2_2 y ACT_UT2_4 (optativa) |
 
 **RA3. Detecta y corrige vulnerabilidades de aplicaciones web analizando su código fuente y configurando servidores web.** Unidad [UT3](ut/ut3-vulnerabilidades-web.md), 26 h.
 
 | CE | Qué se pide | Evidencia |
 |----|-------------|-----------|
-| a | Validar las entradas de los usuarios | [ACT_UT3_2](ut/ut3-vulnerabilidades-web.md#act_ut3_2-dvwa), [ACT_UT3_3](ut/ut3-vulnerabilidades-web.md#act_ut3_3-sql-injection) y [ACT_UT3_4](ut/ut3-vulnerabilidades-web.md#act_ut3_4-burp-suite-lado-servidor) |
-| b | Detectar riesgos de inyección en el servidor y en el cliente | ACT_UT3_2, ACT_UT3_3, ACT_UT3_4 y [ACT_UT3_5](ut/ut3-vulnerabilidades-web.md#act_ut3_5-burp-suite-lado-cliente) |
-| c | Gestionar correctamente la sesión del usuario | ACT_UT3_2 (A3.6) y ACT_UT3_5 |
-| d | Usar roles para el control de acceso | ACT_UT3_4 (A3.10) |
-| e | Almacenar contraseñas con algoritmos criptográficos seguros | [ACT_UT3_6](ut/ut3-vulnerabilidades-web.md#act_ut3_6-contrasenas-y-proteccion-frente-a-bots) (A3.11) |
-| f | Configurar servidores web para reducir el riesgo de ataques conocidos | [ACT_UT3_1](ut/ut3-vulnerabilidades-web.md#act_ut3_1-server-hardening) (A3.1 a A3.4) |
+| a | Validar las entradas de los usuarios | [ACT_UT3_1](ut/ut3-vulnerabilidades-web.md#act_ut3_1-server-hardening), [ACT_UT3_2](ut/ut3-vulnerabilidades-web.md#act_ut3_2-dvwa), [ACT_UT3_3](ut/ut3-vulnerabilidades-web.md#act_ut3_3-sql-injection), [ACT_UT3_4](ut/ut3-vulnerabilidades-web.md#act_ut3_4-burp-suite-lado-servidor) y [ACT_UT3_5](ut/ut3-vulnerabilidades-web.md#act_ut3_5-burp-suite-lado-cliente) |
+| b | Detectar riesgos de inyección en el servidor y en el cliente | ACT_UT3_1 a ACT_UT3_5 |
+| c | Gestionar correctamente la sesión del usuario | ACT_UT3_1 a ACT_UT3_5 |
+| d | Usar roles para el control de acceso | ACT_UT3_2 a ACT_UT3_5 |
+| e | Almacenar contraseñas con algoritmos criptográficos seguros | ACT_UT3_2 a ACT_UT3_5 y [ACT_UT3_6](ut/ut3-vulnerabilidades-web.md#act_ut3_6-contrasenas-y-proteccion-frente-a-bots) (A3.11) |
+| f | Configurar servidores web para reducir el riesgo de ataques conocidos | ACT_UT3_2 a ACT_UT3_5, y el hardening de ACT_UT3_1 (A3.2 a A3.4), aunque su enunciado no lo cite |
 | g | Frenar ataques a contraseñas, envíos masivos y altas automáticas (bots) | ACT_UT3_6 (A3.11) |
 
 **RA4. Detecta problemas de seguridad en las aplicaciones para dispositivos móviles, monitorizando su ejecución y analizando ficheros y datos.** Unidad [UT4](ut/ut4-aplicaciones-moviles.md), 16 h.
 
 | CE | Qué se pide | Evidencia |
 |----|-------------|-----------|
-| a | Comparar los modelos de permisos de las plataformas móviles | [ACT_UT4_1](ut/ut4-aplicaciones-moviles.md#act_ut4_1-android-app-vulnerable) (A4.2) |
-| b | Describir técnicas de almacenamiento seguro de datos en el dispositivo | ACT_UT4_1 (A4.4) |
-| c | Validar las compras integradas en el servidor | [ACT_UT4_2](ut/ut4-aplicaciones-moviles.md#act_ut4_2-pivaa) (A4.7) |
-| d | Detectar protocolos inseguros con herramientas de monitorización de tráfico | ACT_UT4_2 (A4.5) |
-| e | Inspeccionar binarios de aplicaciones móviles para buscar fugas de información | ACT_UT4_1 (A4.1 y A4.3) y ACT_UT4_2 (A4.6) |
+| a | Comparar los modelos de permisos de las plataformas móviles | Examen del 3 de junio; se practica en la A4.2, sin entrega |
+| b | Describir técnicas de almacenamiento seguro de datos en el dispositivo | Examen del 3 de junio; se practica en la A4.4, sin entrega |
+| c | Validar las compras integradas en el servidor | Examen del 3 de junio; se practica en la A4.7, sin entrega |
+| d | Detectar protocolos inseguros con herramientas de monitorización de tráfico | Examen del 3 de junio; se practica en la A4.5, sin entrega |
+| e | Inspeccionar binarios de aplicaciones móviles para buscar fugas de información | [ACT_UT4_1](ut/ut4-aplicaciones-moviles.md#act_ut4_1-android-app-vulnerable) (A4.1 y A4.3) y [ACT_UT4_2](ut/ut4-aplicaciones-moviles.md#act_ut4_2-pivaa) (A4.1 y A4.6) |
 
 **RA5. Implanta sistemas seguros de desplegado de software, utilizando herramientas para la automatización de la construcción de sus elementos.** Unidad [UT5](ut/ut5-despliegue-seguro.md), 44 h.
 
 | CE | Qué se pide | Evidencia |
 |----|-------------|-----------|
-| a | Identificar los principios y objetivos de la integración de desarrollo y operación (DevOps) | [ACT_UT5_1](ut/ut5-despliegue-seguro.md#act_ut5_1-jenkins) (A5.1) |
-| b | Implantar control de versiones con los roles y permisos pedidos | ACT_UT5_1 (A5.2) |
-| c | Instalar, configurar y verificar la integración continua conectada al control de versiones | ACT_UT5_1 (A5.3 a A5.7) y [proyecto integrador](ut/ut5-despliegue-seguro.md#proyecto-integrador) |
-| d | Planificar, implementar y automatizar planes de despliegue | [ACT_UT5_2](ut/ut5-despliegue-seguro.md#act_ut5_2-terraform-y-ansible), [ACT_UT5_4](ut/ut5-despliegue-seguro.md#act_ut5_4-k3s-y-k9s) y proyecto integrador |
-| e | Evaluar si el sistema desplegado reacciona solo a los fallos | ACT_UT5_4, [ACT_UT5_3](ut/ut5-despliegue-seguro.md#act_ut5_3-prometheus-y-grafana), [ACT_UT5_5](ut/ut5-despliegue-seguro.md#act_ut5_5-fallos-y-recuperacion) y proyecto integrador |
-| f | Documentar tareas y procedimientos de recuperación ante desastres | ACT_UT5_5 (A5.18) y proyecto integrador |
+| a | Identificar los principios y objetivos de la integración de desarrollo y operación (DevOps) | [ACT_UT5_1](ut/ut5-despliegue-seguro.md#act_ut5_1-jenkins) (A5.1), [ACT_UT5_3](ut/ut5-despliegue-seguro.md#act_ut5_3-prometheus-y-grafana) y [ACT_UT5_4](ut/ut5-despliegue-seguro.md#act_ut5_4-k3s-y-k9s) |
+| b | Implantar control de versiones con los roles y permisos pedidos | ACT_UT5_1 (A5.2), ACT_UT5_3 y ACT_UT5_4 |
+| c | Instalar, configurar y verificar la integración continua conectada al control de versiones | ACT_UT5_1 (A5.3 a A5.6; A5.7 como Extra), ACT_UT5_3, ACT_UT5_4 y [proyecto integrador](ut/ut5-despliegue-seguro.md#proyecto-integrador) |
+| d | Planificar, implementar y automatizar planes de despliegue | [ACT_UT5_2](ut/ut5-despliegue-seguro.md#act_ut5_2-terraform-y-ansible) y proyecto integrador |
+| e | Evaluar si el sistema desplegado reacciona solo a los fallos | ACT_UT5_2, [ACT_UT5_5](ut/ut5-despliegue-seguro.md#act_ut5_5-fallos-y-recuperacion) y proyecto integrador |
+| f | Documentar tareas y procedimientos de recuperación ante desastres | ACT_UT5_2, ACT_UT5_5 (A5.18) y proyecto integrador |
 | g | Crear bucles de retroalimentación ágiles entre los miembros del equipo | ACT_UT5_5 (retrospectiva de la A5.18) |
 
 ## Cómo se evalúa
@@ -93,22 +93,22 @@ La parte de prácticas de cada RA se reparte así: **un 10 % son los retos de At
 | ACT_UT1_2 · Ejecución de aplicaciones | A1.4, A1.5 | jueves 29 de octubre | c, d | 22,5 % | 9 % |
 | ACT_UT1_3 · Bash programming | A1.6 | lunes 2 de noviembre | a, e | 22,5 % | 9 % |
 | ACT_UT1_4 · Solidity + Git | A1.7 | jueves 5 de noviembre | b, e | 22,5 % | 9 % |
-| ACT_UT2_1 · OWASP ASVS | A2.1, A2.2, A2.3 | lunes 16 de noviembre | a, b, c, d | 40 % | 16 % |
+| ACT_UT2_1 · OWASP ASVS | A2.2, A2.3 | lunes 16 de noviembre | a, b | 40 % | 16 % |
 | ACT_UT2_2 · Seguridad en Docker | A2.4 | lunes 23 de noviembre | c, d | 25 % | 10 % |
-| ACT_UT2_3 · Seguridad en Unix (xz) | A2.5 | jueves 26 de noviembre | d | 25 % | 10 % |
+| ACT_UT2_3 · Seguridad en Unix (xz) | A2.5 | jueves 26 de noviembre | a, b | 25 % | 10 % |
 | ACT_UT2_4 · Ransomware (optativa) | reserva de la sesión 14 | jueves 26 de noviembre, si se hace | c, d | sin peso fijo (ampliación) | |
-| ACT_UT3_1 · Server hardening | A3.1 a A3.4 | lunes 14 de diciembre | f | 20 % | 8 % |
-| ACT_UT3_2 · DVWA | A3.5 a A3.7 | lunes 11 de enero | a, b, c | 20 % | 8 % |
-| ACT_UT3_3 · SQL Injection | A3.8 | lunes 25 de enero | a, b | 15 % | 6 % |
-| ACT_UT3_4 · Burp Suite, lado servidor | A3.9, A3.10 | lunes 25 de enero | a, b, d | 15 % | 6 % |
-| ACT_UT3_5 · Burp Suite, lado cliente | A3.12 | lunes 25 de enero | b, c | 10 % | 4 % |
+| ACT_UT3_1 · Server hardening | A3.2 a A3.4 | lunes 14 de diciembre | a, b, c | 20 % | 8 % |
+| ACT_UT3_2 · DVWA | A3.5 a A3.7 y A3.8 (DVWA) | lunes 11 de enero | a, b, c, d, e, f | 20 % | 8 % |
+| ACT_UT3_3 · SQL Injection | A3.8 | lunes 25 de enero | a, b, c, d, e, f | 15 % | 6 % |
+| ACT_UT3_4 · Burp Suite, lado servidor | A3.9, A3.10 | lunes 25 de enero | a, b, c, d, e, f | 15 % | 6 % |
+| ACT_UT3_5 · Burp Suite, lado cliente | A3.12 | lunes 25 de enero | a, b, c, d, e, f | 10 % | 4 % |
 | ACT_UT3_6 · Contraseñas y protección frente a bots | A3.11 | lunes 25 de enero | e, g | 10 % | 4 % |
-| ACT_UT4_1 · Android App Vulnerable | A4.1 a A4.4 | lunes 15 de febrero | a, b, e | 50 % | 20 % |
-| ACT_UT4_2 · PIVAA | A4.5 a A4.7 | jueves 25 de febrero | c, d, e | 40 % | 16 % |
+| ACT_UT4_1 · Android App Vulnerable | A4.1, A4.3 | lunes 15 de febrero | e | 50 % | 20 % |
+| ACT_UT4_2 · PIVAA | A4.1, A4.6 | jueves 25 de febrero | e | 40 % | 16 % |
 | ACT_UT5_1 · Jenkins | A5.1 a A5.7 | jueves 15 de abril | a, b, c | 20 % | 8 % |
-| ACT_UT5_2 · Terraform y Ansible | A5.8 a A5.11 | lunes 3 de mayo | d | 12 % | 4,8 % |
-| ACT_UT5_4 · K3s y K9s | A5.12 a A5.14 | jueves 13 de mayo | d, e | 12 % | 4,8 % |
-| ACT_UT5_3 · Prometheus y Grafana | A5.15, A5.16 | lunes 17 de mayo | e | 10 % | 4 % |
+| ACT_UT5_2 · Terraform y Ansible | A5.8 a A5.11 | lunes 3 de mayo | d, e, f | 12 % | 4,8 % |
+| ACT_UT5_4 · K3s y K9s | A5.12 a A5.14 | jueves 13 de mayo | a, b, c | 12 % | 4,8 % |
+| ACT_UT5_3 · Prometheus y Grafana | A5.15, A5.16 | lunes 17 de mayo | a, b, c | 10 % | 4 % |
 | ACT_UT5_5 · Fallos y recuperación | A5.17, A5.18 | lunes 24 de mayo | e, f, g | 16 % | 6,4 % |
 | Proyecto integrador | A5.19, A5.20 | lunes 31 de mayo | c, d, e, f | 20 % | 8 % |
 
@@ -135,7 +135,7 @@ Las sesiones de margen 27 y 58 son el repaso previo de cada examen, y las fechas
 ### Plazos, formato y recuperación
 
 - **Plazo.** Siempre a las 23:59 (hora de Madrid) del día indicado, y no se mueve aunque se pierda una clase. Fuera de plazo y sin causa justificada, la entrega se corrige sobre el 50 %.
-- **Formato.** Las entregas que son documento se suben a Aules en PDF con el formato de la *Normativa de entrega de documentos* del aula (`Normativa_entrega_trabajos.pdf`, con la plantilla `Plantilla_memoria_tarea` en `.docx` y `.odt`): portada, índice, introducción, desarrollo, bibliografía y conclusión; márgenes de 3 cm a los lados y 2,5 cm arriba y abajo, texto a 12 pt e interlineado 1,5, y figuras con su pie. Un documento que no la cumple se corrige como no evaluado. Las entregas que son repositorio se entregan con la URL de `pps-entregas` en la tarea, con un `README.md` por hoja (ver [Repositorio de entregas](laboratorio.md#repositorio-de-entregas)).
+- **Formato.** Las entregas que son documento se suben a Aules en PDF con el formato de la *Normativa de entrega de documentos* del aula (`Normativa_entrega_trabajos.pdf`, con la plantilla `Plantilla_memoria_tarea` en `.docx` y `.odt`): portada, índice, introducción, desarrollo, bibliografía y conclusión; márgenes de 3 cm a los lados y 2,5 cm arriba y abajo, texto a 12 pt e interlineado 1,5, y figuras con su pie. Un documento que no la cumple se corrige como no evaluado. Qué lleva exactamente y cómo se hace a partir de la plantilla o de los README está en [Del README al PDF de la entrega](laboratorio.md#del-readme-al-pdf-de-la-entrega). Las entregas que son repositorio se entregan con la URL de `pps-entregas` en la tarea, con un `README.md` por hoja (ver [Repositorio de entregas](laboratorio.md#repositorio-de-entregas)).
 - **Secretos.** Ninguna contraseña, token ni clave va en un repositorio, en su historial ni en una captura: se descuenta y obliga a rotarlo.
 - **Recuperación.** Un RA suspendido se recupera con los mismos instrumentos y los mismos pesos que se aplicaron: las entregas pendientes y el examen de ese RA.
 - **Faltas de asistencia.** Las reglas de asistencia, justificación y pérdida de evaluación continua son las de la programación didáctica del módulo y del centro; esta página no las repite.
