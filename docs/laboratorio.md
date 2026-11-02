@@ -171,7 +171,7 @@ Los puertos de aplicaciones vulnerables se publican en `127.0.0.1` de `pps01` cu
 | 8092 | `pps-app` desplegada por el pipeline con Compose (y la prueba local de la A5.6) | UT5, A5.6 en adelante | Mientras se mantenga el despliegue |
 | 8101 y 8102 | Los dos `nginx:alpine` de la comprobación de `--restart` | UT5, A5.17 | Solo esa hoja |
 | 8443 | Apache de las prácticas de hardening (HTTPS) | UT3, A3.1 a A3.4 | Igual que el 8080 |
-| 9443 | Nginx opcional con HTTPS (imagen `pr5`), en `127.0.0.1` | UT3, A3.4 «Si te sobra tiempo» | Solo si se hace la práctica opcional de Nginx |
+| 9443 | Nginx opcional con HTTPS (imagen `pr5`), en `127.0.0.1` | UT3, A3.4, ejercicio Extra | Solo si se hace la práctica opcional de Nginx |
 | 8888 | Servidor de InsecureBankv2, en un contenedor | UT4, A4.5 | Con `docker run --rm` |
 | 9090 | Prometheus del stack de ejemplo | UT5, A5.15 a A5.17 y A5.20 (en la A5.16 recoge también `destino01:9100`) | Con el stack levantado |
 | 9100 | node_exporter del stack de ejemplo | UT5, A5.15 | Con el stack levantado |

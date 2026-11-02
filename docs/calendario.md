@@ -12,7 +12,7 @@ El calendario deja **seis sesiones de margen**, una al final de cada bloque, par
 
 - **Si no se pierde ninguna clase**, la sesión de margen se dedica al repaso de la unidad y a una actividad de ampliación que se indica en la tabla siguiente.
 - **Si se pierde una clase**, el contenido de esa sesión pasa a la siguiente, y así hasta la primera sesión de margen posterior, que absorbe el desplazamiento: ese día se recupera lo pendiente en lugar de repasar. Desde ahí el calendario vuelve a coincidir con las fechas.
-- **Si se pierden más clases de las que hay márgenes antes de un examen**, se recortan primero las secciones «Si te sobra tiempo» y las actividades de ampliación. Nunca se recorta un criterio de evaluación, y los exámenes no se mueven.
+- **Si se pierden más clases de las que hay márgenes antes de un examen**, se recortan primero los ejercicios «Extra» de las hojas y las actividades de ampliación. Nunca se recorta un criterio de evaluación, y los exámenes no se mueven.
 - **Los plazos de entrega no se mueven** aunque se pierda una clase: la práctica evaluable se completa con las hojas y el trabajo en casa, y se entrega en su fecha.
 
 | Sesión | Fecha | Unidad | Actividad de reserva |

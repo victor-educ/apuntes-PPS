@@ -153,7 +153,7 @@ Material que va más allá de lo que se hace en la [UT3](ut/ut3-vulnerabilidades
 
 ### Nginx más allá de la configuración de partida
 
-La [A3.4](ut/ut3-vulnerabilidades-web.md#a34-hardening-final-sesion-18) trae, en «Si te sobra tiempo», una tabla de equivalencias entre Apache y Nginx y una configuración completa que se ha comprobado. Nginx se usa mucho delante de una aplicación en producción (como proxy inverso y balanceador), y hay cuatro cosas que la configuración de partida no cubre y que dan fallos reales.
+La [A3.4](ut/ut3-vulnerabilidades-web.md#a34-hardening-final-sesion-18) trae, en su ejercicio Extra, una tabla de equivalencias entre Apache y Nginx y una configuración completa que se ha comprobado. Nginx se usa mucho delante de una aplicación en producción (como proxy inverso y balanceador), y hay cuatro cosas que la configuración de partida no cubre y que dan fallos reales.
 
 **Comprobar antes de recargar.** `nginx -t` valida la sintaxis de la configuración sin tocar el servicio; `nginx -s reload` la aplica, y si la nueva configuración tiene un error el proceso maestro mantiene la anterior. En el contenedor de la práctica se ejecutan como `docker exec <contenedor> nginx -t`.
 
